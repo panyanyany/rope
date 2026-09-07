@@ -34,6 +34,8 @@ Rope reasoning.
 - Ask one plain-language question at a time for blockers. Independent decisions
   may be grouped into one structured batch; each item still has its own plain
   question, recommendation, concrete example, and tradeoff.
+- Number every visible option (`1.`, `2.`). Accept a bare option number as the
+  answer and mirror the selected label before continuing.
 - Pair the recommended answer with a concrete example: user scenario, click,
   command, screen result, file, or message.
 - State the tradeoff of the other option when it affects product behavior.

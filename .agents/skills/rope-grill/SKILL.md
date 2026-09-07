@@ -29,6 +29,10 @@ Every decision question must use this shape:
 3. Concrete example of what the user would click, run, see, or receive.
 4. Tradeoff if they choose the other option.
 
+Every option-bearing question must show options as a numbered list. A numeric
+reply such as `1` or `2` selects that option; repeat or expand only when the
+choice remains ambiguous.
+
 Completion criterion: the user can repeat the decision in their own words without
 asking what a Rope term means. If they look confused, pause the workflow and
 explain with a real scenario, not more framework language.
@@ -66,7 +70,17 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 9. Stress-test scenarios (primary / failure visibility / forbidden shortcut).
 10. Write CONTEXT / ADR / research / specs as decisions land (ADR three-tests).
 11. **Shared-understanding gate:** recap 3–6 bullets; user confirms before shape.
-    Do not write the issue package until confirm (unless they said “直接 shape”).
+    After confirmation, ask one explicit numbered routing question **before
+    writing any issue, shape, or go artifacts**:
+    “这些需求已经确认。你要走哪条路径？
+    1. 完整流程：写 issue → shape → go（推荐）
+    2. 直接 go：跳过 issue 和 shape”
+    Show the concrete result and tradeoff of each path. Treat `1` as full flow
+    and `2` as direct go. If the user chooses direct go, hand the confirmed
+    recap and decisions to `rope-go` in **direct-go mode**; do not write
+    `.rope/issues/<slug>/` files first. If they choose full flow, continue to
+    shape. Do not write the issue package until the shared-understanding
+    confirmation exists (unless they said “直接 shape”).
     Shape later projects this recap into a **Contract Note** for the final
     PRD confirmation (ADR 0005) — not a separate wish list, a human projection
     of the Behavior Contract.
@@ -77,6 +91,8 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 ## Guardrails
 
 - No feature implementation code; no issue package before step 9 confirm.
+- Option-bearing questions must be numbered; a bare option number is a valid
+  answer.
 - No answerable uncertainty as an “implementation branch.”
 - No product decisions only in chat — write `.rope/`.
 - Schema, dependency, auth, deploy, destructive FS/git, prod/shared → human gate.
