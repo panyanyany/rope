@@ -9,7 +9,8 @@
 #
 # Two modes:
 #   --branch <name> --base <sha> [--recover-dirty]   worktree delivery
-#   --commit <sha>                                   shared-checkout delivery
+#   --commit <sha> [--exact-head]                    shared-checkout delivery
+# --exact-head requires a full SHA equal to HEAD, not merely a reachable ancestor.
 #
 # --evidence <dir> names the executor's own bookkeeping directory. It is not
 # work: a clean tree means "no uncommitted product changes", so anything under
@@ -28,6 +29,7 @@ branch=""
 commit=""
 base=""
 recover_dirty=0
+exact_head=0
 verdict=""
 evidence=""
 
@@ -39,6 +41,7 @@ while [ "$#" -gt 0 ]; do
     --evidence) evidence="${2:-}"; shift 2 ;;
     --verdict) verdict="${2:-}"; shift 2 ;;
     --recover-dirty) recover_dirty=1; shift ;;
+    --exact-head) exact_head=1; shift ;;
     *) echo "verify-delivery.sh: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -53,6 +56,11 @@ if [ -z "$branch" ] && [ -z "$commit" ]; then
 fi
 if [ -z "$verdict" ]; then
   echo "verify-delivery.sh: --verdict <path> is required" >&2
+  exit 2
+fi
+
+if [ "$exact_head" -eq 1 ] && [ -z "$commit" ]; then
+  echo "verify-delivery.sh: --exact-head requires --commit" >&2
   exit 2
 fi
 
@@ -142,8 +150,12 @@ if [ "$dirty_count" -gt 0 ]; then
 fi
 
 if [ "$mode" = "commit" ]; then
-  # Shared checkout: the leaf committed on the current branch, so the delivery
-  # is that commit being a real object reachable from HEAD.
+  # Legacy callers can ask for reachability. The kernel's shared-mode return
+  # gate instead verifies the exact claim before accepting it as identity.
+  if [ "$exact_head" -eq 1 ] && { ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || [ "$commit" != "$head_sha" ]; }; then
+    write_verdict false "commit-not-head" "\"sha\":\"${head_sha}\""
+    exit 1
+  fi
   if [ "$dirty_count" -gt 0 ]; then
     write_verdict false "dirty-tree" "\"dirtyFiles\":\"$(json_escape "$dirty_files")\",\"clean\":false,\"evidenceExcluded\":${evidence_excluded}"
     exit 1

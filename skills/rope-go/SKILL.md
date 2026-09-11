@@ -38,7 +38,9 @@ Code TDD: [red→green playbook](references/tdd.md).
 
 **Dynamic:** compile task data from the approved `tasks.md` and invoke the
 shipped kernel — `skills/rope-go/workflows/go-execute.js`, by **absolute
-`scriptPath` resolved from this skill's installed directory**. You write
+`scriptPath` resolved from this skill's installed directory**. Pass the plan
+in `args` as a **native object, never a JSON string** — the kernel fail-fasts
+on a stringified plan. You write
 briefs, checks and the evidence table; the kernel writes the delivery
 contract, dispatches, merges, gates, reviews and fixes. Ask for
 `explain: true` first when the graph is new. After the structured return,

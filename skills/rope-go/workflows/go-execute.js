@@ -279,14 +279,17 @@ function validatePlan(raw) {
     plan.review = review;
   }
 
-  const needsEvidence = plan.checks.length > 0 || plan.review !== undefined;
+  const needsEvidence = plan.verifyScript !== undefined || plan.checks.length > 0 || plan.review !== undefined;
   if (needsEvidence && plan.evidenceDir === undefined) {
-    planError("args.evidenceDir is required when checks or a review are declared");
+    planError("args.evidenceDir is required when delivery gates, checks or a review are declared");
   }
   if (plan.checks.length > 0 && plan.checkScript === undefined) {
     planError("args.checkScript is required when any check is declared");
   }
 
+  if (!plan.explain && plan.verifyScript === undefined) {
+    planError("args.verifyScript is required for execution in either mode");
+  }
   return plan;
 }
 
@@ -373,12 +376,18 @@ const MERGE_SCHEMA = {
   },
 };
 
+// The review verdict vocabulary. The schema fences it at the host; worstVerdict
+// and runAxis fence it again locally, because "a value the kernel does not
+// recognize" must read as not-verified, never as the permissive default —
+// relying on the host alone is the contract guess this issue exists to stop.
+const AXIS_VERDICTS = ["approve", "changes_requested", "blocked"];
+
 const AXIS_SCHEMA = {
   type: "object",
   required: ["axis", "verdict", "identity", "findings"],
   properties: {
     axis: { type: "string" },
-    verdict: { type: "string", enum: ["approve", "changes_requested", "blocked"] },
+    verdict: { type: "string", enum: AXIS_VERDICTS },
     identity: { type: "string" },
     findings: {
       type: "array",
@@ -455,7 +464,9 @@ function buildLeafPrompt(plan, task, context) {
   const lines = ["You are one slice leaf in a script-driven execution. Your brief is at:", "  " + task.briefPath,
     "Read it first: it is the authority on what to build. This message is the authority on how to deliver.",
     "", "## Delivery contract — fixed, do not reinterpret"];
-  lines.push("- Work only inside your own worktree. Do not touch the main checkout.");
+  lines.push(plan.mode === "worktree"
+    ? "- Work only inside your own worktree. Do not touch the main checkout."
+    : "- Work in the shared checkout on its current branch; no other leaf runs beside you.");
   lines.push.apply(lines, deliveryContract(plan, task));
   lines.push("", "## This task");
   lines.push("- task id: " + task.id);
@@ -531,7 +542,9 @@ function buildFixPrompt(plan, findings, round, branch) {
   const lines = [
     "You are the single fix implementer for one script-driven execution. Fix the blocking review findings below, exactly as written, and nothing else.",
     "",
-    "Delivery branch: `" + branch + "` (your worktree is cut from the frozen review HEAD)",
+    plan.mode === "worktree"
+      ? "Delivery branch: `" + branch + "` (your worktree is cut from the frozen review HEAD)"
+      : "Work in the shared checkout on its current branch, on top of the frozen review HEAD.",
     "",
     "## Blocking findings — verbatim, do not re-explore and do not re-judge",
   ];
@@ -543,7 +556,7 @@ function buildFixPrompt(plan, findings, round, branch) {
   lines.push("1. Change only what these findings require. Add no acceptance requirements, refactor nothing beyond the finding, and rewrite nothing that already passes.");
   lines.push("2. Re-run the tests covering the paths you touched.");
   lines.push("3. Commit everything; `git status --porcelain` must be empty.");
-  lines.push("4. Then `git branch -f " + branch + " HEAD` as your last write.");
+  if (plan.mode === "worktree") lines.push("4. Then `git branch -f " + branch + " HEAD` as your last write.");
   lines.push("5. Report status, branch, commit = the SHA printed by `git rev-parse HEAD`, and a summary naming each finding and how it was fixed. A finding you cannot fix makes this round `blocked`, never a partial fix reported as done.");
   return lines.join("\n");
 }
@@ -569,7 +582,7 @@ const GATING_CLASSES = plan.mode === "shared"
 
 if (plan.explain) {
   // A compile-only pass: the caller gets the schedule without spending a leaf.
-  return {
+  return stripUndefined({
     verdict: "explain",
     issue: plan.issue,
     mode: plan.mode,
@@ -582,7 +595,7 @@ if (plan.explain) {
       e2e: plan.e2e.map((item) => item.id),
       review: plan.review === undefined ? "not-declared" : ["scanner", "behavior"],
     },
-  };
+  });
 }
 
 const state = new Map();
@@ -618,14 +631,29 @@ const settled = [];
 let activeSpawns = 0;
 let peakInFlight = 0;
 let totalSpawns = 0;
-function spawn(prompt, options) {
+let workflowFatal = false;
+const failedSpawnLabels = new Set();
+async function spawn(prompt, options) {
+  const label = options.label;
+  if (workflowFatal) {
+    failedSpawnLabels.add(label);
+    record({ id: null, class: "host-template", message: label + ": workflow fatal circuit is open; spawn suppressed" });
+    return Promise.resolve(null);
+  }
   activeSpawns += 1;
   totalSpawns += 1;
   if (activeSpawns > peakInFlight) peakInFlight = activeSpawns;
-  return agent(prompt, options).then(
-    (result) => { activeSpawns -= 1; return result; },
-    (error) => { activeSpawns -= 1; throw error; },
-  );
+  try {
+    return await agent(prompt, options);
+  } catch (error) {
+    failedSpawnLabels.add(label);
+    const message = error && error.message ? String(error.message) : String(error);
+    record({ id: label, class: "host-template", message: label + ": " + message });
+    if (error && error.workflowFatal === true) workflowFatal = true;
+    return null;
+  } finally {
+    activeSpawns -= 1;
+  }
 }
 let headSha = plan.baseSha;
 let e2eResults = [];
@@ -715,6 +743,13 @@ function deliveryVerdictPath(taskId, round) {
   return plan.evidenceDir + "/delivery/" + taskId + "-r" + round + ".json";
 }
 
+/** The shared-mode identity probe writes its own verdict: reusing the delivery
+ * path would overwrite the leaf's gate evidence, hiding which gate produced
+ * which file. */
+function identityVerdictPath(id, round) {
+  return plan.evidenceDir + "/delivery/" + id + ".identity-r" + round + ".json";
+}
+
 function deliveryGate(task, round) {
   if (plan.verifyScript === undefined) return undefined;
   const parts = ["bash", shellQuote(plan.verifyScript), "--verdict", shellQuote(deliveryVerdictPath(task.id, round))];
@@ -796,7 +831,8 @@ function reconcileEvidence(task, payload) {
 
 function repairOrBlock(task, blockerClass, reason, outstanding) {
   const entry = state.get(task.id);
-  if (entry.rounds >= plan.fixRounds) {
+  record({ id: task.id, class: blockerClass, message: reason + " — repair round " + (entry.rounds + 1) });
+  if (workflowFatal || entry.rounds >= plan.fixRounds) {
     entry.state = "blocked";
     entry.reason = reason;
     record({ id: task.id, class: blockerClass, message: reason + " — repair rounds exhausted" });
@@ -814,12 +850,17 @@ async function handleSettled(item) {
   const payload = parsePayload(item.result);
 
   if (payload === null) {
+    const label = "leaf:" + task.id + (item.round > 0 ? ":r" + item.round : "");
+    if (failedSpawnLabels.has(label)) {
+      entry.state = "blocked";
+      entry.reason = "host/template failure at " + label;
+      return;
+    }
     // The host returns null for a gate rejection, a crashed child, and a schema
-    // failure alike, so the kernel names the evidence path it can predict
-    // instead of guessing which one it was.
+    // failure alike, so the kernel names the evidence path it can predict.
     const reason = item.threw !== null
       ? "the leaf did not finish: " + item.threw
-      : "the leaf produced no verifiable delivery; its verdict file, when one was written, is at " + deliveryVerdictPath(task.id, item.round);
+      : "the leaf produced no verifiable delivery; child/schema/gate outcome is indistinguishable; evidence is at " + deliveryVerdictPath(task.id, item.round);
     repairOrBlock(task, "product", reason, ["Satisfy the delivery contract: commit everything, leave the tree clean, point your delivery branch at your final commit."]);
     return;
   }
@@ -862,9 +903,13 @@ async function mergeOne(task) {
   const entry = state.get(task.id);
 
   if (plan.mode !== "worktree") {
-    // Shared mode: the verified commit IS the integration. The host verified
-    // `HEAD` when the leaf settled, and the record's authority is the verdict
-    // file at the deterministic path.
+    // The first gate proved a clean HEAD, not the leaf's claimed SHA. Verify
+    // that exact full SHA after the payload arrives, while this checkout is
+    // still exclusive. No host metadata can substitute for the git probe.
+    if (!await verifySharedClaim(task.id, entry.claim, entry.rounds)) {
+      repairOrBlock(task, "product", "shared delivery claim is not verified as HEAD: " + entry.claim, []);
+      return;
+    }
     entry.state = "integrated";
     entry.branch = plan.targetBranch;
     entry.commit = entry.claim;
@@ -882,6 +927,11 @@ async function mergeOne(task) {
   });
   const payload = parsePayload(result);
   if (payload === null) {
+    if (failedSpawnLabels.has("merge:" + task.id)) {
+      entry.state = "blocked";
+      entry.reason = "host/template failure while merging " + task.branch;
+      return;
+    }
     repairOrBlock(task, "product", "the merge agent returned no usable result for " + task.branch, [
       "Re-deliver the branch: it could not be merged.",
     ]);
@@ -930,7 +980,7 @@ function scopeKey(scope) {
 
 async function runStageChecks(stage) {
   const batch = plan.checks.filter((check) => check.stage === stage);
-  if (batch.length === 0) return { ran: false, ok: false, atSha: headSha, reason: "no " + stage + " checks declared" };
+  if (batch.length === 0) return skippedStage(stage);
 
   const specs = batch.map((check) => ({
     id: check.id,
@@ -952,29 +1002,90 @@ async function runStageChecks(stage) {
       "--batch", shellQuote(JSON.stringify(specs)),
     ]),
   });
-  const passed = result !== null;
-  for (const spec of specs) {
+  const passed = parsePayload(result) !== null;
+
+  // A failing batch only proves "a required check exited non-zero". Which
+  // check, and whether that is a product fact or a harness fact, is separable:
+  // `--probe` reads the saved exit code without rerunning the command. Probes
+  // are independent of each other, so they run concurrently.
+  const verified = await parallel(specs.map((spec) => async () => {
+    if (passed && spec.required) return { spec: spec, ok: true, unreadable: false };
+    const proof = await spawn(gateCarrierPrompt("saved check evidence " + spec.id), {
+      label: "check:" + spec.id,
+      phase: "Checks",
+      schema: CARRIER_SCHEMA,
+      gate: shellCommand(["bash", shellQuote(plan.checkScript), "--probe", shellQuote(spec.detailPath)]),
+    });
+    if (parsePayload(proof) !== null) return { spec: spec, ok: true, unreadable: false };
+    // The probe failed. Distinguish exit 1 (the check ran and failed — a
+    // product fact) from exit 2 (no evidence written — a host/template fact):
+    // gates expose pass/fail only, so readability is its own gate, spent only
+    // on an already-red check.
+    const readable = await spawn(gateCarrierPrompt("saved check evidence readable " + spec.id), {
+      label: "check-readable:" + spec.id,
+      phase: "Checks",
+      schema: CARRIER_SCHEMA,
+      gate: shellCommand(["test", "-s", shellQuote(spec.detailPath)]),
+    });
+    return { spec: spec, ok: false, unreadable: parsePayload(readable) === null };
+  }));
+
+  const failedRequired = [];
+  for (let index = 0; index < specs.length; index += 1) {
+    const spec = specs[index];
+    const item = verified[index];
+    if (item === null || item === undefined) {
+      // The host's parallel swallows a rejected thunk into a null entry. A
+      // check whose probe never came back is unverified, which is a
+      // host/template fact — never a silent pass.
+      record({ id: spec.id, class: "host-template", message: "check " + spec.id + " could not be verified: no probe result" });
+      checkRecords.push({
+        id: spec.id,
+        stage: stage,
+        scope: spec.scope,
+        key: spec.key,
+        required: spec.required,
+        ok: false,
+        verdictFile: spec.detailPath,
+        outputFile: spec.outPath,
+      });
+      continue;
+    }
+    if (!item.ok && item.unreadable) {
+      // The command itself cannot delete its evidence: a missing detail file
+      // means the check never produced any, which is the one check outcome
+      // that belongs in `blockers` as a harness defect. A red check does not —
+      // it is a product fact the stage record already carries, and routing it
+      // here would fire the downgrade escape hatch on every ordinary failure.
+      record({
+        id: spec.id,
+        class: "host-template",
+        message: "check " + spec.id + " wrote no readable evidence at " + spec.detailPath,
+      });
+    } else if (!item.ok && spec.required) {
+      failedRequired.push(spec.id);
+    }
     checkRecords.push({
       id: spec.id,
       stage: stage,
       scope: spec.scope,
       key: spec.key,
       required: spec.required,
-      ok: passed || !spec.required,
+      ok: item.ok,
       verdictFile: spec.detailPath,
       outputFile: spec.outPath,
     });
   }
   if (!passed) {
-    const requiredIds = batch.filter((check) => check.required).map((check) => check.id);
     record({
       id: null,
       class: "product",
-      message: "stage " + stage + " failed: a required check exited non-zero (" + requiredIds.join(", ") + "); evidence under " + plan.evidenceDir + "/" + scopeKey("stage-" + stage),
+      message: "stage " + stage + " failed: required check" + (failedRequired.length === 1 ? " " : "s ") + failedRequired.join(", ") + " exited non-zero; evidence: " + specs.map((spec) => spec.detailPath).join(", "),
     });
-    return { ran: true, ok: false, atSha: headSha, reason: "one or more required " + stage + " checks exited non-zero: " + requiredIds.join(", ") };
+    return { ran: !failedSpawnLabels.has("checks:" + stage), ok: false, skipped: false, atSha: headSha,
+      reason: "required checks failed: " + (failedRequired.length > 0 ? failedRequired.join(", ") : "(unresolved — no readable evidence)") };
   }
-  return { ran: true, ok: true, atSha: headSha, reason: "every required " + stage + " check exited zero" };
+  return { ran: true, ok: true, skipped: false, atSha: headSha, reason: "every required " + stage + " check exited zero" };
 }
 
 /* ------------------------------------------------------------------ *
@@ -1035,15 +1146,19 @@ async function runE2e() {
   const byId = new Map();
   willRun.forEach((item, index) => {
     const payload = parsePayload(results[index]);
+    const status = e2eTerminalStatus(payload);
     byId.set(item.id, {
       id: item.id,
-      status: e2eTerminalStatus(payload),
+      status: status,
       evidence: payload === null ? "(no usable return)" : payload.evidence,
       detail: payload === null ? undefined : payload.detail,
       required: item.required,
       executor: item.executor,
       ran: true,
     });
+    if (status !== "agent_passed") {
+      record({ id: item.id, class: payload === null ? "host-template" : "product", message: "e2e " + item.id + " " + status + (payload === null ? ": no usable host return" : ": " + (payload.detail || "no detail reported")) });
+    }
   });
   for (const item of declared) {
     byId.set(item.id, {
@@ -1063,6 +1178,10 @@ function worstVerdict(verdicts) {
   for (const verdict of verdicts) {
     if (verdict === "blocked") return "blocked";
     if (verdict === "changes_requested") worst = "changes_requested";
+    // A verdict outside the vocabulary is a broken fence, not an approval. The
+    // schema is supposed to make it unreachable; if one arrives anyway the
+    // safe reading is "not verified", never the permissive default.
+    else if (verdict !== "approve") return "blocked";
   }
   return worst;
 }
@@ -1072,8 +1191,47 @@ async function runAxis(axis, delta) {
   const options = { label: "review:" + axis + (delta === undefined ? "" : ":delta"), phase: "Review", schema: AXIS_SCHEMA };
   if (config.preset !== undefined) options.agentType = config.preset;
   const payload = parsePayload(await spawn(buildReviewPrompt(plan, axis, config, delta), options));
-  if (payload === null) return { axis: axis, verdict: "blocked", identity: "(no usable return)", findings: [] };
-  return { axis: axis, verdict: payload.verdict, identity: payload.identity, findings: payload.findings === undefined ? [] : payload.findings };
+  if (payload === null) return {
+    axis: axis,
+    verdict: "blocked",
+    identity: "(no usable return)",
+    findings: [],
+  };
+  const findings = payload.findings === undefined ? [] : payload.findings;
+  if (AXIS_VERDICTS.indexOf(payload.verdict) === -1) {
+    // Reachable only if the schema fence and the kernel vocabulary drifted
+    // apart — which is a host/template defect, and must not read as approve.
+    record({ id: axis, class: "host-template", message: "review " + axis + " returned an unrecognized verdict '" + payload.verdict + "'; treating it as blocked" });
+    return { axis: axis, verdict: "blocked", identity: payload.identity, findings: findings };
+  }
+  const verdict = payload.verdict === "approve" && findings.some((finding) => finding.severity === "blocking")
+    ? "changes_requested" : payload.verdict;
+  return { axis: axis, verdict: verdict, identity: payload.identity, findings: findings };
+}
+
+async function collectAxes(delta) {
+  const names = ["scanner", "behavior"];
+  const results = await parallel(names.map((axis) => () => runAxis(axis, delta)));
+  return names.map((axis, index) => {
+    const result = results[index];
+    if (result !== null && result !== undefined) return result;
+    record({ id: axis, class: "host-template", message: "review " + axis + " produced no axis result" });
+    return { axis: axis, verdict: "blocked", identity: "(no usable return)", findings: [] };
+  });
+}
+
+async function verifySharedClaim(id, claim, round) {
+  const proof = await spawn(gateCarrierPrompt("shared delivery identity " + id), {
+    label: "identity:" + id,
+    phase: "Merge",
+    schema: CARRIER_SCHEMA,
+    gate: shellCommand([
+      "bash", shellQuote(plan.verifyScript), "--commit", shellQuote(claim), "--exact-head",
+      "--verdict", shellQuote(identityVerdictPath(id, round)),
+      "--evidence", shellQuote(plan.evidenceDir),
+    ]),
+  });
+  return parsePayload(proof) !== null;
 }
 
 /**
@@ -1095,6 +1253,7 @@ async function deliverFix(args) {
       "bash", shellQuote(plan.verifyScript),
       "--verdict", shellQuote(plan.evidenceDir + "/delivery/" + args.slug + "-" + args.round + ".json"),
       "--branch", shellQuote(branch), "--base", shellQuote(headSha), "--recover-dirty",
+      "--evidence", shellQuote(plan.evidenceDir),
     ]);
   }
 
@@ -1105,11 +1264,11 @@ async function deliverFix(args) {
   }
 
   if (plan.mode !== "worktree") {
-    // Shared mode has no branch to land: the leaf committed into the one
-    // checkout, and its claimed SHA is the only routing input available (the
-    // host exposes no commit or branch on a spawn result). The gate verified
-    // the tree at settle time, so the claim is as trustworthy here as it is for
-    // a slice integration.
+    if (!await verifySharedClaim(args.slug + "-" + args.round, fix.commit, args.round)) {
+      record({ id: null, class: "product", message: args.slug + " fix claim is not verified as HEAD" });
+      return null;
+    }
+    headSha = fix.commit;
     return { branch: plan.targetBranch, commit: fix.commit, mergeCommit: fix.commit, headAfter: fix.commit };
   }
 
@@ -1123,14 +1282,13 @@ async function deliverFix(args) {
     return null;
   }
   headSha = merged.headAfter;
-  return { branch: branch, commit: fix.commit, mergeCommit: merged.mergeCommit, headAfter: merged.headAfter };
+  return { branch: branch, commit: merged.commit, mergeCommit: merged.mergeCommit, headAfter: merged.headAfter };
 }
 async function runReview() {
   if (plan.review === undefined) {
     return { verdict: "skipped", axes: [], rounds: 0, findings: [], reason: "the plan declares no review" };
   }
-  const axes = (await parallel([() => runAxis("scanner", undefined), () => runAxis("behavior", undefined)]))
-    .filter((axis) => axis !== null && axis !== undefined);
+  const axes = await collectAxes(undefined);
 
   let verdict = worstVerdict(axes.map((axis) => axis.verdict));
   let findings = axes.flatMap((axis) => axis.findings);
@@ -1157,8 +1315,7 @@ async function runReview() {
     delta = { fromSha: fromSha, headSha: delivered.headAfter };
     fixes.push({ round: rounds, branch: delivered.branch, commit: delivered.commit, mergeCommit: delivered.mergeCommit });
 
-    const reAxes = (await parallel([() => runAxis("scanner", delta), () => runAxis("behavior", delta)]))
-      .filter((axis) => axis !== null && axis !== undefined);
+    const reAxes = await collectAxes(delta);
     findings = reAxes.flatMap((axis) => axis.findings);
     verdict = worstVerdict(reAxes.map((axis) => axis.verdict));
     if (verdict === "blocked") break;
@@ -1228,7 +1385,7 @@ while (true) {
   while (settled.length > 0) await handleSettled(settled.shift());
 
   let launched = true;
-  while (launched) {
+  while (launched && !workflowFatal) {
     launched = false;
     for (const task of readyTasks()) {
       if (running.size >= plan.inFlight) break;
@@ -1285,18 +1442,18 @@ if (!everyTaskIntegrated) {
   if (mergeStage.ran) log("post-merge warnings: " + mergeStage.reason);
 
   const l2 = await runStageChecks("l2");
-  stages.l2 = l2.ran ? { ran: true, ok: l2.ok, skipped: false, atSha: l2.atSha, reason: l2.reason } : skippedStage("l2");
+  stages.l2 = l2;
 
   if (stages.l2.ok) {
     const l3 = await runStageChecks("l3");
-    stages.l3 = l3.ran ? { ran: true, ok: l3.ok, skipped: false, atSha: l3.atSha, reason: l3.reason } : skippedStage("l3");
+    stages.l3 = l3;
   } else {
     stages.l3 = blockedByPriorStage("l3", "L2");
   }
 
   if (stages.l3.ok) {
     const freeze = await runStageChecks("freeze");
-    stages.freeze = freeze.ran ? { ran: true, ok: freeze.ok, skipped: false, atSha: freeze.atSha, reason: freeze.reason } : skippedStage("freeze");
+    stages.freeze = freeze;
   } else {
     stages.freeze = blockedByPriorStage("freeze", "L3");
   }
@@ -1377,14 +1534,15 @@ if (!everyTaskIntegrated) {
     // The fix changed product code after the review approved, so the review's
     // approval describes the pre-fix HEAD. A narrow delta review of the fix
     // commit is what keeps the approval honest.
-    const reAxes = (await parallel([
-      () => runAxis("scanner", { fromSha: fromSha, headSha: headSha }),
-      () => runAxis("behavior", { fromSha: fromSha, headSha: headSha }),
-    ])).filter((axis) => axis !== null && axis !== undefined);
+    const reAxes = await collectAxes({ fromSha: fromSha, headSha: headSha });
     review.e2eDeltaAxes = reAxes.map((axis) => ({ axis: axis.axis, verdict: axis.verdict, identity: axis.identity }));
     review.verdict = worstVerdict([review.verdict].concat(reAxes.map((axis) => axis.verdict)));
     review.findings = review.findings.concat(reAxes.flatMap((axis) => axis.findings));
-    if (review.verdict !== "approve") break;
+    review.blockingRemaining = review.findings.filter((finding) => finding.severity === "blocking").length;
+    if (review.verdict !== "approve") {
+      record({ id: null, class: "product", message: "e2e delta review returned " + review.verdict });
+      break;
+    }
   }
 
   if (e2eFixes.length > 0) {
@@ -1403,7 +1561,10 @@ if (!everyTaskIntegrated) {
   }
 }
 
-const delivered = everyTaskIntegrated && stagesOk && review.verdict === "approve" && stages.e2e.ok === true;
+const spentOutput = budget.spent();
+const outputTokens = Number.isFinite(spentOutput) ? spentOutput : null;
+if (outputTokens === null) record({ id: null, class: "host-template", message: "budget.spent() returned non-finite or unavailable telemetry" });
+const delivered = !workflowFatal && everyTaskIntegrated && stagesOk && review.verdict === "approve" && stages.e2e.ok === true;
 const blockedTaskCount = plan.tasks.filter((task) => state.get(task.id).state === "blocked").length;
 const templateTrouble = blockers.some((blocker) => blocker.class === "environment" || blocker.class === "host-template");
 
@@ -1431,10 +1592,15 @@ if (!delivered && (templateTrouble || blockedTaskCount >= 2)) {
 function stripUndefined(value) {
   if (Array.isArray(value)) return value.map(stripUndefined);
   if (value === null || typeof value !== "object") return value;
-  const pruned = {};
+  const pruned = Object.create(null);
   for (const key of Object.keys(value)) {
     if (value[key] === undefined) continue;
-    pruned[key] = stripUndefined(value[key]);
+    Object.defineProperty(pruned, key, {
+      value: stripUndefined(value[key]),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
   return pruned;
 }
@@ -1469,6 +1635,6 @@ return stripUndefined({
   e2e: e2eResults,
   review: review,
   concurrency: { inFlight: plan.inFlight, peak: peakInFlight, spawns: totalSpawns },
-  tokens: { output: budget.spent() },
+  tokens: { output: outputTokens },
   suggestDowngrade: suggestDowngrade,
 });

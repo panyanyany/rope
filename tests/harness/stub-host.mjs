@@ -20,12 +20,17 @@
  * | a failed spawn is `null`, never a throw          | `runtime.ts` `respond(callId,true, |
  * |                                                  | null)`; "a dead agent is a null in |
  * |                                                  | the script"                        |
+ * | a reply violating the requested schema is `null` | `runtime.ts` `applySchema` sets    |
+ * | (after materialisation, before the script sees   | ok:false → the same null path      |
+ * | it)                                              |                                    |
  * | a gate rejection is `null` with no readable text | `runtime.ts` `applyGate`, then the same null path |
  * | the script's return value may not contain an     | `worker-source.ts` `assertBoundary`|
  * | `undefined` below the top level                  | + `checkBoundary(value, "the workflow result")` |
  * | `gate` runs before the worktree is cleaned up    | `host.ts` `onBeforeWorktreeCleanup` |
  * | `phase`/`log`/`console` are injected, nothing else | `worker-source.ts` sandbox construction |
  * | `budget.spent()` counts output tokens            | `runtime.ts` `budget`           |
+ * | `parallel`/`pipeline` swallow thunk errors but    | `worker-source.ts` rethrows      |
+ * | rethrow a fatal one (`error.fatal`)               | `isFatal` errors                 |
  *
  * The envelope rows are the ones that matter: `toSpawnResult` (the shape the
  * host builds for its own bookkeeping) is NOT what a script receives, and a
@@ -38,6 +43,57 @@
  */
 
 import { spawnSync } from "node:child_process";
+
+/**
+ * A minimal JSON-Schema checker covering every keyword the template's schemas
+ * use: type (incl. type arrays like `["string", "null"]`), enum, required,
+ * properties, items, additionalProperties. Mirrors the host's `applySchema`
+ * (`runtime.ts`): a reply that violates the requested schema is a failed
+ * spawn (null), never a value the script is left to police. Without this the
+ * offline suite can show a false green the real host would reject — a
+ * schema-violating verdict once read as approve.
+ */
+function validateSchema(value, schema) {
+  if (schema === undefined || schema === null || typeof schema !== "object") return true;
+  const types = Array.isArray(schema.type) ? schema.type : (schema.type === undefined ? [] : [schema.type]);
+  if (types.length > 0 && !types.some((candidate) => schemaTypeMatches(value, candidate))) return false;
+  if (Array.isArray(schema.enum) && !schema.enum.some((candidate) => candidate === value)) return false;
+  // `typeof null === "object"`, so the branch is entered on the value's real
+  // shape (and the type gate above has already accepted it), never on the
+  // type keyword alone — a `["string", "null"]` field holding null must not
+  // wander into the object branch and die there.
+  if (types.includes("object") && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    for (const name of schema.required || []) {
+      if (!Object.prototype.hasOwnProperty.call(value, name)) return false;
+    }
+    if (schema.additionalProperties === false) {
+      const allowed = Object.keys(schema.properties || {});
+      for (const key of Object.keys(value)) {
+        if (!allowed.some((candidate) => candidate === key)) return false;
+      }
+    }
+    for (const key of Object.keys(schema.properties || {})) {
+      if (Object.prototype.hasOwnProperty.call(value, key) && !validateSchema(value[key], schema.properties[key])) return false;
+    }
+  }
+  if (types.includes("array") && Array.isArray(value)) {
+    for (const item of value) {
+      if (!validateSchema(item, schema.items)) return false;
+    }
+  }
+  return true;
+}
+
+function schemaTypeMatches(value, type) {
+  if (type === "object") return typeof value === "object" && value !== null && !Array.isArray(value);
+  if (type === "array") return Array.isArray(value);
+  if (type === "string") return typeof value === "string";
+  if (type === "integer") return typeof value === "number" && Number.isInteger(value);
+  if (type === "number") return typeof value === "number";
+  if (type === "boolean") return typeof value === "boolean";
+  if (type === "null") return value === null;
+  return true;
+}
 
 /**
  * Replace `<sha:key>` placeholders in a scripted reply.
@@ -133,16 +189,27 @@ export function createStubHost(options = {}) {
         : prose;
     }
     // Schema'd: the host parses the reply in the script's realm and returns the
-    // payload itself — not `{ok, text}`, and not a JSON string.
+    // payload itself — not `{ok, text}`, and not a JSON string. A reply that
+    // does not match the requested schema never reaches the script: the real
+    // host's applySchema turns it into a failed spawn (after one retry).
+    if (!validateSchema(payload, opts.schema)) {
+      logs.push("stub: scripted reply for " + call.label + " violates its requested schema");
+      return null;
+    }
     return payload;
   }
 
-  /** A `parallel` that really runs its thunks concurrently and never rejects. */
+  /** A `parallel` that really runs its thunks concurrently. Like the host's, a
+   * thunk error is swallowed into null — except a fatal one, which rejects the
+   * whole call so the script cannot mistake an aborted workflow for a quiet
+   * failure (`worker-source.ts` rethrows `isFatal` errors from parallel and
+   * pipeline). */
   async function parallel(thunks) {
     const results = await Promise.all(thunks.map(async (thunk) => {
       try {
         return await thunk();
-      } catch {
+      } catch (error) {
+        if (error !== null && error !== undefined && error.fatal) throw error;
         return null;
       }
     }));
@@ -150,11 +217,16 @@ export function createStubHost(options = {}) {
   }
 
   async function pipeline(items, ...stages) {
-    return Promise.all(items.map(async (item, index) => {
-      let value = item;
-      for (const stage of stages) value = await stage(value, item, index);
-      return value;
-    }));
+    try {
+      return await Promise.all(items.map(async (item, index) => {
+        let value = item;
+        for (const stage of stages) value = await stage(value, item, index);
+        return value;
+      }));
+    } catch (error) {
+      if (error !== null && error !== undefined && error.fatal) throw error;
+      return items.map(() => null);
+    }
   }
 
   return {

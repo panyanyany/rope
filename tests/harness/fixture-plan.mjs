@@ -102,5 +102,9 @@ export function approvingReplies(taskIds) {
   replies["checks:freeze"] = { ack: "ok" };
   replies["review:scanner"] = { axis: "scanner", verdict: "approve", identity: "stub-scanner", findings: [] };
   replies["review:behavior"] = { axis: "behavior", verdict: "approve", identity: "stub-reviewer", findings: [] };
+  // A green fix scenario includes two actual delta replies. Leaving them
+  // unscripted used to throw, which the kernel filtered into a false approve.
+  replies["review:scanner:delta"] = { ...replies["review:scanner"], findings: [] };
+  replies["review:behavior:delta"] = { ...replies["review:behavior"], findings: [] };
   return replies;
 }

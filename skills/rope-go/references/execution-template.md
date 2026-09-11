@@ -37,7 +37,8 @@ that part of every prompt itself.
 
 ## Hard host limits the plan lives inside
 
-Measured against the installed `@tintinweb/pi-subagents` source, 2026-09-11.
+Verified against the local `pi-custom-subagent` source, 2026-09-11.
+Source paths below are relative to that checkout (read-only evidence).
 
 - **No shell, no filesystem, no `require`/`import` in the script.** Every effect
   is an `agent()` call. This is why the kernel is one file and why commands live
@@ -46,12 +47,15 @@ Measured against the installed `@tintinweb/pi-subagents` source, 2026-09-11.
   spawn resolves to the parsed object itself; the host parses the reply in the
   script's own realm and returns it (`worker-source.ts` `agentIn`:
   `if (schema === undefined) return result; return realmParse(result)`), so
-  `result.ok` and `result.text` do not exist in the script. A schema-less spawn
-  resolves to the prose string instead. **Failure is `null`** — a dead child, a
-  schema mismatch and a rejected gate all arrive the same way — and there is no
-  `branch` and no `baseSha`, so branch identity can only come from git; see
-  *Delivery identity*. Reading `result.ok` here reads `undefined`, which is what
-  reported a live run's six gate-verified deliveries as unverifiable.
+  there is no host-provided `ok`/`text`/`branch`/`baseSha` envelope. Properties
+  requested by the payload schema are still ordinary payload data, not host
+  metadata. All kernel schemas require objects; schema-less success is prose.
+  **Ordinary child/schema/gate failure is `null`** (`runtime.ts:1099-1124`,
+  `worker-source.ts:526-549`). **RPC/option/capability errors can reject**;
+  run-fatal errors carry `workflowFatal: true` (`worker-source.ts:114-125`).
+  The kernel records rejected spawns as `host-template`; a fatal rejection stops
+  further dispatch, drains already-running leaves, and cannot deliver. A null
+  result alone never proves that a product command ran or exited non-zero.
 - **A schema'd reply is already parsed.** There is nothing to `JSON.parse` and
   no `text` field; without a schema the script gets prose, and a worktree child's
   prose has the host's branch note appended, so it does not parse. **Every spawn
@@ -59,31 +63,56 @@ Measured against the installed `@tintinweb/pi-subagents` source, 2026-09-11.
 - **The return value may not contain an `undefined` below the top level.** The
   host's `assertBoundary` admits `undefined` only at the path
   `"the workflow result"` and throws for anything nested, then discards the
-  record. A single unset optional field therefore costs the entire record —
-  which is how a run whose slices all blocked reported nothing at all. The
-  kernel prunes with `stripUndefined` before returning.
+  record. The same fence rejects non-finite numbers, BigInt, symbols/symbol
+  keys, sparse arrays, cycles and non-plain objects (`worker-source.ts:203-260`).
+  Both normal and explain returns omit optional object keys through
+  `stripUndefined`; JSON's `__proto__` key remains data, never a prototype
+  mutation. This is not a generic lossy JSON sanitizer: undefined array slots
+  are not removed or changed to null. Input/reply JSON and dense kernel array
+  construction keep those invalid values out.
+- **Budget telemetry is not a delivery result.** `budget.spent()` mirrors a
+  number from the host without a finite check (`worker-source.ts:112,714-716`;
+  `runtime.ts:1085`). The kernel preserves valid numbers, records unavailable or
+  non-finite telemetry as `tokens.output: null` with a `host-template` diagnostic,
+  and never loses the record or invents zero tokens.
 - **A `schema` mismatch is retried by the host**, so `required` fields are a real
-  fence rather than a hope.
+  fence rather than a hope. The kernel does not rely on that fence alone:
+  verdicts outside the axis vocabulary read as `blocked` locally, so a value
+  the kernel cannot interpret is never the permissive default. The offline
+  stub applies the same schema check a real `applySchema` would, which is what
+  makes that path falsifiable offline.
 - **A `gate` runs before the worktree is cleaned up** (isolated child) or in the
   checkout (non-isolated child). Its exit code is the verdict: **a passing gate
   leaves nothing on the result, and a failing gate folds its output into a `null`
   return.** The kernel therefore treats *exit code as the verdict* and *the
   evidence files as the detail* — per-check durations, reuse flags and delivery
   SHAs are read by the parent from disk, never relayed through the script. Gate
-  wall-clock bound is 10 minutes; a gate that hangs wedges the slot it holds.
-- **Worktree cleanup commits leftovers to `pi-agent-<id>`** and deletes the
-  copy, only when the tree is dirty or HEAD moved. A leaf that leaves work
+  wall-clock bound is 10 minutes (`host.ts:51`); the slot is held until the gate
+  finishes or times out.
+- **Worktree cleanup removes the copy even when there are no changes.** A
+  `pi-agent-<id>` preservation branch is created only when the tree is dirty or
+  HEAD moved (`src/worktree.ts:123-177`). A leaf that leaves work
   uncommitted loses it from the plan's point of view, which is why
   `verify-delivery.sh --recover-dirty` commits it first.
-- **A merge conflict is not recoverable from the kernel**: a leaf whose work was
-  rejected is re-dispatched from its delivery branch, so the branch must exist
-  before the gate rejects anything.
-- **Concurrency is `max(1, min(16, cpus − 2))`**, agent cap 1000, one call at
-  most 4096 items. `inFlight` is a ceiling to stay under.
+- **The host supplies no merge operation.** The kernel briefs a serial merge
+  agent; an unresolved merge returns to the bounded slice repair loop. A repair
+  brief can reuse the predecessor's delivery branch only if git actually has it.
+- **Default host concurrency is `max(1, min(16, cpus − 2))`**, agent cap 1000,
+  one parallel/pipeline call at most 4096 items. The host may queue spawns below
+  the kernel's `inFlight` ceiling. `parallel`/`pipeline` preserve ordinary thrown
+  items as null, but rethrow fatal errors (`worker-source.ts:557-609`).
 - **`Date.now()`, `Math.random()`, and argless `new Date()` throw** — a journaled
   run is replayed by prefix. The kernel reads no clock and generates no id.
 
 ## Plan schema (args)
+
+`args` is the plan object itself, passed as a **native object in the tool call —
+never a JSON-encoded string**. The kernel rejects a stringified plan at
+validation (`isPlainObject`), because the host preserves the argument's type
+through the boundary and a string is a string on both sides. This is the
+single most common launch failure recorded so far: an 8k-character plan is
+tempting to stringify, and the failure reads as a kernel error rather than a
+call-shape error.
 
 ```jsonc
 {
@@ -93,12 +122,12 @@ Measured against the installed `@tintinweb/pi-subagents` source, 2026-09-11.
   "targetBranch": "main",                  // required in worktree mode
   "mainCheckout": "/abs/path",             // required in worktree mode
   "branchPrefix": "rope/",                 // default
-  "inFlight": 6,                           // default 6, clamped to 1..16; forced to 1 in shared mode
+  "inFlight": 6,                           // default 6, validated in 1..16; forced to 1 in shared mode
   "fixRounds": 2,                          // default 2, 0..5
   "setupCommand": "bash /abs/setup.sh .",  // optional; injected as step 0 into every leaf prompt
-  "verifyScript": "/abs/.../verify-delivery.sh",   // required in worktree mode
+  "verifyScript": "/abs/.../verify-delivery.sh",   // required for execution in either mode
   "checkScript": "/abs/.../run-check.sh",          // required if any check is declared
-  "evidenceDir": "/abs/path/.rope/issues/<slug>/evidence",  // required if checks or a review are declared
+  "evidenceDir": "/abs/path/.rope/issues/<slug>/evidence",  // required when any delivery gate, check or review is declared
   "tasks": [ /* Task, ≥1, ids unique */ ],
   "checks": [ /* Check, optional */ ],
   "e2e": [ /* E2eItem, optional */ ],
@@ -183,6 +212,17 @@ before a single leaf is spent.
   (seconds); the evidence file's `durationMs` makes a breach visible.
 - A `required: false` check informs without gating: its non-zero exit is
   recorded and does not fail the batch.
+- **A red check is a product fact; missing evidence is a harness fact.** A
+  failed batch only proves "a required check exited non-zero", so each
+  unverified check is probed (`run-check.sh --probe`) and, when the probe
+  fails, its detail file's readability decides the class: readable evidence
+  with a non-zero saved exit is `product`, named in the stage record — it
+  never enters `blockers` and never suggests downgrading the kernel, because
+  an ordinary red suite is the most common outcome a go run has. No readable
+  evidence is `host-template` in `blockers`: the command itself cannot delete
+  its own detail file. Gates expose pass/fail only, which is why readability
+  is a second gate, spent only on an already-red check; probes run
+  concurrently because they are independent.
 - **Reuse is mechanical.** The key is `<scope>@<integrated commit set>` and
   `run-check.sh` skips a check whose evidence file already exists for that key,
   reporting `reused: true`. Re-running an unchanged state therefore cannot happen
@@ -290,6 +330,12 @@ Routing never reads agent prose. The chain is:
 So a forgotten branch costs one `moved: true` flag, and a forgotten commit costs
 one `recovered: true` flag, rather than either costing the work.
 
+In shared mode the chain is shorter — no worktree, no branch — so the leaf's
+claim is verified against the checkout it just wrote: `verify-delivery.sh
+--exact-head` requires the full claimed SHA to equal `git rev-parse HEAD`, and
+that probe writes its own verdict beside the leaf's (`<id>.identity-r<round>.json`),
+never over it, so the evidence trail shows which gate produced which file.
+
 `headMovedFromBase: false` — a clean tree at base, i.e. a slice that changed
 nothing — is a parent-visible signal in the verdict file, not a kernel decision.
 
@@ -377,11 +423,9 @@ In order, each advancing only if the previous one is satisfied:
 | `merge` | the cheap post-merge batch ran (never gating) |
 | `l2` | every required `l2` check exited zero |
 | `l3` | every required `l3` check exited zero |
-| `e2e` | every required E2E item **that the agent ran** reported `passed` |
 | `freeze` | every required `freeze` check exited zero |
-| review | both axes returned; the verdict is the mechanical worst of the two |
-| e2e fixes | ≤ `fixRounds` rounds: fix → merge → re-walk every declared item → delta re-review |
-| review fixes | ≤ `fixRounds` blocking-finding rounds, delta re-review only, then the record stops with the remaining findings |
+| review + review fixes | both axes returned, neither has blocking findings; worst verdict, ≤ `fixRounds` repair rounds with delta re-review |
+| `e2e` + e2e fixes | every required agent-run item passed; ≤ `fixRounds` rounds: fix → merge → re-walk every item → delta re-review |
 
 The `l2` row is the audited failure's fence. "Every planned task integrated
 **and** the affected suite green" is asserted by the kernel before anything
@@ -389,8 +433,7 @@ downstream starts, where the failed run returned `l2` as a field and then ran E2
 anyway with nothing merged.
 
 **The real order is `l2 → l3 → freeze → review (+fix loop) → e2e (+fix loop)`.**
-The table lists the gates in the order they must be satisfied, but `freeze`
-belongs to the review's preconditions and `e2e` belongs after it:
+`freeze` belongs to the review's preconditions and `e2e` belongs after it:
 
 - The read-only review is cheap; the real-environment walk is not. Reviewing
   first means the expensive walk runs **once**, on the commit that will actually
@@ -415,8 +458,10 @@ citation in `tests/harness/stub-host.mjs`: sandbox globals, `text` selection, th
 branch note, the null-on-failure path, gate timing, and the determinism throws.
 
 A stub behaviour with no citation is a finding, and a citation that no longer
-matches the installed extension is a finding too — with a fixed kernel and a
-moving host, these tests are the only fence between the two.
+matches the audited source is a finding too. These offline tests exercise the
+reviewed host contract, not every future host build: changing the host requires
+rechecking the source citations and rerunning the contract probes. A local stub
+cannot automatically detect a host change it never loads.
 
 ## Using the kernel as a parent
 

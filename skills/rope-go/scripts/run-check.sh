@@ -11,6 +11,8 @@
 #
 # Exit 0 = every required check exited zero. Exit 1 = at least one did not.
 # Exit 2 = the invocation itself was wrong.
+# --probe <detail.json> checks saved exitCode without running the command again:
+# exit 0 = zero, exit 1 = non-zero, exit 2 = missing/malformed evidence.
 #
 # Reuse is the point of the key: the key encodes the integrated commit set plus
 # the check's scope, so re-evaluating an unchanged state finds the evidence
@@ -21,16 +23,34 @@ set -u
 
 evidence=""
 batch=""
+probe=""
 reuse=1
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --evidence) evidence="${2:-}"; shift 2 ;;
     --batch) batch="${2:-}"; shift 2 ;;
+    --probe) probe="${2:-}"; shift 2 ;;
     --no-reuse) reuse=0; shift ;;
     *) echo "run-check.sh: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+
+if [ -n "$probe" ]; then
+  if [ -n "$batch" ] || [ -n "$evidence" ]; then
+    echo "run-check.sh: --probe is read-only and cannot be combined with a batch" >&2
+    exit 2
+  fi
+  command -v node >/dev/null 2>&1 || exit 2
+  node -e '
+try {
+  const detail = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  if (!Number.isInteger(detail.exitCode) || detail.exitCode < 0) process.exit(2);
+  process.exit(detail.exitCode === 0 ? 0 : 1);
+} catch { process.exit(2); }
+' "$probe"
+  exit $?
+fi
 
 if [ -z "$evidence" ] || [ -z "$batch" ]; then
   echo "usage: run-check.sh --evidence <dir> --batch <json-array>" >&2

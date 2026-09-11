@@ -80,6 +80,29 @@ return realmParse(result)`），所以 `result.ok` 恒为 `undefined`，每次�
 桩的引用表改指 `agentIn` 而不是 `toSpawnResult`——**桩保真度的层级选错了：
 `toSpawnResult` 是宿主内部记录的形状，不是脚本收到的形状。**
 
+## 第二轮评审：外部审核修复的再审核（2026-09-11 深夜）
+
+Astra 对 parsePayload/assertBoundary 两修复做了代码评审并改了 6 个文件、
+新增 3 个测试文件（64 用例）。本轮对其改动逐条回退验证（全部属实），
+同时审出它引入的 1 个回归 + 同类漏洞 1 个，当日修完：
+
+- **回归：普通红灯被记为 `host-template`**。每个未验证检查都进 `blockers`
+  且 `host-template` 是降级逃生舱的扳机 → 任何一次测试失败都建议
+  放弃内核。根因：探针把 exit 1（检查跑过且失败，product）和 exit 2
+  （证据不可读，host）坍缩成一个 null。修复：失败批次逐检查探针，
+  探针失败再花一个 `test -s` 可读性门禁区分两类；product 红灯只进
+  stage 记录不进 `blockers`，探针并发执行
+- **同类漏洞：未知 verdict 默认 approve**。`worstVerdict` 从 "approve"
+  起算只认两个降级词 → 轴回 `verdict: "banana"`（schema 外值）离线读作
+  交付。真实宿主 `applySchema` 会拒，但离线桩不校验 schema，栅栏两侧
+  都没拦。修复：内核本地白名单（`AXIS_VERDICTS`，未知名 → blocked）
+  + 桩补上 `applySchema` 等价校验 + `parallel`/`pipeline` 的 fatal 重抛
+- 附带：shared 身份探针 verdict 改写到独立文件（不再覆盖 leaf 门禁
+  证据）；文档补 args 必须原生对象的显式警告（历史第一拉起失败）
+
+红→绿：四条回退（旧分类 / 身份路径复用 / worstVerdict 守卫+枚举放宽 /
+桩去校验）各自使对应新测试转红；恢复后 68/68 全绿（~2.4s）。
+
 ## 红→绿证据
 
 - `node --test tests/*.test.mjs` → 40 用例全绿（~2.3s），无外部依赖
