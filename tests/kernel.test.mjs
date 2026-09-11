@@ -305,6 +305,96 @@ test("a slice that never delivers exhausts its repair rounds and blocks with a r
   await cleanup(repo.dir);
 });
 
+test("a schema'd leaf return is the payload itself, never an {ok, text} envelope", async () => {
+  // The defect this fences cost a live run every one of its deliveries: the
+  // host unwraps a schema'd spawn before the script sees it
+  // (`worker-source.ts` `agentIn` returns `realmParse(result)`), so reading
+  // `result.ok` found `undefined` and six gate-verified deliveries were all
+  // reported as "the leaf produced no verifiable delivery". The stub now hands
+  // back what the host hands back, so this is the shape the kernel must read.
+  const repo = await fixture("payload-");
+  const host = createStubHost({ repo: repo.dir, replies: approvingReplies(["A"]) });
+
+  // The contract itself: what a schema'd spawn resolves to.
+  const delivered = { taskId: "A", status: "done", commit: "<sha:A>" };
+  const seen = await createStubHost({ repo: repo.dir, replies: { x: delivered } }).globals.agent("p", {
+    label: "x",
+    schema: { type: "object" },
+  });
+  assert.equal(seen.ok, undefined, "a schema'd spawn must not hand the script an ok field");
+  assert.equal(seen.text, undefined, "a schema'd spawn must not hand the script a text field");
+  assert.equal(seen.taskId, "A", "the payload itself is what the script reads");
+
+  const record = await loadTemplate(templatePath(), {
+    globals: host.globals,
+    args: greenPlan({ repo: repo, baseSha: repo.baseSha, tasks: [task("A")] }),
+  });
+
+  assert.equal(record.tasks[0].state, "integrated",
+    "a leaf whose gate passed and whose payload parsed is an integrated slice");
+  assert.equal(record.tasks[0].rounds, 0, "a readable return must not cost a repair round");
+  assert.equal(record.tasks[0].commit, "a" + "0".repeat(39),
+    "the delivery commit survives into the record (the fixture's <sha:A> stand-in)");
+  await cleanup(repo.dir);
+});
+
+/**
+ * The first nested `undefined` in a value, as a path — the host's own test.
+ * Scanning the raw record, not a JSON round-trip of it: `JSON.stringify` drops
+ * exactly the keys this is looking for, which is how the defect stayed hidden.
+ */
+function firstUndefined(value, path = "record", seen = new Set()) {
+  if (value === undefined) return path;
+  if (value === null || typeof value !== "object") return null;
+  if (seen.has(value)) return null;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const hit = firstUndefined(value[i], path + "[" + i + "]", seen);
+      if (hit !== null) return hit;
+    }
+    return null;
+  }
+  for (const key of Object.keys(value)) {
+    const hit = firstUndefined(value[key], path + "." + key, seen);
+    if (hit !== null) return hit;
+  }
+  return null;
+}
+
+test("the record survives the host boundary: no nested undefined, and every task names its branch", async () => {
+  // The defect: `state` carried no `branch`, so `tasks[].branch` was `undefined`
+  // on every worktree run and `checkBoundary` threw the whole record away — the
+  // parent then had to reconstruct the outcome from git branches, and the run
+  // that exposed the payload defect lost the evidence that explained it.
+  const repo = await fixture("boundary-");
+  const host = createStubHost({
+    repo: repo.dir,
+    replies: { "leaf:A": null, "leaf:A:r1": null, "leaf:A:r2": null },
+  });
+
+  const record = await loadTemplate(templatePath(), {
+    globals: host.globals,
+    args: greenPlan({
+      repo: repo, baseSha: repo.baseSha, fixRounds: 2, checks: [], review: null,
+      tasks: [task("A"), task("B", { blockedBy: [{ id: "A", class: "seam-required" }] })],
+    }),
+  });
+
+  assert.equal(firstUndefined(record), null,
+    "the host rejects a nested undefined, so the kernel must prune before returning");
+  assert.deepEqual([...record.tasks.map((entry) => entry.branch)], ["rope/A", "rope/B"],
+    "a task that never delivered still names the branch it was briefed to deliver on");
+  assert.equal(record.tasks[0].state, "blocked");
+  assert.equal(record.tasks[1].state, "not-started", "an unreachable slice is named, not silently dropped");
+  // Absent, not `undefined`: a pruned key is the difference between a record the
+  // host carries and one it discards.
+  assert.ok(!Object.prototype.hasOwnProperty.call(record.tasks[0], "commit"),
+    "a slice with no delivery has no commit key rather than an undefined one");
+  assert.ok(!Object.prototype.hasOwnProperty.call(record.tasks[1], "summary"));
+  await cleanup(repo.dir);
+});
+
 test("the return gate bounces a slice whose required evidence is missing, naming the item", async () => {
   const repo = await fixture("evidence-");
   const missingOne = {

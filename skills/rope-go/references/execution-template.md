@@ -42,13 +42,26 @@ Measured against the installed `@tintinweb/pi-subagents` source, 2026-09-11.
 - **No shell, no filesystem, no `require`/`import` in the script.** Every effect
   is an `agent()` call. This is why the kernel is one file and why commands live
   in `skills/rope-go/scripts/`.
-- **`agent()` returns `{ok, text, tokens, outputTokens, toolCalls, cwd}`** on
-  success and **`null`** on failure. There is no `branch` and no `baseSha`, so
-  branch identity can only come from git — see *Delivery identity*.
-- **`text` is `structuredJson ?? result`.** With a `schema` the kernel receives
-  the payload; without one it receives prose, and a worktree child's prose has
-  the host's branch note appended, so it does not parse. **Every spawn in this
-  kernel carries a schema.**
+- **`agent()` hands the script the payload, not an envelope.** A schema'd
+  spawn resolves to the parsed object itself; the host parses the reply in the
+  script's own realm and returns it (`worker-source.ts` `agentIn`:
+  `if (schema === undefined) return result; return realmParse(result)`), so
+  `result.ok` and `result.text` do not exist in the script. A schema-less spawn
+  resolves to the prose string instead. **Failure is `null`** — a dead child, a
+  schema mismatch and a rejected gate all arrive the same way — and there is no
+  `branch` and no `baseSha`, so branch identity can only come from git; see
+  *Delivery identity*. Reading `result.ok` here reads `undefined`, which is what
+  reported a live run's six gate-verified deliveries as unverifiable.
+- **A schema'd reply is already parsed.** There is nothing to `JSON.parse` and
+  no `text` field; without a schema the script gets prose, and a worktree child's
+  prose has the host's branch note appended, so it does not parse. **Every spawn
+  in this kernel carries a schema.**
+- **The return value may not contain an `undefined` below the top level.** The
+  host's `assertBoundary` admits `undefined` only at the path
+  `"the workflow result"` and throws for anything nested, then discards the
+  record. A single unset optional field therefore costs the entire record —
+  which is how a run whose slices all blocked reported nothing at all. The
+  kernel prunes with `stripUndefined` before returning.
 - **A `schema` mismatch is retried by the host**, so `required` fields are a real
   fence rather than a hope.
 - **A `gate` runs before the worktree is cleaned up** (isolated child) or in the

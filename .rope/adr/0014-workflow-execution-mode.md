@@ -211,3 +211,36 @@ repair is to stop asking for a re-implementation.
 - `rope add` already copies skill subdirectories recursively, so
   `workflows/` and `scripts/` install with no installer change and stay
   version-locked to the skill.
+
+## Addendum (2026-09-11): the stub must mirror the layer the script receives
+
+The kernel's second live run (agent-workbench `legal-retrieval-quality`) failed
+every slice while every gate passed. `parsePayload` asserted `agent()` returns
+`{ok, text}`, copied from the host's `WorkflowSpawnResult`; but a schema'd spawn
+is unwrapped before the script sees it — `agentIn` returns `realmParse(result)`
+— so `result.ok` was always `undefined` and six gate-verified deliveries were
+all reported as "the leaf produced no verifiable delivery", spending each
+slice's entire repair budget on a retry that could only fail the same way. The
+run then lost its record entirely, because `state` never carried `branch` and
+the host's `assertBoundary` rejects a nested `undefined` by **discarding the
+whole return value**, leaving the parent to reconstruct the outcome from git.
+
+Two rules come out of this, both about *where* fidelity is checked:
+
+1. **A stub mirrors the layer the script receives, not the layer the host
+   builds for itself.** `toSpawnResult` (`host.ts`) is the host's internal
+   record; `agentIn` (`worker-source.ts`) is the boundary that decides what a
+   script gets. A stub faithful to the wrong layer passes tests that no real
+   run can pass. The loader therefore re-implements that boundary's value check
+   (`assertBoundary`), so an unroutable record fails offline — it reproduced the
+   live error verbatim, `... at the workflow result.tasks[0].branch`.
+2. **A structured return's optional fields are omitted, never `undefined`.** The
+   boundary admits `undefined` only at the top level. The kernel prunes with
+   `stripUndefined` before returning; "absent" has to be a decision, not an
+   accident of a field nobody set.
+
+The generalizable lesson is the one this ADR already records, one level down:
+reading the host's *documented type* instead of the host's *code path* is a
+contract guess, and a contract guess that only fails at runtime is exactly the
+class the offline suite exists to catch. `map.md` now records both layers with
+their line numbers so the next reader sees the difference before writing it.

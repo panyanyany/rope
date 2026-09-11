@@ -8,16 +8,30 @@
  *
  * | Stub behaviour                                   | Real source                        |
  * | ------------------------------------------------ | ---------------------------------- |
- * | `text` is the structured payload when a schema   | `host.ts` `toSpawnResult`:         |
- * | was requested, the prose result otherwise        | `text: record.structuredJson ?? record.result` |
+ * | a schema'd spawn resolves to the **payload**,    | `worker-source.ts` `agentIn`:      |
+ * | never to an `{ok, text}` envelope: the script    | `if (schema === undefined) return  |
+ * | sees `realmParse(result)`, so `result.ok` is     | result; return realmParse(result)` |
+ * | always `undefined`                               |                                    |
+ * | a schema-less spawn resolves to the **prose      | `runtime.ts` `respond(callId,      |
+ * | string** itself, unenveloped                     | true, text)` → `worker-source.ts` `callHost` value |
  * | a worktree child's prose gains the host's branch | `agent-manager.ts` appends         |
  * | note; a schema'd payload does not                | "Changes saved to branch `…`" to   |
  * |                                                  | `record.result` only               |
- * | a failed spawn is `null`, never a throw          | `runtime.ts` `respond(callId,false)`, "a dead agent is a null in the script" |
+ * | a failed spawn is `null`, never a throw          | `runtime.ts` `respond(callId,true, |
+ * |                                                  | null)`; "a dead agent is a null in |
+ * |                                                  | the script"                        |
  * | a gate rejection is `null` with no readable text | `runtime.ts` `applyGate`, then the same null path |
+ * | the script's return value may not contain an     | `worker-source.ts` `assertBoundary`|
+ * | `undefined` below the top level                  | + `checkBoundary(value, "the workflow result")` |
  * | `gate` runs before the worktree is cleaned up    | `host.ts` `onBeforeWorktreeCleanup` |
  * | `phase`/`log`/`console` are injected, nothing else | `worker-source.ts` sandbox construction |
  * | `budget.spent()` counts output tokens            | `runtime.ts` `budget`           |
+ *
+ * The envelope rows are the ones that matter: `toSpawnResult` (the shape the
+ * host builds for its own bookkeeping) is NOT what a script receives, and a
+ * stub that hands back `{ok, text}` tests a contract no script ever sees. The
+ * `agentIn` unwrap is the layer that decides, and the loader enforces the
+ * boundary rule so an unroutable record fails here rather than at runtime.
  *
  * Determinism is deliberate: no clock, no randomness, no ids that vary between
  * runs, because the template itself may not read any of those.
@@ -109,17 +123,18 @@ export function createStubHost(options = {}) {
 
     const payload = outcome.value;
     if (opts.schema === undefined) {
-      // Prose. A worktree child's prose carries the host's branch note, which
-      // is exactly why the template must always request a schema.
+      // Prose, unwrapped: with no schema asked for, the host hands the script
+      // the text itself. A worktree child's text carries the branch note the
+      // host appended to `record.result`, which is why the template must always
+      // request a schema.
       const prose = typeof payload === "string" ? payload : JSON.stringify(payload);
-      return {
-        ok: true,
-        text: opts.isolation === "worktree" && options.branchNote !== false
-          ? prose + "\n\n---\nChanges saved to branch `pi-agent-<id>`."
-          : prose,
-      };
+      return opts.isolation === "worktree" && options.branchNote !== false
+        ? prose + "\n\n---\nChanges saved to branch `pi-agent-<id>`."
+        : prose;
     }
-    return { ok: true, text: JSON.stringify(payload) };
+    // Schema'd: the host parses the reply in the script's realm and returns the
+    // payload itself — not `{ok, text}`, and not a JSON string.
+    return payload;
   }
 
   /** A `parallel` that really runs its thunks concurrently and never rejects. */

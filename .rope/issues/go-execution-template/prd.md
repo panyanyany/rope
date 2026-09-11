@@ -126,11 +126,17 @@ the audited defects).
   history, check records (command, scope key, exit code, reused-or-run,
   duration, evidence path), and explicit blockers with classification.
   Exact field names fixed by Slice 1.
-- **Every leaf spawn carries a `schema`.** On this host `text` is
-  `structuredJson ?? result`, and a worktree child's prose `result` has the
-  branch note appended, so a schema-less spawn hands the script text it cannot
-  parse — the audited run's failure mode. The template must never depend on
-  agent prose.
+- **Every leaf spawn carries a `schema`**, and what the kernel receives from
+  one is **the parsed payload object itself** — the host parses the reply in
+  the script's realm and returns it (`worker-source.ts` `agentIn`), so there is
+  no `{ok, text}` envelope below the top level. A schema-less spawn hands the
+  script prose (and a worktree child's prose has the branch note appended), so
+  the template must never depend on agent prose. Failure — a dead child, a
+  schema mismatch, a rejected gate — is `null`, indistinguishable between the
+  three, which is why delivery detail lives in evidence files the parent reads.
+- **The return value may not contain an `undefined` below the top level.** The
+  host's `assertBoundary`/`checkBoundary` reject it and discard the whole
+  record, so the kernel prunes absent optional fields before returning.
 - **Delivery-branch contract** — a leaf's last action, after committing
   everything and leaving a clean tree, is to create its **predeclared**
   branch `rope/<taskId>` at its HEAD and report that commit's SHA. Routing
@@ -200,12 +206,15 @@ the audited defects).
   configuration are all **explicit blockers** with a classification
   (product / stale contract / environment / host-or-template) — never silence
   and never inferred success.
-- Forbidden shortcuts: deriving routing from agent prose; treating
+- Forbidden shortcuts: deriving routing from agent prose; reading a host return
+  envelope (`result.ok`, `result.text`) that a schema'd spawn does not produce;
+  treating
   "nothing is running" as completion; running L2/E2E/review without the
   completion assertion holding; rerunning an expensive check whose commit
   set and scope are unchanged without a recorded reason; letting the template
   invent a command the repository never declared; changing acceptance scope
-  inside a fix round; spawning a leaf from inside a leaf.
+  inside a fix round; spawning a leaf from inside a leaf; returning a record
+  containing an `undefined` optional field instead of omitting the key.
 
 ## Architecture Impact
 

@@ -47,12 +47,46 @@ worktree 清理前跑，**通过时被剥掉、失败时并进 `null` 返回**�
 4. **检查复用是机制**：`run-check.sh` 以 `<scope>@<集成 commit 集>` 为键，
    未变状态直接复用证据，不会意外重跑昂贵命令。检查按阶段串行，所以不需要
    独占通道调度器。
-5. **内核自带失败史回归**：`tests/` 用桩宿主复现四类缺陷，桩的每条行为都
-   标注宿主源码出处——固定内核 + 变动宿主之间，这是唯一的栅栏。
+5. **内核自带失败史回归**：`tests/` 用桩宿主复现缺陷类，桩的每条行为都
+   标注宿主源码出处——固定内核 + 变动宿主之间，这是唯一的栅栏。桩必须忠实于
+   **脚本收到的那一层**（`worker-source.ts` `agentIn`），而不是宿主内部记录
+   那一层（`host.ts` `toSpawnResult`）；并且必须复刻返回值的边界检查，否则
+   「记录整个被丢弃」这类故障离线永远看不见。
+
+## 第一次真实 go 实战：两个内核缺陷（2026-09-11 修复）
+
+第二次真实运行（agent-workbench `legal-retrieval-quality`，内核按 slices 跑
+Q1/Q2）暴露了两个内核缺陷。两次红→绿证据都已进 `tests/`。
+
+**缺陷一：内核读了一个不存在的返回信封。** `parsePayload()` 断言
+`agent()` 返回 `{ok, text}`，但宿主对带 `schema` 的 spawn **先拆包再交给脚本**
+（`worker-source.ts` `agentIn`：`if (schema === undefined) return result;
+return realmParse(result)`），所以 `result.ok` 恒为 `undefined`，每次交付都被
+判成「no verifiable delivery」。实测：6 个 leaf 全部返回失败理由同一句话，而
+它们指向的 verdict 文件写着 `ok:true, clean:true`——**6 次通过交付门禁的交付，
+内核认了 0 次**，并把每个切片的修复预算（`fixRounds`）全部烧在重试上。
+并行度本身是对的：Q3 依赖 Q2，初始就绪集就是 {Q1, Q2}；merge / 终审 / E2E
+没有派 agent 也是对的——「没有可验的东西就不派验收」——只是被误判触发了。
+
+**缺陷二：整个运行记录被宿主丢弃。** `state` 从不携带 `branch`，worktree 模式下
+凡未集成的切片都产出 `tasks[].branch === undefined`；宿主的 `assertBoundary`
+只允许顶层是 `undefined`，嵌套即抛错并丢弃整条记录。父会话因此拿不到任何结果，
+只能翻 git 分支反推——**缺陷二正好掩盖了缺陷一的现场**。
+
+修法：`parsePayload` 读真实契约（对象即 payload，非对象即无可用返回）；
+`state` 初始化即记录交付分支；返回值统一过 `stripUndefined`（缺字段就是缺 key，
+不是 `undefined`）；`load-workflow.mjs` 补上宿主的 `assertBoundary` 复刻，
+`stub-host.mjs` 改为返回真实形状（schema'd → payload / 无 schema → 散文 / 失败 → `null`），
+桩的引用表改指 `agentIn` 而不是 `toSpawnResult`——**桩保真度的层级选错了：
+`toSpawnResult` 是宿主内部记录的形状，不是脚本收到的形状。**
 
 ## 红→绿证据
 
-- `node --test tests/*.test.mjs` → 26 用例全绿（~1.1s），无外部依赖
+- `node --test tests/*.test.mjs` → 40 用例全绿（~2.3s），无外部依赖
+- 两条新回归分别命名缺陷：`a schema'd leaf return is the payload itself...`、
+  `the record survives the host boundary...`；对修复前代码复现，第二条报出
+  `Cannot pass undefined across the workflow VM boundary (at the workflow result.tasks[0].branch).`
+  与实战报错逐字一致
 - 契约与实现一致性由测试反查：`stage` 枚举、`evidenceDir` 必填、`skipped` 语义、
   `explain` 计划编译、修复轮上限与 delta 复评、空阶段不阻塞
 - `verify-delivery.sh`：分支补建 / 脏树拒绝与恢复 / `--commit` 可达性三态

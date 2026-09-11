@@ -318,10 +318,10 @@ function shellCommand(parts) {
 }
 
 /* ------------------------------------------------------------------ *
- * Schemas. Every spawn carries one: on this host `text` is
- * `structuredJson ?? result`, and a worktree child's prose carries the
- * host's branch note, so a schema-less spawn hands the kernel prose it
- * cannot parse.
+ * Schemas. Every spawn carries one: the host parses a schema'd reply in
+ * the script's realm and returns the payload itself, while a schema-less
+ * spawn would hand the kernel prose — and a worktree child's prose has the
+ * host's branch note appended, so it does not parse.
  * ------------------------------------------------------------------ */
 
 const LEAF_SCHEMA = {
@@ -586,7 +586,19 @@ if (plan.explain) {
 }
 
 const state = new Map();
-for (const task of plan.tasks) state.set(task.id, { state: "pending", rounds: 0 });
+for (const task of plan.tasks) {
+  // `branch` is the branch this task's delivery lands on, and it is known when
+  // the plan is validated: the branch the leaf is briefed with in worktree mode,
+  // the single target in shared mode. It is set here rather than only on
+  // integration because a record that omits it cannot say which branch an
+  // unfinished slice was working on — and because the host refuses to carry an
+  // `undefined` out of the script at all, so "absent" has to be a decision.
+  state.set(task.id, {
+    state: "pending",
+    rounds: 0,
+    branch: plan.mode === "worktree" ? task.branch : plan.targetBranch,
+  });
+}
 
 const integrated = [];
 const blockers = [];
@@ -748,14 +760,24 @@ function launchTask(task) {
   running.set(task.id, { promise: promise });
 }
 
+/**
+ * What `agent()` hands the script — which is NOT the `WorkflowSpawnResult` the
+ * host builds internally. For a schema'd spawn the host parses the reply in the
+ * script's own realm and returns the payload itself (`worker-source.ts`
+ * `agentIn`: `if (schema === undefined) return result; return realmParse(result)`),
+ * so there is no `ok` and no `text` on what arrives here. A dead child, a schema
+ * mismatch and a rejected gate all arrive as plain `null`.
+ *
+ * Every spawn in this kernel carries a schema, so a non-object return is not a
+ * payload: it is the same "no usable return" a failure produces. Reading an
+ * envelope that does not exist is how the first live run reported all six of its
+ * successful, gate-verified deliveries as "the leaf produced no verifiable
+ * delivery", and burned every repair round doing it.
+ */
 function parsePayload(result) {
-  if (result === null || result === undefined || !result.ok) return null;
-  if (typeof result.text !== "string" || result.text.trim() === "") return null;
-  try {
-    return JSON.parse(result.text);
-  } catch {
-    return null;
-  }
+  if (result === null || result === undefined) return null;
+  if (typeof result !== "object" || Array.isArray(result)) return null;
+  return result;
 }
 
 /** ADR 0011 Return Gate: a table check, never a review. */
@@ -873,6 +895,7 @@ async function mergeOne(task) {
   }
 
   entry.state = "integrated";
+  entry.branch = task.branch;
   entry.commit = payload.commit;
   entry.mergeCommit = payload.mergeCommit;
   entry.claimMismatch = entry.claim !== undefined && payload.commit !== undefined && entry.claim !== payload.commit
@@ -1393,7 +1416,30 @@ if (!delivered && (templateTrouble || blockedTaskCount >= 2)) {
   };
 }
 
-return {
+/**
+ * The host refuses to carry an `undefined` out of a script: `assertBoundary`
+ * returns only when the path is exactly "the workflow result", and throws for
+ * anything nested (`worker-source.ts`). `checkBoundary` runs on every script's
+ * return value, so one unset optional field does not degrade the record — it
+ * discards the whole thing, and with it the reason the run failed.
+ *
+ * That is exactly what happened: `tasks[].branch` was unset on every worktree
+ * run, the throw took the record, and the parent was left reading git branches
+ * to reconstruct an outcome the kernel had already determined. Pruning here is
+ * the structural fix; every optional field below is now allowed to be absent.
+ */
+function stripUndefined(value) {
+  if (Array.isArray(value)) return value.map(stripUndefined);
+  if (value === null || typeof value !== "object") return value;
+  const pruned = {};
+  for (const key of Object.keys(value)) {
+    if (value[key] === undefined) continue;
+    pruned[key] = stripUndefined(value[key]);
+  }
+  return pruned;
+}
+
+return stripUndefined({
   verdict: delivered ? "delivered" : (integratedCount === 0 ? "stopped" : "partial"),
   issue: plan.issue,
   baseSha: plan.baseSha,
@@ -1425,4 +1471,4 @@ return {
   concurrency: { inFlight: plan.inFlight, peak: peakInFlight, spawns: totalSpawns },
   tokens: { output: budget.spent() },
   suggestDowngrade: suggestDowngrade,
-};
+});

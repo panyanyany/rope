@@ -42,6 +42,69 @@ export function stripMetaExport(source) {
   return source.replace(/^(\s*)export(\s+const\s+meta\s*=)/m, "$1$2");
 }
 
+/**
+ * The host's return-value fence, reproduced
+ * (`worker-source.ts` `assertBoundary` + `checkBoundary(value, "the workflow
+ * result")` at the end of `main()`).
+ *
+ * It matters more than the rest of the sandbox: a script that returns an object
+ * containing a nested `undefined` does not get a partial record back — the run
+ * completes with an error and the record is gone. Testing without this check is
+ * how a kernel that could never return a worktree record passed 38 tests while
+ * losing an entire live run's evidence.
+ *
+ * `realmObjectPrototype` is the vm context's own `Object.prototype`: the host
+ * accepts that one and the worker's, and rejects everything else (Map, Set, a
+ * class instance) because the journal and progress log cannot carry it.
+ */
+export function boundaryChecker(realmObjectPrototype) {
+  const fail = (what, path) => new Error(
+    "Cannot pass " + what + " across the workflow VM boundary (at " + path + ").",
+  );
+  const assertBoundary = (value, path, seen) => {
+    if (value === null) return;
+    const kind = typeof value;
+    if (kind === "string" || kind === "boolean") return;
+    if (kind === "number") {
+      if (!Number.isFinite(value)) throw fail("a non-finite number", path);
+      return;
+    }
+    if (kind === "undefined") {
+      if (path === "the workflow result") return;
+      throw fail("undefined", path);
+    }
+    if (kind === "bigint") throw fail("a BigInt", path);
+    if (kind === "symbol") throw fail("a symbol", path);
+    if (kind === "function") throw fail("a function", path);
+    if (kind !== "object") throw fail("a " + kind, path);
+
+    if (seen.has(value)) throw fail("a circular structure", path);
+    seen.add(value);
+
+    if (Object.getOwnPropertySymbols(value).length > 0) throw fail("an object with symbol keys", path);
+
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        if (!Object.prototype.hasOwnProperty.call(value, i)) throw fail("a sparse array", path + "[" + i + "]");
+        assertBoundary(value[i], path + "[" + i + "]", seen);
+      }
+      seen.delete(value);
+      return;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== null && prototype !== realmObjectPrototype && prototype !== Object.prototype) {
+      throw fail("a non-plain object", path);
+    }
+    for (const key of Object.keys(value)) assertBoundary(value[key], path + "." + key, seen);
+    seen.delete(value);
+  };
+  return (value) => {
+    assertBoundary(value, "the workflow result", new Set());
+    return value;
+  };
+}
+
 /** Evaluate a workflow source against injected host globals and return its result. */
 export async function loadWorkflow(source, { globals, args } = {}) {
   const body = stripMetaExport(source);
@@ -72,7 +135,9 @@ export async function loadWorkflow(source, { globals, args } = {}) {
     lineOffset: -1,
   });
   sandbox.args = args === undefined ? undefined : vm.runInContext(`(${JSON.stringify(args)})`, context);
-  return script.runInContext(context);
+  const value = await script.runInContext(context);
+  // Same order as `main()`: the fence runs before the result leaves the realm.
+  return boundaryChecker(vm.runInContext("Object.prototype", context))(value);
 }
 
 /** Read and evaluate a template file. */
