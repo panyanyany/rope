@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rope Grill Standard"
+  short_description: "Clarify requirements at a practical medium depth"
+  default_prompt: "Use $rope-grill-standard to clarify this requirement at standard depth."
