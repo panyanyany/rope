@@ -1,6 +1,18 @@
 # Context
 
 ## Language
+**Workflow execution mode** — the session's execution form, resolved
+mechanically once per session (including direct phase entry) from
+`~/.rope/config.toml` `[execution] default` plus a host capability probe
+(ADR 0014): never a user question, never an issue-package field, not
+re-resolved mid-session. `dynamic` means a script-driven deterministic
+workflow for go (JS orchestrator; the model lives only in leaves and
+review agents) with impact-selected mechanical gates, and it reaches backward:
+grill fans out by independent evidence questions, shape maximizes real graph
+width rather than slice count. The operational contract ships in skill
+references; project architecture docs provide rationale, not a runtime
+dependency. Absent or `agent` means parent Agent dispatch. Issue packages
+never declare it — a ticket describes work, not how it runs.
 
 **Parent Orchestrator**:
 The main issue session that owns grill, shape, the slice loop, leaf-worker dispatch, issue-level verify, and finish handoff. It is the only agent allowed to spawn workers for an issue. Judgment-primary and context-protective: it decides, talks to the human, writes durable artifacts, and re-briefs/steers leaves — it does not bulk-load exploratory noise or run long implement/fix loops in its own context, because compaction discards earlier discussion. Course correction is done by rewriting the brief and re-spawning a leaf, not by the parent absorbing the full failure trace and fixing in-place.
@@ -17,8 +29,8 @@ When leaf fix loops fail twice on the same problem, or the parent judges the fai
 _Avoid_: infinite fix loop, silent retry, bury the design conflict in more patches
 
 **Harness Profile / Role Preset**:
-A binding of Rope leaf roles (implementer, reviewer, explore) onto **harness-native** subagent/agent preset templates. Default write target is the host's **user-level** agents directory (machine-local model churn). Plus a thin **user-global** Rope manifest (not project `.rope/`) that maps role → preset name/model and generation metadata. Refresh is **manual only** (no TTL/stale timer). The host preset is the source of spawn configuration; Rope does not keep a second full prompt/tool database as primary.
-_Avoid_: hard-coded model list in skills, provider lock-in, Rope-only shadow agent runtime, default project-committed model ids, project-committed private model catalogs, automatic preset refresh
+A binding of Rope leaf roles (implementer, reviewer, explore) onto **harness-native** subagent/agent preset templates. Generated **discovery-based**: the running model identifies the host, probes its agent registry and model catalog at run time, and writes the host's native format (pi Markdown+frontmatter, codex TOML, …) — no hardcoded per-host adapter branches in the skill. Default write target is the host's **user-level** agents directory (machine-local model churn). Plus a thin **user-global** Rope manifest (not project `.rope/`) that maps role → preset name/model and generation metadata. Refresh is **manual only** (no TTL/stale timer). The host preset is the source of spawn configuration; Rope does not keep a second full prompt/tool database as primary. The explore preset carries an **unrestricted tool surface** — mode discipline (read-only default; research briefs write `.rope/research/**` only) lives in the preset body, never in tool restriction.
+_Avoid_: hard-coded model list in skills, provider lock-in, Rope-only shadow agent runtime, default project-committed model ids, project-committed private model catalogs, automatic preset refresh, per-host adapter branches in skill text
 
 **Issue-Level Verify**:
 The thin paperwork gate between go and finish (ADR 0007): the end-of-issue
@@ -33,7 +45,9 @@ without identity
 **End-of-Issue Review**:
 The single review gate after all slices (ADR 0007, mechanics refined by
 0010): **two parallel read-only leaves with new eyes**, spawned in one
-message. The **Standards scanner** (explore-class preset, cheap model)
+message — under workflow execution, inside the kernel at a **freeze point**
+(every slice merged, tree clean, no leaf running), fix loop ≤2 rounds
+with delta re-review. The **Standards scanner** (explore-class preset, cheap model)
 runs lint/typecheck first, then judgement-call-scans the assembled diff
 for repo conventions, TDD anti-patterns, the smell baseline, and inline
 global invariants — never runs the product. The **Behavior reviewer**
@@ -66,20 +80,79 @@ architecture-continuity judgment out of the Behavior reviewer
 The post-0007/0008/0009 execution model. Shape slices tracer-bullet style
 (blocking edges + fresh-context fit are the hard rules; component and
 prefactor slices legal; vertical path-per-slice is a habit, not a rule). Shape reads the slice graph after
-slicing — rivers, fresh-context size fit — and asks one execution question
-with numbers. Go's default intent is maximum concurrency in either mode (every ready
+slicing — the executor's own compile pass reports initial ready count, level
+widths and the longest gating chain — and asks one execution question
+with those numbers. Go's default intent is maximum concurrency in either mode (every ready
 slice gets a background leaf; serialization needs a recorded reason;
 startup declares planned vs max parallelism). It picks a mode from host
 capability: **worktree mode**
-(slice-ready scheduling, ADR 0008 — ready = blockers merged, one worktree
+(slice-ready scheduling, ADR 0008/0012 — ready = seam-required blockers
+merged (file-overlap edges are merge-order preferences under this mode), one worktree
 per leaf, serial merge queue, repo-declared `worktree-setup:` contract in
 `routes.md`, parent owns `map.md` updates) or **shared mode** (waves,
-disjoint owned files per wave, leaves maintain the map). No `mode:` or
+disjoint owned files per wave, leaves maintain the map; the kernel serializes
+to one leaf at a time because there is one index and one checkout). No `mode:` or
 `review:` frontmatter; legacy packages that carry them are ignored.
 Re-cutting that bends the requirement goes back to grill.
 _Avoid_: wave barriers in worktree mode, asking serial-or-parallel before
 the graph exists, merging in parallel, per-merge test rituals, leaves
 writing the shared map concurrently
+
+**Execution Kernel**:
+The shipped orchestration asset for dynamic go
+(`skills/rope-go/workflows/go-execute.js`, ADR 0014 addendum 2026-09-11):
+one fixed, offline-tested JavaScript file that owns readiness dispatch,
+frontier refill, the in-flight window, serial merges, staged preconditions,
+bounded repair rounds and the in-run review. The parent session compiles
+**task data** into it and reads a **run record** back; it writes no
+orchestration code and never restates the delivery contract. Invoked by
+absolute `scriptPath` resolved from the skill's installed directory, because
+a non-absolute path resolves against the repository. Schema authority:
+[`execution-template.md`](../skills/rope-go/references/execution-template.md).
+_Avoid_: per-issue script authorship, orchestrating from the parent between
+runs, mistaking a shipped kernel for example code to edit
+
+**Delivery Branch**:
+The predeclared, plan-derived branch (`branchPrefix + task id`) a worktree leaf
+points at its own final commit as the last write before returning. It is the
+only routing input the executor reads: `scripts/verify-delivery.sh` runs as the
+spawn's gate inside the worktree before cleanup and asserts the branch exists,
+resolves to the tree's HEAD, and that the tree is clean — creating or moving the
+branch and committing leftovers when needed, and reporting `moved`/`recovered`.
+The merge agent establishes the SHA from git, so a leaf's claimed SHA is never
+trusted. This replaces parsing branch names out of agent text.
+_Avoid_: reading a branch name from a leaf's prose, trusting a claimed SHA,
+routing on the host's `pi-agent-*` cleanup branch
+
+**Check Timetable**:
+The declared schedule that decides when each repository check runs: `merge`
+(cheap post-merge warning, never gating), `l2` (integration gate, asserted
+before L3/review/e2e may start), `l3` (composition-root smokes), `freeze`
+(repo policy). Checks run serially, one batch per stage, through
+`scripts/run-check.sh` as the host's gate, so the verdict is an exit code and
+the detail is an evidence file keyed by `<scope>@<integrated commit set>` — an
+unchanged state reuses its evidence instead of spending the command again. It
+lives in the tree at `.rope/issues/<slug>/evidence/`, ignored by the repository
+and excluded from the delivery gate by `--evidence`, because a bookkeeping file
+must never read as unfinished work.
+The repo declares `Test policy: fast-iteration | full-at-freeze` in `routes.md`.
+_Avoid_: per-slice full suites, periodic reruns without a changed key, gate
+detail relayed through agent prose
+
+**Real-Environment Walk**:
+The e2e stage of dynamic go, and it runs **after** the End-of-Issue Review, not
+before it: the read-only review is cheap and the real-environment walk is not, so
+reviewing first means the walk runs once, on the commit that will actually be
+delivered. Each item carries the `executor` Shape resolved (`agent`,
+`agent-with-gate`, `user`, `not-run`) and is recorded with the terminal status
+verify/finish read. A failed item enters the same bounded repair loop as a review
+failure — fix, land through the merge queue, re-walk every declared item, delta
+re-review — because a fix moves the HEAD and the previous green is gone. Only an
+item the agent actually ran gates; a kept-out item is an honest terminal outcome a
+delivered run may carry.
+_Avoid_: walking the real environment before the code review, reusing a green
+from a superseded HEAD, a leaf declaring its own failed item human-only, a kept-out
+item that vanishes instead of appearing in the record
 
 **Self-Fix Loop**:
 A check/verify pattern (from Trellis) where the verifying model finds a problem and fixes it directly, then reruns checks, looping until green. Not used at issue-level verify in Rope, because verify must not edit code (cross-role separation of implement vs accept).
@@ -130,9 +203,73 @@ _Avoid_: dumping transcripts into the map, uncommented stale facts, inlining
 the map into briefs
 
 **Quick Fix Path**:
-The lightweight solo entry (`rope-quick`) for small fixes whose investigation is already done (typically a prepared briefing in a worktree): one model clarifies the remaining direction (a few questions), fixes red→green at the nearest seam, commits locally, and syncs `.rope/` docs inline. No issue package, no leaf dispatch, no issue-level verify; the human is the accept gate, assisted by the closing report's risk-focus section. Four stop lines (new architecture decision, fix failed twice, scope sprawl, schema/destructive/production) abort to the full pipeline with `status: stopped` in `quick.md` — the solo-session replacement for "leaf conflict returns to the parent".
-_Avoid_: treating quick as a replacement for the full pipeline on any issue, silent absorption of newly discovered architecture decisions, tests-green-only claims without red evidence, entry-gating what counts as quick
+The lightweight solo entry (`rope-quick`) for small tasks that fit **one fresh context window** — already-diagnosed fixes **and** small features. One model runs **grill-lite** (fact self-check against the tree + one round of decision questions, Q&A recorded into quick.md), changes red→green / test-first at the nearest seam, commits locally, and syncs `.rope/` docs inline. No issue package, no leaf dispatch, no issue-level verify; the human is the accept gate, assisted by the closing report's risk-focus section. Four stop lines (new architecture decision, change failed twice, scope sprawl, schema/destructive/production) abort to the full pipeline with `status: stopped` in `quick.md` — the solo-session replacement for "leaf conflict returns to the parent".
+_Avoid_: treating quick as a replacement for the full pipeline on any issue, silent absorption of newly discovered architecture decisions, tests-green-only claims without red evidence, entry-gating what counts as quick, needing a second question round instead of stopping
 
 **Plan Artifact Reader Layering**:
 The rule that plan artifacts name their reader: humans read the grill recap (3–6 bullets) and the Contract Note (3–5 bullets); machines read the Behavior Contract, Behavior Matrix, Constraint Bundle, and tasks records by reference. Unresolved questions are resolved at the grill gate before shape; a conflict discovered by a leaf during go is re-briefed back to the parent for disposition, never silently absorbed. This replaces the older “concise plan + list unresolved questions at the end” rule.
 _Avoid_: one artifact trying to serve both readers with one format, unresolved questions shipped to execution, silent absorption of leaf conflicts
+
+**Edge Classification**:
+The shape-time labeling of every `Blocked by` edge as `file-overlap`,
+`seam-required`, or `methodology-order`. `seam-required` always blocks
+dispatch; `file-overlap` blocks in shared mode and, under shape-verified
+`Execution mode: worktree` (ADR 0012), is demoted to a merge-order
+preference — concurrent dispatch from the same merged base, serial merge
+queue orders landing, one conflict re-dispatch resolved on the unmerged
+branch. `methodology-order` (no owned-file overlap, no seam consumption —
+pure "reads better if done first") never blocks dispatch. This refines
+ADR 0008's ready-set definition.
+_Avoid_: treating "feels safer sequential" as a dependency, wave thinking
+reintroduced through unclassified edges, edge labels without owned-files
+facts, demoting a seam-required edge (a seam that does not exist yet is
+unavailability, not conflict)
+
+**Two-stage Contract Slice**:
+The required shape of any `Kind: contract` slice that carries deep durability,
+concurrency, or protocol semantics: a **thin-interface** slice (public seam +
+minimal working operations; consumers may block on it) plus a separate
+**hardening** slice (crash-recovery, concurrency protocols, sanitization depth;
+consumers must NOT block on it). Persistence/schema migration ownership is
+unique — exactly one slice owns a migration file.
+_Avoid_: one storage state-machine ticket packing interface and hardening,
+hardening rework sitting on the consumer critical path, two slices owning one
+migration file
+
+**Mechanical Return Gate**:
+The join-time reconciliation between a leaf's return summary and its slice's
+Required evidence: every evidence item must map to pasted command output or an
+artifact path; a missing item bounces the leaf back to exactly those items. It
+is **evidence reconciliation, not code review** (ADR 0007 boundary): no
+implementation re-read, no test reruns, no second review point — the
+end-of-issue review stays the only review gate.
+_Avoid_: parent re-reading implementations at join, rerunning leaf tests,
+using the gate to inject new acceptance requirements
+
+**Defense Budget**:
+The rule that a correction brief may not introduce acceptance requirements
+absent from the issue's Behavior Matrix — new acceptance lines = 0. A genuine
+gap found during execution goes back to shape (re-cut as a new slice) or is
+demoted to a recorded non-blocking note. Acceptance scope is fixed at shape;
+fix rounds converge instead of escalating.
+_Avoid_: mid-execution acceptance inflation, defensive requirements appearing
+only in fix rounds, design constraints drifting between correction rounds
+
+**Granularity Quiz**:
+The shape-time challenge of slice granularity after the graph exists, folded
+into the graph-confirmation step: is any slice too coarse (fits-no-window) or
+too fine (trivial grouping lost)? Are the blocking edges real? Merge or split?
+The user approves granularity, not just wave order. Backed by two hard rules:
+every slice has a **demo path** (a demoable behavior, never a layer name), and
+a change that fits one fresh context window should not become a multi-slice
+issue at all (route `rope-quick`).
+_Avoid_: quiz as a new serial Q&A round, demo path answered with a layer name,
+splitting a one-window change to look rigorous
+
+**Human Gate Panel**:
+The batched presentation of multiple pending Human Escalation Stops / gate
+approvals in one panel — each entry naming the affected slices, the exact
+authorization requested, and the blast radius — instead of one-at-a-time
+blocking. Non-gated lanes' continue-or-hold status is stated explicitly.
+_Avoid_: sequential gate blocking idle lanes, vague gate descriptions that
+require a follow-up question to understand

@@ -26,9 +26,14 @@ runs in fresh-context leaf workers, orchestrated by one lean parent. And
 nothing is called done until a reviewer with **new eyes** walks the **real
 entrypoint** — starting the product the way a user would.
 
-Works with any host that supports skills and subagents (pi, Claude Code, …);
-`rope-harness-presets` adapts leaf model routing to whatever catalog your
-machine has.
+Works with any host that supports skills and subagents (pi, Claude Code,
+codex, agy, …); `rope-harness-presets` discovers the active host's agent
+mechanism and model catalog at run time and writes leaf presets in that
+host's native format — no hardcoded adapters. Go's execution form is
+config-decided (ADR 0014): `~/.rope/config.toml` `[execution] default =
+"dynamic"` runs slices through a script-driven deterministic workflow where
+the host supports it (pi SubagentWorkflow), with L1/L2/L3 mechanical gates;
+absent, or on hosts without a runner, go uses parent dispatch unchanged.
 
 ## How it works
 
@@ -59,7 +64,8 @@ One issue, one parent session, five moves:
    E2E terminal, tree clean); finish closes the issue and routes
    architecture-doc updates home.
 
-Small fix with the diagnosis already done? Skip all of it: `rope-quick` is
+Small task that fits one fresh context window — fix with the diagnosis done,
+or a small feature? Skip all of it: `rope-quick` is
 the solo path — red → green at the nearest seam, one page of record, four
 stop lines back to the full pipeline.
 
@@ -96,6 +102,12 @@ npx git+https://github.com/WufeiHalf/rope.git add
 npx git+https://github.com/WufeiHalf/rope.git add --target ./.agents/skills
 ```
 
+Both targets receive the full skill set, including shared runtime references.
+Dynamic startup instructions resolve relative to the loaded skill, not the
+managed repo's `.rope/` directory. Updating the CLI alone does not refresh
+already copied skills; explicitly run `add` for the intended target. If the
+host finds duplicate skill names, check which path it loaded before updating.
+
 Then, in the repo you want to manage:
 
 ```bash
@@ -117,11 +129,12 @@ Missing presets never block — go/verify soft-degrade and record it.
 | `rope-init` | Scaffold `.rope/` in a target repository |
 | `rope-grill` | Plain-language requirement interview; decisions land in durable docs |
 | `rope-shape` | Issue package: PRD + Contract Note, slices, matrix, E2E, graph read |
-| `rope-go` | Wave execution, investigation map, TDD at seams, per-slice commits |
+| `rope-go` | Wave execution, investigation map, TDD at seams, per-slice commits; config-decided workflow execution (ADR 0014) |
 | `rope-verify` | Thin paperwork gate between go and finish |
 | `rope-finish` | Close the issue; route architecture-doc updates |
 | `rope-summary` | Preserve reusable contracts/learnings into `.rope/` after the fact |
-| `rope-quick` | Solo quick-fix path with four stop lines back to the pipeline |
+| `rope-clear` | Propose and apply approved cleanup of stale docs; retain decision history |
+| `rope-quick` | Solo single-window path (fixes + small features): grill-lite, stop lines back to the pipeline |
 | `rope-harness-presets` | Bind leaf roles to harness-native presets for your host |
 
 ## `.rope/` layout

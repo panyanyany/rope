@@ -42,8 +42,12 @@
 ## Testing Decisions
 
 - Good test: observe external behavior at agreed seams — not implementation details
-- Seams under test: <list confirmed with user during shape>
+- Seams under test: <list confirmed with user during shape; when placement is contested, argue it with [seam-design.md](seam-design.md)>
 - Prior art (optional): <paths or patterns of similar tests in-repo>
+- Test scope: <affected modules/consumers, selected commands, excluded suites and reasons>
+- Contract sweep (only when the issue retires or re-keys a contract): <the vocabulary grepped across the test tree, the files it hit, and which hits are migrated in-issue versus named out of scope with a reason>
+- Broader-suite trigger: <impact/uncertainty/repo requirement, or none; apply [test selection](../../rope-go/references/execution-rules.md#test-tiers--baseline-ladder-repo-contract-adr-0013)>
+- Repo suite policy: <`fast-iteration` | `full-at-freeze` — copied from `routes.md`'s `Test policy:` line; say `undeclared` when the repo has none, and the impact ladder decides>
 
 ## Behavior Contract
 
@@ -111,6 +115,14 @@
 ```md
 # <Issue Title> Tasks
 
+Execution mode: worktree | shared   # probed at shape (ADR 0012); go consumes, may degrade with recorded reason
+
+## Graph summary
+
+<Report what the executor compiled, not hand arithmetic: initial ready count,
+level widths, longest gating chain, and the cross-level preference edges. A
+chain of n levels is n sequential rounds whatever the window is.>
+
 ## Behavior Matrix (issue behavior spec — BDD)
 
 | Behavior (Given/When/Then where it helps) | Applies? | Verified at |
@@ -130,22 +142,42 @@
 - Status: pending
 - Kind: vertical | contract | wide-refactor-expand | wide-refactor-migrate | wide-refactor-contract
 - Goal: <user-perspective end-to-end result this slice makes true — not a layer list>
-- Blocked by: none | Slice N, …
+- Demo path: <the behavior you can demo when this slice lands — never a layer name>
+- Blocked by: none | Slice N, … (<each edge labeled: file-overlap | seam-required | methodology-order>)
 - Scope: <path/area bounds; disjoint from sibling slices when parallel/dynamic>
-- Owned files: <explicit files this slice owns; no file owned by more than one implementation slice>
+- Owned files: <explicit files this slice owns; unique within a shared-mode wave — in recorded worktree mode overlap is legal and expressed by a file-overlap edge (ADR 0012)>
 - Size cap: <default ~400 diff lines or ~4 owned files; exceeded ⇒ split>
 - Matrix rows:
 - Constraint IDs: <decision/invariant IDs owned by this slice>
-- Required evidence: <evidence for those IDs>
+- Required evidence: <evidence for those IDs — each entry cites the matrix row(s) it proves; a matrix row with no slice evidence is a shape defect>
 - Public behavior: <one user-visible sentence of what works when this slice is done>
 - Tests:
 - Implementation notes:
-- Verification:
+- Verification: <focused seam tests + guards this slice can affect — never a full-suite run (ADR 0013)>
 - Stop conditions:
+```
+
+### Composition roots block (when touched ≥1 — ADR 0014)
+
+```md
+## Composition roots
+
+- <root file/module, e.g. dingtalk_stream_assembly> — L3: real assembly +
+  fake outer-boundary transport, one event in (<event>) → observable out
+  (<assertion>); harness: <existing harness path | Slice N harness slice>
+- <root 2> — …
 ```
 
 Size cap is universal (fresh-context fit); slices that cannot fit are re-cut
 at shape, never shipped oversized.
+
+`Verification` granularity (ADR 0013): default is **focused** — the seam
+tests and guards the slice can affect, seconds not minutes. The full
+suite is an **issue-level** gate (go baseline fallback, end-of-issue
+assembly); writing it into a slice makes every leaf pay for the whole
+issue. A behavior-preservation refactor that needs the full net records
+the reason in Testing Decisions and the net runs at issue level, not per
+slice.
 
 ## `e2e.md`
 
@@ -155,7 +187,8 @@ at shape, never shipped oversized.
 ## E1 <Validation Name>
 
 Architecture evidence: <constraint/decision IDs and the behavior or invariant this validates>
-Executor: agent | agent-with-gate | user | not-run
+Mechanism: browser-walk | cli | api | file-inspect | judgment | credentialed | unreachable
+Executor: agent | agent-with-gate | user | not-run   ← resolved against the harness capability probe at go/verify, never frozen at shape
 Risk: local-readonly | local-write | remote-readonly | remote-write | production | human-judgment
 Gate Decision: not-required | approved | skipped | user-run | blocked | not-run-waived
 Approved Action: <action, not exact command; required for approved agent-with-gate>

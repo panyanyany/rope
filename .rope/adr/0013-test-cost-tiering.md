@@ -1,0 +1,94 @@
+# 0013 Test-Cost Tiering — Impact Before Suite Size
+
+**Status:** active — amends the original full-suite frequency policy by user
+confirmation in `dynamic-docs-and-clear/quick.md`. Completes
+[0009](0009-ticket-tdd-issue-bdd-layering.md), refines
+[0011](0011-edge-classification-and-acceptance-gates.md), and preserves
+[0007](0007-graph-driven-go-single-review.md)'s single review gate and
+[0008](0008-slice-ready-worktree-execution.md)'s avoidance of merge rituals.
+
+## Context
+
+Agent-workbench MR 57 collected 18 per-slice full-suite verification entries.
+Repeated full discovery, lost piped verdicts, and parallel CPU contention
+amplified reruns. Later dynamic instructions turned the intended upper bound
+into “exactly twice,” contradicting baseline reuse and running unrelated
+suites by phase rather than impact. A phase is not evidence of a dependency.
+
+## Decision
+
+1. Select tests by affected behavior, shared consumers, and uncertainty.
+   Slice TDD is focused; integration checks cover affected seams; final review
+   walks issue behavior at the real entrypoint. Expand to broad suites when
+   shared infrastructure, unknown impact, observed coupling, or explicit repo
+   requirements justify it. Record the reason in Testing Decisions.
+2. Full suites remain **issue-level evidence**, never per-slice requirements.
+   Baseline and final review are selection points, not mandatory executions.
+   Local backend changes do not automatically require all frontend tests;
+   changed backend/UI contracts include their affected consumers.
+3. Reuse applicable same-HEAD green baseline evidence; otherwise select quick
+   or affected tests, escalating by impact. Preserve scope and environment
+   limits: green for a subset is not green for the whole repo. Store output
+   and exit status once, then parse stored evidence.
+4. Keep the `routes.md` Test tiers contract and automatic quick-tier derivation.
+   Operational criteria, budgets, and the baseline ladder live only in the
+   shipped [execution rules](../../skills/rope-go/references/execution-rules.md).
+5. Under parallel-load failures, diagnose/rerun the failing tests first.
+   Broader reruns need a recorded impact reason. Missing evidence returns to
+   the leaf, not a parent backfill or a silent substitute verification.
+
+## Consequences
+
+- Full-suite work no longer grows with slice count or runs to satisfy a quota.
+- Focused evidence can discover unrelated failures later; acceptance remains
+  honest about its scope. Uncertain impact expands coverage conservatively.
+- Teams with explicit all-suite requirements retain them; Rope does not
+  override repository policy to save time.
+- No cache service or test-selection runtime is introduced. Repo commands and
+  the accepted behavior remain the inputs to agent judgment.
+
+## Addendum (2026-09-11): the check timetable, evidence reuse, and the repo policy field
+
+ADR 0013's selection rules were correct and were still violated in practice for
+a mechanical reason: nothing carried them into execution. The first production
+dynamic run spent ~11 full-suite executions (~38 of 73 minutes), and the
+audited follow-up ran its integration gate on a checkout with **nothing merged**.
+Both are now executor mechanism rather than advice.
+
+### Decision
+
+1. **Checks are declared data with a stage**, not prose in a script:
+   `merge` (cheap post-merge warning), `l2`, `l3`, `freeze`. The parent compiles
+   them from `routes.md`'s `Test tiers` and the repo's policy; the kernel runs
+   each stage's batch through `scripts/run-check.sh` as the host's gate, so the
+   verdict is an exit code rather than an agent's report.
+2. **Reuse is keyed**, by `<scope>@<integrated commit set>`. An unchanged state
+   finds its evidence file and does not spend the command again; changed scope
+   or a new commit invalidates it. Every stage batch runs after the dispatch
+   loop has drained, so no check ever runs beside a leaf: `stage: "merge"`
+   checks are declared cheap because they precede L2, not because they overlap
+   anything.
+3. **`routes.md` gains `Test policy:`** — the repository's own declaration of
+   `fast-iteration` (impact-selected only) or `full-at-freeze` (this repo
+   requires its full suite at the freeze point). It is the repo's statement, not
+   a judgement call at go; an absent line is legal and the impact ladder decides.
+   Shape records the value in Testing Decisions.
+4. **Missing evidence is never backfilled by the parent.** A gate's detail lives
+   in the evidence file beside its output; the parent reads it, and a missing
+   slice evidence item bounces the leaf (ADR 0011 Return Gate), unchanged.
+
+### Consequences
+
+- "Full is a scope, not a frequency" is now enforced by an artifact rather than
+  remembered by a session: a repeated expensive command requires deleting
+  evidence or changing the key.
+- Evidence lives in the tree beside the issue package
+  (`.rope/issues/<slug>/evidence/`). Two mechanisms keep it from being read as
+  work: the delivery gate is invoked with `--evidence` and excludes that path
+  from both its cleanliness check and its leftover-recovery commit, and the
+  repository declares one ignore line so a human's `git status` and a leaf's
+  `git add -A` stay honest. Discovery beats hiding: `.git/rope-evidence/` was
+  the first answer, and it read as a location chosen to dodge a check rather
+  than as a place for a record.
+- A check that only a human can run stays out of `checks` and stays visible in
+  E2E as `blocked_on_user`.

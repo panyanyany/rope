@@ -27,7 +27,7 @@ Rules:
 
 - **Worktree mode** — host can isolate a spawn in a git worktree (pi
   subagents: `isolation: "worktree"`; Claude Code: agent `--worktree`; a
-  hand-made worktree works too). Slice-ready: ready = blockers **merged**;
+  hand-made worktree works too). Slice-ready: ready = seam-required blockers **merged**;
   dispatch into a fresh worktree from the latest merged HEAD. Overlapping
   slices may run concurrently — overlap surfaces in the merge queue.
 - **Shared mode** — waves; same-wave parallelism needs disjoint owned
@@ -37,15 +37,27 @@ Rules:
 
 ## Merge queue (worktree mode)
 
-Landed branches merge **serially, one at a time**, in landing order:
+Under dynamic execution the **kernel** owns this queue; the parent reads the
+`merged` rows out of the run record. Under agent dispatch the parent runs it.
+Either way the rules are the same: landed branches merge **serially, one at a
+time**, in landing order, and the parent never merges while a leaf is running
+that could touch the same paths.
 
 1. Merge one branch; conflict → re-dispatch **one** implementer leaf with
-   both branch names and conflicting paths; its fix rejoins the queue.
+   both branch names and conflicting paths, resolving **on the unmerged
+   branch** (merge/rebase the landed sibling — the unmerged slice's brief
+   and commits carry its intent, ADR 0012); its fix rejoins the queue.
+   When tasks.md records methodology-order preferences (ADR 0011), order
+   the queue by them when convenient — they never gate dispatch, only
+   landing order.
 2. After each merge: update `map.md` from leaf summaries, re-check the
    ready set, dispatch newly-ready slices.
-3. No per-merge test ritual — leaves ran TDD; downstream worktrees cut from
-   merged HEAD exercise upstream changes; assembled truth is the
-   end-of-issue review.
+3. Agent dispatch adds no per-merge test ritual — leaves ran TDD;
+   downstream worktrees exercise upstream changes. Dynamic execution uses
+   its declared L2/L3 integration checks, not extra full-suite reruns.
+   Assembled behavior is accepted at the end-of-issue review. **Flake discipline (ADR 0013):** a failure under
+   parallel load → rerun only the failing tests to classify the flake; a
+   full clean rerun needs a recorded reason.
 
 ## Worktree setup (repo contract, in `routes.md`)
 
@@ -53,22 +65,92 @@ Landed branches merge **serially, one at a time**, in landing order:
 - Worktree setup: `./scripts/worktree-setup.sh`   # or: host-managed | npm ci | uv sync | …
 ```
 
+- **Declared command** — **check-first and idempotent**: the script begins
+  with a cheap testability check (e.g. `test -d node_modules`) and exits
+  fast when the worktree is already testable. Prefer cheap strategies over
+  reinstalling: read-only symlinks from the main checkout
+  (`node_modules`, venvs, `.env*` — the quick-path convention), shared
+  package caches (pnpm store). It goes into every worktree leaf's brief as
+  **step 0, unconditional** — a precondition, not a repair the leaf decides
+  to run after a green failure:
+  ```md
+  Worktree setup (run first; check-first script, fast no-op when already
+  testable): <command>. Environment failure after setup → report blocker;
+  never spend fix rounds on environment setup.
+  ```
+  Running a declared command is mechanics; recognizing an environment
+  failure inside test output is judgement — the brief must not depend on
+  the latter. A worktree leaf returns one setup line (`setup: ran <cmd>` |
+  `setup: no-op (already testable)`); the Return Gate bounces a code-bearing
+  slice whose return is missing it.
 - **`host-managed`** — a host hook prepares worktrees. State its **scope**:
   hooks firing only for host-created worktrees do not cover rope-spawned
   isolation worktrees — declare the script invoked manually instead
-  (usually `bash <host-setup.sh> <path>`).
-- **Declared command** — goes into every worktree leaf's brief as a
-  condition step:
-  ```md
-  Worktree setup (only if the green command fails on a missing
-  environment): <command>. Retry green once after. Still failing → report
-  blocker; do not spend fix rounds on environment setup.
-  ```
+  (usually `bash <host-setup.sh> <path>`). Either way the brief still
+  carries step 0 (a no-op check when the hook already ran).
 - **Undeclared** — leaf tries green first; environment failure is a
   blocker. Parent falls back to shared mode for remaining slices and
   records the reason. Before accepting any "setup friction" reason to fall
   back, check whether the host setup script applies manually — it usually
   can, keeping worktree mode available.
+
+## Test tiers & baseline ladder (repo contract, ADR 0013)
+
+`routes.md` declares:
+
+```md
+- Test tiers: quick: `<cmd>` (~Ns, measured)   # guards + entrypoint smoke + pure units
+               full:  `<cmd>` (~Ns, measured)   # regression net, not an iteration tool
+               report: `<full cmd> 2>&1 | tee <log> | grep -E '<failure|tally>'`
+                       # one run prints the failure names plus the tally and
+                       # saves everything; see One run, below
+```
+
+- **Impact selection:** shape's Testing Decisions names affected modules,
+  shared consumers, focused commands, and reasons for included/excluded
+  suites. Slice tests stay focused; integration checks exercise affected
+  seams; final review walks the Matrix/E2E and checks assembled impact.
+  Expand to broader suites for shared infrastructure, uncertain impact,
+  evidence of cross-module coupling, or an explicit repository requirement.
+  A local failure is diagnosed before using it to justify a global rerun.
+  - **Contract sweep.** The affected set follows what the change *breaks*,
+    not what it *touches*. When a slice retires, reverses, renames, or
+    re-keys a contract — prompt text, enum or status value, field or
+    parameter name, error string, menu entry, response shape — the
+    assertions that pin it usually live in files the slice never opens:
+    tests exercise public interfaces and rarely import the symbol being
+    deleted, so grepping for that symbol returns near zero. Grep the test
+    tree for the contract's own vocabulary instead (the literal string, the
+    old value, the removed field). Every hit is migrated in this slice or
+    named out of scope with a reason. A hand-picked file list is not a
+    sweep.
+- **Baseline ladder** (go startup): reuse same-HEAD green evidence (CI or
+  recorded run ≤24h) that covers the selected scope and relevant environment;
+  otherwise run the declared quick tier or affected tests. Broader suites
+  are an issue-level fallback only with one of the impact reasons above.
+  Record the selected scope, command, reason, and reused/run evidence in
+  existing Testing Decisions/work records.
+- **One run shows the failures.** Every command used as evidence writes its
+  full output to a file and prints the failing item names plus the tally in
+  that same invocation. Three projections of one command means running it
+  once and reading the file three ways — never three runs. Keep the exit
+  status intact through the capture: a bare `cmd | tee log | grep …`
+  pipeline reports the grep's status and silently turns a red suite green,
+  so `set -o pipefail` first. Recover a stack trace by grepping the saved
+  file, never by rerunning the command.
+- **Full is a scope, not a frequency.** Baseline and final review are
+  decision points, not two mandatory full-suite executions. Scope-green
+  proves only that scope. Backend-only local changes do not automatically
+  run frontend suites; changes to a shared API consumed by the UI include
+  affected UI tests, expanding further when coupling is broad or unknown.
+- **Undeclared is legal**: the ladder skips the rung. When shape finds
+  the line missing, shape derives it (explore leaf or in-session scan —
+  never a human step, never mid-flight invention at go): guards +
+  entrypoint smoke mandatory, pure unit tests optional, fixture-heavy
+  integration / benchmark / network tests excluded; time the candidate
+  and write it back **only if ≤60s**, with date, criteria, and measured
+  time. These criteria live here only — shape references, never
+  duplicates.
 
 ## Leaf Brief Contract (hard budget)
 
@@ -91,17 +173,29 @@ command blocks excluded). The parent checks the budget before dispatch.
 
 - TDD mode: `required` (default for code) | `waived (docs-only)` + reason;
   when required — red command(s) + what counts as red, green command(s)
-  after minimal implementation; focused/incremental, may cite prior
-  full-suite evidence
-- Expected return shape: summary, paths changed, commit hash (or branch
-  name in worktree mode), acceptance text exercised, red evidence
+  after minimal implementation — focused seam commands by default; a
+  full-suite run is issue-level evidence (ADR 0013), never a brief
+  requirement
+- Expected return shape: summary, paths changed, delivery branch + the commit
+  hash printed by `git rev-parse HEAD`, acceptance text exercised, red evidence
   (command + failure) unless waived, green evidence, constraint IDs
   checked + disposition conflicts, falsified/needed map lines (worktree
-  mode), blockers
+  mode), blockers with a class, one setup line in worktree mode
+  (`setup: ran <cmd>` | `setup: no-op`) — **plus the Return Gate payload:**
+  every slice Required-evidence item mapped to pasted command output or an
+  artifact path, keyed by evidence id (ADR 0011)
+- Worktree mode, dynamic: the kernel injects the delivery contract, so the
+  parent does not write it — commit everything, leave `git status --porcelain`
+  empty, then `git branch -f <delivery branch> HEAD` as the last write. A leaf
+  that misses a step costs a flag (`recovered` / `moved` in the delivery
+  verdict), never the implementation. Worktree mode, agent dispatch: state the
+  same three steps in the brief, because the host's own `pi-agent-<id>` cleanup
+  branch is not a name the plan can route on.
 - Relevant artifact paths (prd/tasks/e2e, bundle, map, specs, files)
 - Map path — orient by it; update falsified lines before commit (shared
   mode) or report them in the summary (worktree mode)
-- Worktree mode: the worktree-setup condition step when the repo declares one
+- Worktree mode: the worktree-setup step-0 command when the repo declares
+  one (unconditional; check-first script)
 - No nested spawn; commit rules; Blocked by / Scope
 
 End-of-issue briefs (two, ADR 0010): **scanner** — diff + commit list +
@@ -111,15 +205,59 @@ path + entrypoint start hint + inline global invariants (bundle path on
 suspected conflict only; no map). Axes and high-risk list live in the
 reviewer preset body, not the brief. Same allowlist and line cap.
 
-## End-of-Issue Review Execution (parent-owned)
+## Return Gate reconciliation & Defense Budget (ADR 0011)
 
-After all slices and before verify, the parent spawns **two read-only
-leaves in one message** (ADR 0010) — both new eyes, never watched the
-build:
+On each landing, reconcile mechanically — a table check, not a review:
+
+```md
+| Evidence item (id) | Required by (matrix row) | Returned output/path | verdict |
+| --- | --- | --- | --- |
+| S2-E1 crash-after-rename | B4 | pasted pytest output | ok |
+| S2-E2 concurrent get-or-create | B5 | (missing) | BOUNCE |
+```
+
+- Any `BOUNCE` row → re-dispatch the leaf with exactly the missing item
+  ids; nothing else reopens.
+- The gate never re-reads implementations, never reruns tests, never
+  issues verdicts — the end-of-issue review stays the only review gate
+  (ADR 0007). A missing evidence item bounces the **leaf**; the parent
+  never runs tests to back-fill a leaf's evidence (ADR 0013).
+- **Defense Budget:** a correction brief contains **zero** acceptance
+  requirements absent from the Behavior Matrix. A gap discovered
+  mid-execution goes back to shape as a re-cut (new slice) or is demoted
+  to a recorded non-blocking note in tasks.md. Design-constraint drift
+  across rounds ("fix2 replaces what fix1 built") is a Defense Budget
+  violation — stop and re-cut instead.
+
+## Human Gate Panel (ADR 0011)
+
+Multiple pending gates render once, batched:
+
+```md
+## Human Gate Panel (2 pending)
+1. [S5] authorize fail-open → fail-closed switch — blast radius: summary
+   gate path; lanes S2/S3 continue, S4 holds.
+2. [S8] approve destructive worktree cleanup — blast radius: none unmerged;
+   all lanes continue.
+```
+
+Each entry: affected slices / exact authorization requested / blast radius /
+other lanes' continue-or-hold status. Never present gates one-at-a-time while
+other lanes sit idle without an explicit hold statement.
+
+## End-of-Issue Review Execution
+
+After all slices and before verify. Under dynamic execution the **kernel** owns
+this gate (ADR 0014) — freeze point, both axes, mechanical aggregation and the
+bounded fix loop — and the parent only reads the record. Under agent dispatch
+the parent runs it: spawns **two read-only leaves in one message** (ADR 0010),
+both new eyes, never watched the build, then does bookkeeping from the
+structured return and renders an exhausted fix budget as the Human Escalation
+Stop:
 
 1. **Scanner leaf** — the `rope-explore` preset with the Standards brief
    below (generic read-only worker otherwise; record the type used).
-   Runs lint/typecheck/build first and skips what tooling enforces;
+   Runs impact-selected lint/typecheck/build first and skips what tooling enforces;
    never runs the product.
 2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
    worker with explicit review instructions otherwise). Read-only on
@@ -200,9 +338,29 @@ e2e.md carries **real-environment behaviors only** (real APIs, real
 entrypoints, real external systems). Ticket-level units live in TDD
 evidence, never in e2e.md.
 
+Executor resolution is capability-relative (gates-and-vocab): read each
+item's mechanism label, probe the harness tool surface, and run every
+covered mechanism as agent. A user handing an item over mid-go
+(“你自己跑吧”) is the probe firing late — run it and record it as agent
+execution with evidence, never as an exception.
+
+**The resolution is written into the plan before dispatch.** The kernel runs
+no probe and asks no human, so each e2e item carries `executor`
+(`agent` | `agent-with-gate` | `user` | `not-run`) plus its `decision`, and the
+plan is rejected when the two disagree — a gated action cannot start without a
+recorded `approved`. An item that runs must name its `preset`. An item that
+does not run must carry the `reason` it does not, and is recorded with its
+terminal status rather than dropped: a skipped item and a missing item must not
+look the same in the record.
+
+Only an item the agent actually ran gates. A required item kept out of the run
+(`user`, `not-run`, a declined gate) is an honest terminal outcome the run may
+still deliver with; a leaf that *ran* and reported `blocked` has not passed.
+
 - `agent_passed`: agent ran it; record command + evidence.
 - `agent_failed`: ran and failed; fix or record blocker.
-- `blocked_on_gate` / `blocked_on_user`: missing approval / human-only.
+- `blocked_on_gate` / `blocked_on_user`: missing approval / human-only
+  (judgment, credentialed, unreachable).
 - `skipped_by_user_at_shape` / `not_run_with_reason`: intentional skips.
 
 ## Commit Rules

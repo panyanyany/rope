@@ -1,48 +1,28 @@
-# Dynamic Workflow Mode — Spec
+# Workflow Execution Mode — Maintainer Route
 
-Contract for the opt-in `mode: dynamic` issue flow. Companion to
-`.rope/adr/0003-dynamic-workflow-mode.md`.
+The canonical operational contract is shipped with Rope:
+[dynamic-workflow.md](../../skills/rope-go/references/dynamic-workflow.md) for
+startup resolution, research coverage, graph width and failure handling, and
+[execution-template.md](../../skills/rope-go/references/execution-template.md)
+for the kernel's plan schema, run record, staged preconditions and stub
+fidelity. Edit those files when runtime behavior changes; this maintainer route
+deliberately does not copy their rules.
 
-## `mode` field
+The kernel ships as code, not as instructions:
+`skills/rope-go/workflows/go-execute.js` plus `skills/rope-go/scripts/`. Its
+offline suite is `node --test tests/*.test.mjs`.
 
-- Location: `prd.md` frontmatter.
-- Values: `serial` (default) | `dynamic`.
-- Absent or `serial` ⇒ current serial behavior. `dynamic` ⇒ the discipline below.
+Architecture rationale: [ADR 0014](../adr/0014-workflow-execution-mode.md).
+Test-scope rationale: [ADR 0013](../adr/0013-test-cost-tiering.md).
 
-## Dynamic-mode `tasks.md` structure
+## Distribution acceptance
 
-Must contain, in order:
-
-1. **Contract slice** — `kind: contract`, `Blocked by: none`, first.
-   Defines interfaces / data structures / call boundaries only. No feature
-   implementation.
-2. **Implementation slices** — each declares a disjoint
-   `Scope` / `owned_files`. No file may be owned by more than one
-   implementation slice. A core file owned by multiple slices is a **shape
-   defect** (must be split or those slices serialized), not a go problem.
-3. **Per-slice size cap** — default ≤ ~400 diff lines or ≤ 4 owned files per
-   implementation slice. Exceeding ⇒ shape must split the slice.
-4. **Integration slice** — trailing, serial. Wires the module slices into the
-   main entrypoint and verifies contract alignment.
-
-## go fan-out (when `mode: dynamic`)
-
-- Frontier = slices with no unresolved blockers.
-- **Disjoint-scope** frontier slices → concurrent implementer leaves (parent
-  spawns one per slice).
-- **Overlapping** slices → serialize.
-- Contract and integration slices are always serial.
-- Per-slice **review gates** and **commit rules** still apply.
-- **Issue-level verify** stays parent-owned and read-only; no nested spawn from
-  leaves.
-- If go cannot spawn concurrent workers → degrade to serial, record the reason
-  in `tasks.md`.
-
-## Forbidden shortcuts
-
-- Parallelize overlapping slices.
-- Skip review gates in dynamic mode.
-- A parallel implementer leaf spawning another leaf.
-- go fanning out slices that share a core file.
-- Auto-detecting dynamic mode (it is a manual, shape-time user decision).
-- Hard-coding a model list instead of reusing harness presets.
+- A disposable install containing only the npm payload (`bin/`, `skills/`)
+  resolves the dynamic reference from grill, shape, and go without `.rope/`.
+- Both default user-global and explicit project targets preserve those links.
+- Runtime references resolve relative to installed skill files, not cwd.
+- `rope add` installs `skills/rope-go/workflows/` and `skills/rope-go/scripts/`
+  with the skill (the installer copies subdirectories recursively), and an
+  installed `go-execute.js` is byte-identical to the source copy.
+- Reinstall preserves destination `settings.json`; real installed copies are
+  changed only by an explicitly requested installation.

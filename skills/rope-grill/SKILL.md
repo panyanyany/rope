@@ -51,8 +51,17 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 
 ## Workflow
 
+0. Before investigation, read **Startup** in the installed
+   [dynamic workflow reference](../rope-go/references/dynamic-workflow.md).
+   Resolve config + host capability once per session. Under `dynamic`, also
+   read **Grill / shape** there and apply its coverage-driven research fan;
+   carry the resolution to shape and go.
 1. Restate target and suspected ambiguity.
-2. Resolve **facts** (code/docs/libs) before questions; see grilling.md.
+2. Resolve **facts** (code/docs/libs) before asking the user — dispatch
+   background explore leaves for wide lookups (parallel fan under a
+   dynamic execution config; research briefs per the harness-presets
+   explore research mode); a running exploration delays only
+   the questions downstream of it, never the round. See grilling.md.
 3. Apply **domain discipline** (glossary, fuzzy terms, code contradictions).
 4. Resolve **Behavior Contract** six fields (grilling.md).
 5. Run a conditional architecture-impact check. Use targeted lookup through
@@ -60,8 +69,10 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
    `not-applicable` with the lightweight trigger check. If a trigger is present,
    resolve each decision's disposition before shape.
 6. Ask **product/design-first** decisions with a recommendation, plain language,
-   and a concrete example. Resolve blockers first; independent decisions may be
-   grouped into one structured batch, while dependent decisions stay ordered.
+   and a concrete example, in **frontier rounds** (grilling.md): one numbered
+   round for every decision whose prerequisites are settled; a decision that
+   depends on an answer still open goes to a later round. Recompute the
+   frontier after each round of answers.
 7. When the host exposes `ask_user_question` or an equivalent structured tool,
    prefer it for batches and choices. If unavailable, use the same plain-text
    questions with recommendation, concrete scenario, and tradeoff; do not block.
@@ -74,13 +85,15 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
     writing any issue, shape, or go artifacts**:
     “这些需求已经确认。你要走哪条路径？
     1. 完整流程：写 issue → shape → go（推荐）
-    2. 直接 go：跳过 issue 和 shape”
+    2. 直接 quick：小任务走 `rope-quick`，跳过 issue 和 shape”
     Show the concrete result and tradeoff of each path. Treat `1` as full flow
-    and `2` as direct go. If the user chooses direct go, hand the confirmed
-    recap and decisions to `rope-go` in **direct-go mode**; do not write
-    `.rope/issues/<slug>/` files first. If they choose full flow, continue to
-    shape. Do not write the issue package until the shared-understanding
-    confirmation exists (unless they said “直接 shape”).
+    and `2` as direct quick. If the user chooses direct quick, hand the
+    confirmed recap and decisions to `rope-quick` as its briefing (its
+    grill-lite records them into `quick.md`; no `.rope/issues/<slug>/` files
+    are written) — its stop lines send oversized work back to the full
+    pipeline. If they choose full flow, continue to shape. Do not write the
+    issue package until the shared-understanding confirmation exists (unless
+    they said “直接 shape”).
     Shape later projects this recap into a **Contract Note** for the final
     PRD confirmation (ADR 0005) — not a separate wish list, a human projection
     of the Behavior Contract.
