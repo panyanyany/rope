@@ -9,6 +9,7 @@
 import { mkdtemp, mkdir, writeFile, rm, readFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 export function git(cwd, ...args) {
@@ -100,9 +101,9 @@ export async function cleanup(...dirs) {
 
 /** The path of a shipped script, so tests never hardcode an absolute location. */
 export function scriptPath(name) {
-  return new URL("../../skills/rope-go/scripts/" + name, import.meta.url).pathname;
+  return fileURLToPath(new URL("../../skills/rope-go/scripts/" + name, import.meta.url));
 }
 
 export function templatePath() {
-  return new URL("../../skills/rope-go/workflows/go-execute.js", import.meta.url).pathname;
+  return fileURLToPath(new URL("../../skills/rope-go/workflows/go-execute.js", import.meta.url));
 }
