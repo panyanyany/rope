@@ -170,9 +170,9 @@ rope-reviewer 为 code-only；ADR 0015/CONTEXT/routes 同步。
 ## Gate Decisions
 
 - Gate: 全局 skill/preset 安装
-- Decision: blocked（本轮不安装；草稿经用户确认后另轮执行）
-- Scope: `~/.agents/skills/`、`~/.pi/agent/agents/`
+- Decision: passed（2026-09-23 用户下令提交+安装；已执行）
+- Scope: `~/.agents/skills/`、`~/.pi/agent/agents/`、`~/.config/rope/harness/pi.json`
 - Risk: 未经确认改全局违反仓库 AGENTS 约定
-- Pass criteria: 用户对 `.agents/skills/rope-e2e/` 草稿点头
-- Failure report: 用户指出草稿问题 → 修改后重审
-- Forbidden Out-of-Scope Actions: 直接写全局目录
+- Pass criteria: 用户对整合结果点头（已达成：E2 user_confirmed）
+- Failure report: 无
+- Forbidden Out-of-Scope Actions: 直接写全局目录（已解除，用户授权）

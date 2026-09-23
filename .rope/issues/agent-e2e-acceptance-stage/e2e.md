@@ -41,4 +41,4 @@ Failure Report:
 Forbidden Out-of-Scope Actions:
 - 未经确认写 `~/.agents/skills/`、`~/.pi/agent/agents/`、`~/.config/rope/`
 Result:
-- pending
+- user_confirmed（2026-09-23：用户下令"提交、安装到全局、runner 配 gemini-3.8-flash medium"，即接受整合结果；安装已执行：skills 三件同步 ~/.agents/skills/，rope-reviewer.md 重生成为 code-only，rope-e2e-runner.md 新建，manifest 补 runner 行）

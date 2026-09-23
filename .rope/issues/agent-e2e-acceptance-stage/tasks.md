@@ -88,7 +88,8 @@ finish 不改规则（仅修一处过时引用）。原独立 skill 草稿已删
 - Round 2（2026-09-23，整合方案）：**approve**（单叶只读，rope-reviewer，代码两轴合并；纯文本改动无产品可跑，偏差同上）；1 note（manifest 示例 JSON 尾逗号，先于本轮存在）已于交付前应用。①-⑤逐点对照无加严/放宽；旧契约句零残留；verify 仅一行引用修正、finish 零改动；交叉引用闭合；修复回环与 ADR 0015 第 5 条一致。
 - 修复轮次: 0（Round 1、Round 2 各自零阻塞发现）
 
-## Follow-up（需用户确认后执行，不属于本轮代码改动）
+## Follow-up 执行记录（2026-09-23 用户确认后已完成）
 
-- 全局安装：`skills/` 树变更同步到 `~/.agents/skills/`（rope-go、rope-harness-presets、rope-verify 文档）；regenerate presets：`rope-reviewer.md` 收窄版 + 新增 `rope-e2e-runner.md` → `~/.pi/agent/agents/`；manifest `~/.config/rope/harness/pi.json` 补 runner 角色行。
-- rope-quick 的真实入口要求：另议题。
+- 全局安装：rope-go / rope-harness-presets / rope-verify 干净替换至 `~/.agents/skills/`（diff -rq 核对 SYNC-OK）；`~/.pi/agent/agents/rope-reviewer.md` 重生成为 code-only（保留 zai-coding-cn/glm-5.3 low 现有 pin）；新增 `~/.pi/agent/agents/rope-e2e-runner.md`（antigravity/gemini-3.8-flash medium，用户指定）；manifest `~/.config/rope/harness/pi.json` 补 runner 行。
+- 补漏：harness-presets SKILL.md 工作流步騵4/5/6 与 research-mode 段同步四角色（7816c66）。
+- 未做（另议题）：rope-quick 的真实入口要求。
