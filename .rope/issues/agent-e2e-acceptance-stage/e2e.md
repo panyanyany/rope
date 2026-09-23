@@ -20,7 +20,7 @@ Failure Report:
 Forbidden Out-of-Scope Actions:
 - 修改 `skills/` 产品树或全局目录
 Result:
-- pending
+- agent_passed（2026-09-23）：SKILL.md 71 行≤100，frontmatter 合法，描述含触发分支；交叉引用 skill↔ADR 0015↔CONTEXT↔routes 闭合；preset frontmatter 可解析，工具面含 agent_browser 全套（含 action/qa，审查 note 已应用）；quick_validate.py 本机不存在，跳过已记录；末尾审查 approve
 
 ## E2 用户确认 skill 草稿（全局安装前置）
 

@@ -1,7 +1,7 @@
 ---
 description: "Rope E2E runner — drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes."
 display_name: Rope E2E Runner
-tools: read, bash, grep, find, ls, agent_browser, agent_browser_code, agent_browser_tools
+tools: read, bash, grep, find, ls, agent_browser, agent_browser_code, agent_browser_tools, agent_browser_action, agent_browser_qa
 model: zai-coding-cn/glm-5.3
 thinking: low
 prompt_mode: replace

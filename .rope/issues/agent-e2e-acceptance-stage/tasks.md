@@ -57,3 +57,19 @@ Slice 2 消费 Slice 1 的 ADR/词条词汇（seam-required）。数字为手工
 - Implementation notes: 模型可触发（description 写触发分支）；宿主无独立 browser 会话时旅程降级串行并记录原因
 - Verification: 结构检查（行数、frontmatter、互指）+ 用户通读
 - Stop conditions: 需要改产品 skills/ 树才能自洽 → 停，回报（超出本轮授权）
+
+## 末尾审查（记录）
+
+- Verdict: **approve**（2026-09-23；单叶只读审查，rope-reviewer；两叶拆分的产品启动串行理由不适用——无产品可跑，偏差已记录）
+- Findings: 1 note —— runner preset 工具面补 `agent_browser_action`/`agent_browser_qa`；已于交付前应用（不属于修复轮）
+- 修复轮次: 0
+- Matrix 复核：五点契约与 ADR 0015 Decision 1–5、SKILL.md 步骤 1–8 逐点对位；quick/dynamic 零改动属实；交叉引用闭合
+
+## Follow-up（产品/安装轮，另开 issue；本轮 Non-goals 已声明）
+
+- `skills/rope-go/references/execution-rules.md`：审查段去产品启动、新增 E2E 阶段约定（reviewer 只审代码；栈父窗口独占；必需项门收紧为“全过或逐项用户豁免”）；修复后复审补受影响旅程重跑条款（现行 248–277、347–364 滞后）
+- `skills/rope-go/SKILL.md`：Final review 段与交接前置同步（现行 49–50）
+- `skills/rope-verify/references/verify-rules.md` + `skills/rope-finish/references/finish-checklist.md`：终态口径收紧为“必需旅程通过或用户逐项豁免”（现行 25–30 / 10–17）
+- `skills/rope-harness-presets/references/role-schema.md` + `manifest-schema.md`：有意新增 E2E Runner 第四角色（现行 schema 明确三角色，28–49 / 33–70）
+- `rope-reviewer` preset 重生成（全局）：职责收窄为代码两轴
+- 用户确认草稿后：安装 `.agents/skills/rope-e2e/` → `~/.agents/skills/`，preset → `~/.pi/agent/agents/`
