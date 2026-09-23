@@ -54,7 +54,7 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
       "model": "provider/modelId",
       "thinking": "low",
       "path": "~/.pi/agent/agents/rope-explore.md"
-    },
+    }
   }
 }
 ```

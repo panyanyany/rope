@@ -16,13 +16,16 @@ headless submitter 注入记 E2E PASS，从未经过真实钉钉入口；legal-f
 为 agent 模式完整 issue 增加**独立 E2E 验收阶段**：两轴代码审查通过后，
 父窗口启动**一套**项目声明的测试栈并确认就绪，派多个**只读 E2E runner
 叶子**各走一条真实用户旅程（互不争用并行，共享账号/可变状态串行）；
-`e2e.md` 所有必需旅程拿到 runner 证据才算通过，否则阻塞交付，只有用户
-对该项明确豁免才可带"未验证"结案。E2E 缺陷走有界修复：合入后代码增量
-复审、栈更新到新提交、重跑受影响旅程与共享入口检查。
+`e2e.md` 所有必需旅程拿到成功证据（`agent_passed`/`user_confirmed`）才
+通过，否则阻塞交付，只有用户对该项明确豁免才可带"未验证"结案。E2E
+缺陷走有界修复：合入后代码增量复审、栈更新到新提交、重跑受影响旅程
+与共享入口检查。
 
-本仓库本轮只落 issue 与架构记录（ADR 0015、CONTEXT 词条、routes 路由）
-加本地 skill 草稿 `.agents/skills/rope-e2e/`；产品 `skills/` 树集成与
-全局安装是后续轮。
+落地位置（2026-09-23 用户纠正后）：整合进 rope-go 的 execution-rules
+（E2E Acceptance Stage 段）与 SKILL.md Final review 流，不另做独立
+skill；harness-presets 新增 `rope-e2e-runner` 第四角色
+（role-schema/agent-templates/manifest-schema）并同步收窄
+rope-reviewer 为 code-only；ADR 0015/CONTEXT/routes 同步。
 
 ## Contract Note
 
@@ -35,28 +38,30 @@ headless submitter 注入记 E2E PASS，从未经过真实钉钉入口；legal-f
 ## Goals
 
 - agent 模式完整 issue 的验收与代码审查分离：reviewer 只审代码，E2E runner 只执行验收。
-- 父窗口共享一栈 + 并行 runner 叶子的调度、证据、豁免、修复回环规则成文。
-- 本地 `rope-e2e` skill 草稿（含 runner preset 草稿），按 write-a-skill 规范可评审、可安装。
+- 父窗口共享一栈 + 并行 runner 叶子的调度、证据、豁免、修复回环规则成文于 rope-go execution-rules。
+- harness-presets 定义 `rope-e2e-runner` 角色并收窄 rope-reviewer 为 code-only。
 
 ## Non-goals
 
 - 不改 `rope-quick`（quick 的真实入口要求后续单独决定）。
 - 不改 dynamic workflow / kernel（已定全量退役，仅作历史背景）。
-- 不改产品 `skills/` 树（rope-go 等）——skill 经用户确认后另轮集成与安装。
-- 不自动安装任何全局 skill 或 preset（用户确认后手动）。
+- 不改 rope-verify / rope-finish 规则（2026-09-23 用户裁定：交付门在 go；verify 只做文书与漂移检查；仅修一处过时引用）。
+- 不自动安装全局（skill/preset 安装需用户确认，仓库 AGENTS 约定）。
 
 ## Public Interface / Behavior
 
 - `.rope/adr/0015-agent-mode-e2e-acceptance-stage.md`：阶段顺序、角色分工、栈所有权、豁免与修复回环的权威决策。
+- `skills/rope-go/references/execution-rules.md`：E2E Acceptance Stage 段 + E2E 状态门收紧 + Handoff Checklist 前置。
+- `skills/rope-go/SKILL.md`：Final review 步骤 1（reviewer code-only）与新增步骤 4（E2E 阶段）。
+- `skills/rope-harness-presets/references/role-schema.md` + `agent-templates.md` + `manifest-schema.md`：`runner`/`rope-e2e-runner` 第四角色；reviewer 职责收窄。
 - `.rope/CONTEXT.md`：`End-of-Issue Review` 词条改为代码两轴；新增 `E2E Runner` 词条；`Real-Environment Walk` 标注 dynamic 专属。
-- `.rope/routes.md`：`rope-e2e` 本地 skill 路由条目。
-- `.agents/skills/rope-e2e/`：SKILL.md + runner preset 草稿 + 旅程 brief 模板。
+- `.rope/routes.md`：E2E 阶段路由（指向 ADR + execution-rules + role-schema）。
 
 ## Testing Decisions
 
 - Good test: observe external behavior at agreed seams — not implementation details
 - Seams under test: 文档/技能文件的静态结构（frontmatter、行数上限、词条存在与互指）；无代码 seam。
-- Test scope: `node --test tests/*.test.mjs` 回归确认零代码影响（本 issue 不触 `skills/`、`bin/`、`tests/`）；文档用 file-inspect 核对。
+- Test scope: `node --test tests/*.test.mjs` 回归（本轮触及 `skills/` 文档树）；契约文本用 file-inspect + 交叉引用核对。
 - Broader-suite trigger: none（纯文档 + 本地 skill 草稿）。
 - Repo suite policy: fast-iteration（routes 声明）。
 
