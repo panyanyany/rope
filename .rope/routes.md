@@ -95,6 +95,22 @@ For issue workflow changes, also read:
 Verify with:
 - Unknown — documentation-only; no automated doc tests discovered
 
+### Run the agent-mode E2E acceptance stage
+
+Read first:
+- `.rope/adr/0015-agent-mode-e2e-acceptance-stage.md`
+- `.rope/CONTEXT.md` (terms: End-of-Issue Review, E2E Runner)
+- `.agents/skills/rope-e2e/SKILL.md` (local skill draft)
+
+Verify with:
+- file-inspect: skill ↔ ADR ↔ CONTEXT cross-references closed
+- user confirmation before any global install (repo AGENTS rule)
+
+Notes:
+- Skill path: `.agents/skills/rope-e2e/` (model-invoked local draft; not
+  product `skills/`, not shipped by `rope add`)
+- Runner preset draft: `.agents/skills/rope-e2e/agents/rope-e2e-runner.md`
+
 ### Harvest Matt Pocock upstream inspiration (maintenance)
 
 Read first:

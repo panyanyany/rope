@@ -43,25 +43,27 @@ _Avoid_: second code review, replaying green tests, trusting verdict claims
 without identity
 
 **End-of-Issue Review**:
-The single review gate after all slices (ADR 0007, mechanics refined by
-0010): **two parallel read-only leaves with new eyes**, spawned in one
-message — under workflow execution, inside the kernel at a **freeze point**
-(every slice merged, tree clean, no leaf running), fix loop ≤2 rounds
-with delta re-review. The **Standards scanner** (explore-class preset, cheap model)
-runs lint/typecheck first, then judgement-call-scans the assembled diff
-for repo conventions, TDD anti-patterns, the smell baseline, and inline
-global invariants — never runs the product. The **Behavior reviewer**
-(`rope-reviewer`, strong model) starts the product first, reads the diff
-while it boots, then walks the Behavior Matrix at the **real entrypoint**
-the way a user would, runs e2e items, and gives high-risk boundaries the
-deepest look; it is the only leaf that may run the product. Aggregation
-is mechanical — verdict = worst of axis verdicts, no rerank. Findings are
-`blocking | note` with path:line + one-sentence fix; only blocking enters
-the one fix brief (≤2 rounds, then Human Escalation Stop); post-fix
-re-review is delta-only. Per-slice review no longer exists.
+The single code-review gate after all slices (ADR 0007, mechanics refined by
+0010, product-run scope split by 0015): **two parallel read-only leaves with
+new eyes**, spawned in one message — under workflow execution, inside the
+kernel at a **freeze point** (every slice merged, tree clean, no leaf
+running), fix loop ≤2 rounds with delta re-review. The **Standards scanner**
+(explore-class preset, cheap model) runs lint/typecheck first, then
+judgement-call-scans the assembled diff for repo conventions, TDD
+anti-patterns, the smell baseline, and inline global invariants — never runs
+the product. The **Behavior reviewer** (`rope-reviewer`, strong model) reads
+the assembled diff against the Behavior Matrix and gives high-risk
+boundaries the deepest look. Under **agent dispatch** the reviewer is
+code-only: starting the product, walking the real entrypoint, and running
+e2e items belong to the **E2E Runner** stage that follows an `approve`
+(ADR 0015). Aggregation is mechanical — verdict = worst of axis verdicts, no
+rerank. Findings are `blocking | note` with path:line + one-sentence fix;
+only blocking enters the one fix brief (≤2 rounds, then Human Escalation
+Stop); post-fix re-review is delta-only. Per-slice review no longer exists.
 _Avoid_: review (wrong level), per-slice verdict bookkeeping, silent
 self-check degradation, fixture-only acceptance, parent re-ranking axes,
-scanner running the product
+scanner running the product, the reviewer re-walking journeys the E2E
+Runner already proved
 
 **Standards Scanner**:
 The cheap read-only leaf of the end-of-issue review (ADR 0010): runs the
@@ -72,7 +74,9 @@ invariants — every hit a judgement call, never a violation, with
 repo-documented standards overriding the baseline. Spawned from the
 explore preset with the baseline pasted in the brief; returns `clean` or
 ≤200 words of `{severity, path:line, issue, fix}` findings. Never starts
-the product; ports and processes belong to the Behavior reviewer.
+the product; ports and processes belong to the E2E stage — the kernel's
+Real-Environment Walk under workflow execution, the parent-owned stack +
+E2E Runner leaves under agent dispatch (ADR 0015).
 _Avoid_: deep judgment in the scanner, hard-violation framing, moving
 architecture-continuity judgment out of the Behavior reviewer
 
@@ -139,8 +143,30 @@ The repo declares `Test policy: fast-iteration | full-at-freeze` in `routes.md`.
 _Avoid_: per-slice full suites, periodic reruns without a changed key, gate
 detail relayed through agent prose
 
+**E2E Runner**:
+The read-only product-driving leaf of the agent-mode E2E acceptance stage
+(ADR 0015), dispatched only after the two-axis code review returns
+`approve`. One runner drives **one journey** through the project-declared
+real entrypoint (browser, real message channel, CLI, API — the project
+declares, Rope prescribes no tool); internal seams (submitter injection,
+fixtures) are integration evidence and never substitute. The **parent owns
+one shared test stack** — project-declared start command, readiness probe,
+teardown; runners never build their own. Resource-disjoint journeys run as
+parallel leaves with isolated browser sessions; journeys sharing an account
+or mutable state serialize. A runner never edits code, never spawns, and
+returns structured evidence (steps, tool/command, artifacts, per-item
+pass/fail). Every required `e2e.md` item must reach `agent_passed`, or the
+issue stays blocked; the only alternative is an explicit per-item user
+waiver, recorded as a waiver — never as a pass. After an E2E fix merges:
+delta code re-review, stack re-deploys on the new HEAD, affected journeys +
+shared-entry smoke re-run, reused evidence annotated with its commit.
+_Avoid_: implementer signing acceptance, reviewer re-walking proved
+journeys, per-runner stacks, headless injection recorded as entrypoint
+truth, waivers absorbed silently
+
 **Real-Environment Walk**:
-The e2e stage of dynamic go, and it runs **after** the End-of-Issue Review, not
+The e2e stage of dynamic go (agent-mode counterpart: the E2E Runner stage,
+ADR 0015), and it runs **after** the End-of-Issue Review, not
 before it: the read-only review is cheap and the real-environment walk is not, so
 reviewing first means the walk runs once, on the commit that will actually be
 delivered. Each item carries the `executor` Shape resolved (`agent`,

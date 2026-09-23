@@ -22,7 +22,7 @@ Slice 2 消费 Slice 1 的 ADR/词条词汇（seam-required）。数字为手工
 
 ## Slice 1: 架构记录——ADR 0015 与 CONTEXT/routes 词条
 
-- Status: pending
+- Status: done (commit 见 Final Status；证据：S1-E1 ADR 取代范围+继承清单成文；S1-E2 CONTEXT 三处词条与 ADR/routes 互指闭合，grep 命中行 47/59/79/148/169；S1-E3 git diff 仅触三文件，quick/dynamic 契约零改动)
 - Kind: vertical
 - Goal: 维护者与父窗口读 `.rope/` 即可说出 agent 模式 review→E2E→verify 的完整规则
 - Demo path: 打开 CONTEXT.md 搜 "E2E Runner"，能答"审查通过后谁起栈、谁跑旅程、不过怎么结案"
