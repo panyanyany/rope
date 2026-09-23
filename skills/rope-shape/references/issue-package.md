@@ -144,7 +144,7 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Goal: <user-perspective end-to-end result this slice makes true — not a layer list>
 - Demo path: <the behavior you can demo when this slice lands — never a layer name>
 - Blocked by: none | Slice N, … (<each edge labeled: file-overlap | seam-required | methodology-order>)
-- Scope: <path/area bounds; disjoint from sibling slices when parallel/dynamic>
+- Scope: <path/area bounds; disjoint from sibling slices when parallel>
 - Owned files: <explicit files this slice owns; unique within a shared-mode wave — in recorded worktree mode overlap is legal and expressed by a file-overlap edge (ADR 0012)>
 - Size cap: <default ~400 diff lines or ~4 owned files; exceeded ⇒ split>
 - Matrix rows:
@@ -155,17 +155,6 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Implementation notes:
 - Verification: <focused seam tests + guards this slice can affect — never a full-suite run (ADR 0013)>
 - Stop conditions:
-```
-
-### Composition roots block (when touched ≥1 — ADR 0014)
-
-```md
-## Composition roots
-
-- <root file/module, e.g. dingtalk_stream_assembly> — L3: real assembly +
-  fake outer-boundary transport, one event in (<event>) → observable out
-  (<assertion>); harness: <existing harness path | Slice N harness slice>
-- <root 2> — …
 ```
 
 Size cap is universal (fresh-context fit); slices that cannot fit are re-cut

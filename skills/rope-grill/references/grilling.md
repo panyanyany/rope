@@ -4,10 +4,9 @@
 
 - **Facts** (code, tests, docs, primary sources, mature libraries): look up.
   Prefer background explore leaves when wide — fan them out in parallel
-  under a dynamic execution config (research briefs per the explore
-  research mode); a running exploration delays only the questions
-  downstream of it, never the current round. Never turn answerable facts
-  into user quizzes.
+  (research briefs per the explore research mode); a running exploration
+  delays only the questions downstream of it, never the current round.
+  Never turn answerable facts into user quizzes.
 - **Decisions** (product tradeoffs, risk, gates, which option wins): put to
   the user in frontier rounds, each with a recommended answer. Never write
   contested choices into `.rope/` as settled.
@@ -24,30 +23,6 @@
 Prioritize **product, UX/design, scope, policy** over file layout / class names /
 framework trivia unless they change the Behavior Contract or a human gate. If
 you are only probing structure, step back to a product question.
-
-## Communication
-
-Use a plain interview. The user-facing answer must be simpler than the internal
-Rope reasoning.
-
-- Translate internal terms before speaking:
-  - Behavior Contract -> “what behavior must we guarantee”
-  - Failure visibility -> “where the user sees the error”
-  - Forbidden shortcut -> “a lazy implementation that could still pass tests”
-  - Human gate -> “this needs your explicit approval before we touch it”
-- Ask the frontier in **rounds**: independent decisions share one numbered
-  round (structured question tool preferred); each item still has its own plain
-  question, recommendation, concrete example, and tradeoff. A decision that
-  depends on an answer still open belongs to a later round — never guess at an
-  answer not yet heard. A stalled branch never pauses the rest of the round.
-- Pair the recommended answer with a concrete example: user scenario, click,
-  command, screen result, file, or message.
-- State the tradeoff of the other option when it affects product behavior.
-- If the user does not understand, stop advancing the checklist and re-explain
-  through a real scenario.
-
-Completion criterion: the recommendation is understandable on first read, and
-the user can choose without learning Rope vocabulary.
 
 ## Design tree + frontier rounds
 

@@ -29,11 +29,7 @@ entrypoint** — starting the product the way a user would.
 Works with any host that supports skills and subagents (pi, Claude Code,
 codex, agy, …); `rope-harness-presets` discovers the active host's agent
 mechanism and model catalog at run time and writes leaf presets in that
-host's native format — no hardcoded adapters. Go's execution form is
-config-decided (ADR 0014): `~/.rope/config.toml` `[execution] default =
-"dynamic"` runs slices through a script-driven deterministic workflow where
-the host supports it (pi SubagentWorkflow), with L1/L2/L3 mechanical gates;
-absent, or on hosts without a runner, go uses parent dispatch unchanged.
+host's native format — no hardcoded adapters.
 
 ## How it works
 
@@ -57,9 +53,12 @@ One issue, one parent session, five moves:
    seams.
 4. **Review (once)** — after all slices, two parallel read-only leaves
    that never watched the build: a cheap scanner fast-scans the diff for
-   standards and smells while the reviewer starts the product and walks
-   the behavior Matrix at the real entrypoint. Blocking findings route to
-   one fix brief, max two rounds, then it stops and asks you.
+   standards and smells while the behavior reviewer walks the Matrix over
+   the assembled diff. Blocking findings route to one fix brief, max two
+   rounds, then it stops and asks you. Then the **E2E acceptance stage**:
+   runner leaves drive the project's real entrypoint — one user journey
+   per leaf on a parent-owned stack — and every required item passes with
+   evidence or gets your explicit waiver.
 5. **Verify & finish** — verify is a thin paperwork gate (review recorded,
    E2E terminal, tree clean); finish closes the issue and routes
    architecture-doc updates home.
@@ -78,7 +77,7 @@ stop lines back to the full pipeline.
 | **Contract Note** | You confirm 3–5 observable bullets instead of reading a PRD. The note *is* the contract's human projection — never a second contract. |
 | **Fresh-context iron rule** | Every slice fits one clean context window. Oversized slices are re-cut at shape; a re-cut that bends the requirement goes back to grill. |
 | **One review, new eyes** | Per-slice reviews see per-slice problems. The failure classes that kill issues — cross-slice conflicts, spec-observable gaps, fixture-vs-product drift — only show at the assembled diff. The budget goes there. |
-| **Real entrypoint probe** | Fixture-green is not product-true. The reviewer starts the product — browser, CLI, or API, whatever the project ships — and walks the primary paths. |
+| **Real entrypoint walk** | Fixture-green is not product-true. After review passes, dedicated runner leaves start the product — browser, CLI, or API, whatever the project ships — and walk one user journey each. |
 | **Investigation map** | One fact per line, path + date. Leaves stop re-finding the same code (in our field data, 56–71% of big-slice tool calls were wayfinding). |
 | **Architecture continuity** | Every issue records a disposition — inherit, extend, supersede — for each ADR it touches, and hands leaves a Constraint Bundle by reference. |
 | **Thin verify** | Paperwork only. It never re-judges code; it checks the gate really closed. |
@@ -91,6 +90,7 @@ stop lines back to the full pipeline.
 - **2026-08-17 · ADR 0004** — Review goes risk-tiered per-slice/batch; leaf briefs get a hard budget (≤60 lines, allowlist).
 - **2026-08-19 · ADR 0005/0006** — Humans confirm a Contract Note, not a PRD; small fixes get a solo quick path.
 - **2026-08-22 · ADR 0007** — A 7.5-hour all-green session shipped a broken product. Execution turns graph-driven; review collapses to one new-eyes gate with a real-entrypoint probe; verify goes thin.
+- **2026-09-23 · ADR 0016** — The script-driven "dynamic workflow" experiment is retired; parent agent dispatch is the single execution form, and the skills shrink to one path.
 
 ## Install
 
@@ -102,9 +102,9 @@ npx git+https://github.com/WufeiHalf/rope.git add
 npx git+https://github.com/WufeiHalf/rope.git add --target ./.agents/skills
 ```
 
-Both targets receive the full skill set, including shared runtime references.
-Dynamic startup instructions resolve relative to the loaded skill, not the
-managed repo's `.rope/` directory. Updating the CLI alone does not refresh
+Both targets receive the full skill set, including shared runtime references;
+cross-skill references resolve relative to the loaded skill, not the managed
+repo's `.rope/` directory. Updating the CLI alone does not refresh
 already copied skills; explicitly run `add` for the intended target. If the
 host finds duplicate skill names, check which path it loaded before updating.
 
@@ -129,7 +129,7 @@ Missing presets never block — go/verify soft-degrade and record it.
 | `rope-init` | Scaffold `.rope/` in a target repository |
 | `rope-grill` | Plain-language requirement interview; decisions land in durable docs |
 | `rope-shape` | Issue package: PRD + Contract Note, slices, matrix, E2E, graph read |
-| `rope-go` | Wave execution, investigation map, TDD at seams, per-slice commits; config-decided workflow execution (ADR 0014) |
+| `rope-go` | Slice dispatch + serial merge queue, investigation map, TDD at seams, one two-axis review, E2E acceptance stage |
 | `rope-verify` | Thin paperwork gate between go and finish |
 | `rope-finish` | Close the issue; route architecture-doc updates |
 | `rope-summary` | Preserve reusable contracts/learnings into `.rope/` after the fact |

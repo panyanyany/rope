@@ -1,6 +1,10 @@
 # 0014 Workflow Execution Mode — Script-Driven Orchestration, Config-Decided
 
-**Status:** active — supersedes the mechanism half of [0003](0003-dynamic-workflow-mode.md)
+> **Status: superseded by [0016](0016-single-execution-form-agent-dispatch.md)** —
+> the dynamic form, kernel, config resolution, and L1/L2/L3 gates are retired;
+> parent agent dispatch is the only execution form.
+
+Original status line (historical): active — supersedes the mechanism half of [0003](0003-dynamic-workflow-mode.md)
 (its `mode: dynamic` field convention is retired and removed from the spec);
 complements [0007](0007-graph-driven-go-single-review.md) (the graph in
 `tasks.md` stays the truth source — a workflow script is only an executor),

@@ -37,9 +37,7 @@ Rules:
 
 ## Merge queue (worktree mode)
 
-Under dynamic execution the **kernel** owns this queue; the parent reads the
-`merged` rows out of the run record. Under agent dispatch the parent runs it.
-Either way the rules are the same: landed branches merge **serially, one at a
+The parent runs this queue. Landed branches merge **serially, one at a
 time**, in landing order, and the parent never merges while a leaf is running
 that could touch the same paths.
 
@@ -52,10 +50,9 @@ that could touch the same paths.
    landing order.
 2. After each merge: update `map.md` from leaf summaries, re-check the
    ready set, dispatch newly-ready slices.
-3. Agent dispatch adds no per-merge test ritual — leaves ran TDD;
-   downstream worktrees exercise upstream changes. Dynamic execution uses
-   its declared L2/L3 integration checks, not extra full-suite reruns.
-   Assembled behavior is accepted at the end-of-issue review. **Flake discipline (ADR 0013):** a failure under
+3. No per-merge test ritual — leaves ran TDD; downstream worktrees
+   exercise upstream changes. Assembled behavior is accepted at the
+   end-of-issue review. **Flake discipline (ADR 0013):** a failure under
    parallel load → rerun only the failing tests to classify the flake; a
    full clean rerun needs a recorded reason.
 
@@ -184,13 +181,11 @@ command blocks excluded). The parent checks the budget before dispatch.
   (`setup: ran <cmd>` | `setup: no-op`) — **plus the Return Gate payload:**
   every slice Required-evidence item mapped to pasted command output or an
   artifact path, keyed by evidence id (ADR 0011)
-- Worktree mode, dynamic: the kernel injects the delivery contract, so the
-  parent does not write it — commit everything, leave `git status --porcelain`
-  empty, then `git branch -f <delivery branch> HEAD` as the last write. A leaf
-  that misses a step costs a flag (`recovered` / `moved` in the delivery
-  verdict), never the implementation. Worktree mode, agent dispatch: state the
-  same three steps in the brief, because the host's own `pi-agent-<id>` cleanup
-  branch is not a name the plan can route on.
+- Worktree mode: state the delivery steps in the brief — commit
+  everything, leave `git status --porcelain` empty, then
+  `git branch -f <delivery branch> HEAD` as the last write; the host's
+  own `pi-agent-<id>` cleanup branch is not a name the merge queue can
+  route on.
 - Relevant artifact paths (prd/tasks/e2e, bundle, map, specs, files)
 - Map path — orient by it; update falsified lines before commit (shared
   mode) or report them in the summary (worktree mode)
@@ -248,10 +243,8 @@ other lanes sit idle without an explicit hold statement.
 
 ## End-of-Issue Review Execution
 
-After all slices and before verify. Under dynamic execution the **kernel** owns
-this gate (ADR 0014) — freeze point, both axes, mechanical aggregation and the
-bounded fix loop — and the parent only reads the record. Under agent dispatch
-the parent runs it: spawns **two read-only leaves in one message** (ADR 0010),
+After all slices and before verify. The parent runs this gate: spawns
+**two read-only leaves in one message** (ADR 0010),
 both new eyes, never watched the build, then does bookkeeping from the
 structured return and renders an exhausted fix budget as the Human Escalation
 Stop:
@@ -262,7 +255,7 @@ Stop:
    never runs the product.
 2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
    worker with explicit review instructions otherwise). Read-only on code;
-   code-only under agent dispatch (ADR 0015): reads the assembled diff,
+   code-only (ADR 0015): reads the assembled diff,
    walks the Behavior Matrix and high-risk boundaries. Product running,
    entrypoint walking, and e2e execution belong to the E2E acceptance
    stage below — never to the reviewer.
@@ -335,7 +328,7 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 - routing, app entrypoint, runtime wiring, background worker
 - multi-layer behavior; E2E critical path
 
-## E2E Acceptance Stage (agent dispatch, after review approve — ADR 0015)
+## E2E Acceptance Stage (after review approve — ADR 0015)
 
 Runs only after the end-of-issue review returns `approve`. Preconditions:
 clean tree, review verdict recorded, HEAD recorded — every evidence line
@@ -405,21 +398,20 @@ covered mechanism as agent. A user handing an item over mid-go
 (“你自己跑吧”) is the probe firing late — run it and record it as agent
 execution with evidence, never as an exception.
 
-**The resolution is written into the plan before dispatch.** The kernel runs
-no probe and asks no human, so each e2e item carries `executor`
-(`agent` | `agent-with-gate` | `user` | `not-run`) plus its `decision`, and the
-plan is rejected when the two disagree — a gated action cannot start without a
-recorded `approved`. An item that runs must name its `preset`. An item that
-does not run must carry the `reason` it does not, and is recorded with its
-terminal status rather than dropped: a skipped item and a missing item must not
-look the same in the record.
+**The resolution is recorded in `e2e.md` before dispatch.** Each item
+carries `executor` (`agent` | `agent-with-gate` | `user` | `not-run`) plus
+its `decision`; a gated action cannot start without a recorded `approved`.
+An item that runs must name its `preset`. An item that does not run must
+carry the `reason` it does not, and is recorded with its terminal status
+rather than dropped: a skipped item and a missing item must not look the
+same in the record.
 
 Only success evidence gates the delivery decision: an item the agent ran and
 passed (`agent_passed`), or the user ran and confirmed (`user_confirmed`).
 A required item kept out of the run (`user`, `not-run`, a declined gate) is
-an honest terminal record — but under agent dispatch it delivers only with
-an explicit per-item user waiver (acceptance stage above); otherwise the
-run is blocked. A leaf that *ran* and reported `blocked` has not passed.
+an honest terminal record — but it delivers only with an explicit per-item
+user waiver (acceptance stage above); otherwise the run is blocked. A leaf
+that *ran* and reported `blocked` has not passed.
 
 - `agent_passed`: agent ran it; record command + evidence.
 - `agent_failed`: ran and failed; fix or record blocker.
@@ -437,7 +429,7 @@ run is blocked. A leaf that *ran* and reported `blocked` has not passed.
 
 - Per-slice commits present; the end-of-issue review verdict (+ fix
   rounds) recorded with identity; E2E acceptance stage verdict recorded
-  (agent dispatch, ADR 0015); e2e statuses terminal; no unrelated dirty
+  (ADR 0015); e2e statuses terminal; no unrelated dirty
   files.
 
 ---

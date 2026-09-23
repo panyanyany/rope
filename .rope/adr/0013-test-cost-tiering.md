@@ -6,6 +6,11 @@ confirmation in `dynamic-docs-and-clear/quick.md`. Completes
 [0011](0011-edge-classification-and-acceptance-gates.md), and preserves
 [0007](0007-graph-driven-go-single-review.md)'s single review gate and
 [0008](0008-slice-ready-worktree-execution.md)'s avoidance of merge rituals.
+Scope note (2026-09-23): the mechanical half — staged `l2`/`l3` checks run
+through `scripts/run-check.sh` by the kernel — retired with
+[0016](0016-single-execution-form-agent-dispatch.md). The test-selection
+principles (impact selection, one run shows the failures, full is a scope,
+flake discipline) remain live in `rope-go` execution-rules.
 
 ## Context
 

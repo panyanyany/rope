@@ -3,8 +3,8 @@
 **Status:** active — partially supersedes [0010](0010-parallel-two-leaf-end-of-issue-review.md)
 rule 2 (product-run exclusivity) for **agent dispatch**; extends
 [0007](0007-graph-driven-go-single-review.md) (single review gate kept, its
-real-entrypoint probe moves to a separate stage). Dynamic execution (ADR 0014)
-is untouched — its walk already runs after review inside the kernel. Rope-quick
+real-entrypoint probe moves to a separate stage). ADR 0016 later retired
+dynamic execution; this agent-mode stage is the only E2E path. Rope-quick
 is untouched by owner decision 2026-09-23.
 
 Date: 2026-09-23

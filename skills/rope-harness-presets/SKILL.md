@@ -145,19 +145,14 @@ Return a short report only:
 - capability gaps / degrade notes (`research_offline`, `no_agent_mechanism`,
   migrate hint if old `rope-verify/settings.json` is found on disk)
 
-## Graph-driven concurrency (waves)
+## Concurrency
 
-`rope-go` runs the slice graph wave by wave: frontier slices with disjoint
-owned files spawn **multiple concurrent `rope-implementer` leaves**, all from
-the presets written above — through the host's own subagent mechanism.
-
-- The manifest and agent naming already support concurrent multi-spawn: one
-  preset per role, instantiated once per spawned leaf.
-- **No schema change** to the manifest, role-schema, or rankings.
-- **No new model mechanism** — model routing reuses the same harness presets;
-  parent may still override model/thinking at spawn time per leaf.
-- Each concurrent leaf is still an ordinary `rope-implementer` leaf: no nested
-  spawn, same tool bounds, same output format.
+`rope-go` may spawn multiple concurrent `rope-implementer` leaves
+(disjoint frontier slices) through the host's own subagent mechanism. The
+manifest and agent naming already support multi-spawn: one preset per role,
+instantiated once per leaf, each still an ordinary `rope-implementer`
+leaf — no nested spawn, same tool bounds, same output format. No schema
+change; the parent may still override model/thinking per leaf at spawn time.
 
 ## Explore research mode & declared dispatch deviation (ADR 0011)
 
@@ -193,9 +188,5 @@ do not treat it as failure.
   discovered at run time, not coded here.
 - Do not change host model scope or provider settings.
 - Do not delete non-`rope-*` agents.
-- Do not write project-level agent dirs by default.
-- Do not claim success for an undiscoverable mechanism; never write fake agent
-  paths into a manifest.
-- Probing one host must never write another host's paths.
-- Do not hard-fail solely because web research is unavailable.
-- Leaf presets must not instruct spawning other agents.
+- Do not write project-level agent dirs by default; probing one host must
+  never write another host's paths.

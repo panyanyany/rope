@@ -1,19 +1,6 @@
 # Context
 
 ## Language
-**Workflow execution mode** — the session's execution form, resolved
-mechanically once per session (including direct phase entry) from
-`~/.rope/config.toml` `[execution] default` plus a host capability probe
-(ADR 0014): never a user question, never an issue-package field, not
-re-resolved mid-session. `dynamic` means a script-driven deterministic
-workflow for go (JS orchestrator; the model lives only in leaves and
-review agents) with impact-selected mechanical gates, and it reaches backward:
-grill fans out by independent evidence questions, shape maximizes real graph
-width rather than slice count. The operational contract ships in skill
-references; project architecture docs provide rationale, not a runtime
-dependency. Absent or `agent` means parent Agent dispatch. Issue packages
-never declare it — a ticket describes work, not how it runs.
-
 **Parent Orchestrator**:
 The main issue session that owns grill, shape, the slice loop, leaf-worker dispatch, issue-level verify, and finish handoff. It is the only agent allowed to spawn workers for an issue. Judgment-primary and context-protective: it decides, talks to the human, writes durable artifacts, and re-briefs/steers leaves — it does not bulk-load exploratory noise or run long implement/fix loops in its own context, because compaction discards earlier discussion. Course correction is done by rewriting the brief and re-spawning a leaf, not by the parent absorbing the full failure trace and fixing in-place.
 _Avoid_: main session (ambiguous), god agent, multi-agent swarm, pure router, parent self-implements everything
@@ -45,17 +32,17 @@ without identity
 **End-of-Issue Review**:
 The single code-review gate after all slices (ADR 0007, mechanics refined by
 0010, product-run scope split by 0015): **two parallel read-only leaves with
-new eyes**, spawned in one message — under workflow execution, inside the
-kernel at a **freeze point** (every slice merged, tree clean, no leaf
-running), fix loop ≤2 rounds with delta re-review. The **Standards scanner**
+new eyes**, spawned in one message against a frozen clean HEAD (every slice
+merged, tree clean, no leaf running), fix loop ≤2 rounds with delta
+re-review. The **Standards scanner**
 (explore-class preset, cheap model) runs lint/typecheck first, then
 judgement-call-scans the assembled diff for repo conventions, TDD
 anti-patterns, the smell baseline, and inline global invariants — never runs
 the product. The **Behavior reviewer** (`rope-reviewer`, strong model) reads
 the assembled diff against the Behavior Matrix and gives high-risk
-boundaries the deepest look. Under **agent dispatch** the reviewer is
+boundaries the deepest look. The reviewer is
 code-only: starting the product, walking the real entrypoint, and running
-e2e items belong to the **E2E Runner** stage that follows an `approve`
+e2e items belong to the **E2E acceptance stage** that follows an `approve`
 (ADR 0015). Aggregation is mechanical — verdict = worst of axis verdicts, no
 rerank. Findings are `blocking | note` with path:line + one-sentence fix;
 only blocking enters the one fix brief (≤2 rounds, then Human Escalation
@@ -74,9 +61,8 @@ invariants — every hit a judgement call, never a violation, with
 repo-documented standards overriding the baseline. Spawned from the
 explore preset with the baseline pasted in the brief; returns `clean` or
 ≤200 words of `{severity, path:line, issue, fix}` findings. Never starts
-the product; ports and processes belong to the E2E stage — the kernel's
-Real-Environment Walk under workflow execution, the parent-owned stack +
-E2E Runner leaves under agent dispatch (ADR 0015).
+the product; ports and processes belong to the E2E acceptance stage — the
+parent-owned stack + E2E Runner leaves (ADR 0015).
 _Avoid_: deep judgment in the scanner, hard-violation framing, moving
 architecture-continuity judgment out of the Behavior reviewer
 
@@ -84,9 +70,8 @@ architecture-continuity judgment out of the Behavior reviewer
 The post-0007/0008/0009 execution model. Shape slices tracer-bullet style
 (blocking edges + fresh-context fit are the hard rules; component and
 prefactor slices legal; vertical path-per-slice is a habit, not a rule). Shape reads the slice graph after
-slicing — the executor's own compile pass reports initial ready count, level
-widths and the longest gating chain — and asks one execution question
-with those numbers. Go's default intent is maximum concurrency in either mode (every ready
+slicing — initial ready count, level widths and the longest gating chain
+derived from the edges — and asks one execution question with those numbers. Go's default intent is maximum concurrency in either mode (every ready
 slice gets a background leaf; serialization needs a recorded reason;
 startup declares planned vs max parallelism). It picks a mode from host
 capability: **worktree mode**
@@ -94,7 +79,7 @@ capability: **worktree mode**
 merged (file-overlap edges are merge-order preferences under this mode), one worktree
 per leaf, serial merge queue, repo-declared `worktree-setup:` contract in
 `routes.md`, parent owns `map.md` updates) or **shared mode** (waves,
-disjoint owned files per wave, leaves maintain the map; the kernel serializes
+disjoint owned files per wave, leaves maintain the map; the parent serializes
 to one leaf at a time because there is one index and one checkout). No `mode:` or
 `review:` frontmatter; legacy packages that carry them are ignored.
 Re-cutting that bends the requirement goes back to grill.
@@ -102,49 +87,19 @@ _Avoid_: wave barriers in worktree mode, asking serial-or-parallel before
 the graph exists, merging in parallel, per-merge test rituals, leaves
 writing the shared map concurrently
 
-**Execution Kernel**:
-The shipped orchestration asset for dynamic go
-(`skills/rope-go/workflows/go-execute.js`, ADR 0014 addendum 2026-09-11):
-one fixed, offline-tested JavaScript file that owns readiness dispatch,
-frontier refill, the in-flight window, serial merges, staged preconditions,
-bounded repair rounds and the in-run review. The parent session compiles
-**task data** into it and reads a **run record** back; it writes no
-orchestration code and never restates the delivery contract. Invoked by
-absolute `scriptPath` resolved from the skill's installed directory, because
-a non-absolute path resolves against the repository. Schema authority:
-[`execution-template.md`](../skills/rope-go/references/execution-template.md).
-_Avoid_: per-issue script authorship, orchestrating from the parent between
-runs, mistaking a shipped kernel for example code to edit
-
 **Delivery Branch**:
-The predeclared, plan-derived branch (`branchPrefix + task id`) a worktree leaf
-points at its own final commit as the last write before returning. It is the
-only routing input the executor reads: `scripts/verify-delivery.sh` runs as the
-spawn's gate inside the worktree before cleanup and asserts the branch exists,
-resolves to the tree's HEAD, and that the tree is clean — creating or moving the
-branch and committing leftovers when needed, and reporting `moved`/`recovered`.
-The merge agent establishes the SHA from git, so a leaf's claimed SHA is never
-trusted. This replaces parsing branch names out of agent text.
+The predeclared branch a worktree leaf points at its own final commit as
+the last write before returning — commit everything, leave
+`git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`.
+Stated in the brief because the host's own `pi-agent-<id>` cleanup branch is
+not a name the merge queue can route on. The parent establishes the SHA
+from git, so a leaf's claimed SHA is never trusted. This replaces parsing
+branch names out of agent text.
 _Avoid_: reading a branch name from a leaf's prose, trusting a claimed SHA,
 routing on the host's `pi-agent-*` cleanup branch
 
-**Check Timetable**:
-The declared schedule that decides when each repository check runs: `merge`
-(cheap post-merge warning, never gating), `l2` (integration gate, asserted
-before L3/review/e2e may start), `l3` (composition-root smokes), `freeze`
-(repo policy). Checks run serially, one batch per stage, through
-`scripts/run-check.sh` as the host's gate, so the verdict is an exit code and
-the detail is an evidence file keyed by `<scope>@<integrated commit set>` — an
-unchanged state reuses its evidence instead of spending the command again. It
-lives in the tree at `.rope/issues/<slug>/evidence/`, ignored by the repository
-and excluded from the delivery gate by `--evidence`, because a bookkeeping file
-must never read as unfinished work.
-The repo declares `Test policy: fast-iteration | full-at-freeze` in `routes.md`.
-_Avoid_: per-slice full suites, periodic reruns without a changed key, gate
-detail relayed through agent prose
-
 **E2E Runner**:
-The read-only product-driving leaf of the agent-mode E2E acceptance stage
+The read-only product-driving leaf of the E2E acceptance stage
 (ADR 0015), dispatched only after the two-axis code review returns
 `approve`. One runner drives **one journey** through the project-declared
 real entrypoint (browser, real message channel, CLI, API — the project
@@ -164,22 +119,6 @@ shared-entry smoke re-run, reused evidence annotated with its commit.
 _Avoid_: implementer signing acceptance, reviewer re-walking proved
 journeys, per-runner stacks, headless injection recorded as entrypoint
 truth, waivers absorbed silently
-
-**Real-Environment Walk**:
-The e2e stage of dynamic go (agent-mode counterpart: the E2E Runner stage,
-ADR 0015), and it runs **after** the End-of-Issue Review, not
-before it: the read-only review is cheap and the real-environment walk is not, so
-reviewing first means the walk runs once, on the commit that will actually be
-delivered. Each item carries the `executor` Shape resolved (`agent`,
-`agent-with-gate`, `user`, `not-run`) and is recorded with the terminal status
-verify/finish read. A failed item enters the same bounded repair loop as a review
-failure — fix, land through the merge queue, re-walk every declared item, delta
-re-review — because a fix moves the HEAD and the previous green is gone. Only an
-item the agent actually ran gates; a kept-out item is an honest terminal outcome a
-delivered run may carry.
-_Avoid_: walking the real environment before the code review, reusing a green
-from a superseded HEAD, a leaf declaring its own failed item human-only, a kept-out
-item that vanishes instead of appearing in the record
 
 **Self-Fix Loop**:
 A check/verify pattern (from Trellis) where the verifying model finds a problem and fixes it directly, then reruns checks, looping until green. Not used at issue-level verify in Rope, because verify must not edit code (cross-role separation of implement vs accept).
