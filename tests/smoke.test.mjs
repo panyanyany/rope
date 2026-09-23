@@ -9,7 +9,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, mkdir, writeFile } from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -80,12 +80,28 @@ test("the CLI still reports usage and installs the bundled skills", async () => 
 
   const target = await mkdtemp(join(tmpdir(), "rope-smoke-"));
   try {
+    // stale layout from an older bundle: a retired workflow file, a retired
+    // whole skill dir, and a user-local settings.json that must survive.
+    await mkdir(join(target, "rope-go", "workflows"), { recursive: true });
+    await writeFile(join(target, "rope-go", "workflows", "go-execute.js"), "// retired kernel\n");
+    await mkdir(join(target, "rope-retired"), { recursive: true });
+    await writeFile(join(target, "rope-retired", "SKILL.md"), "---\nname: rope-retired\n---\n");
+    await mkdir(join(target, "rope-harness-presets"), { recursive: true });
+    await writeFile(join(target, "rope-harness-presets", "settings.json"), "{}\n");
+
     const install = spawnSync("node", [join(ROOT, "bin/rope.js"), "add", "--target", target], { encoding: "utf8" });
     assert.equal(install.status, 0, install.stderr);
     for (const name of await skills()) {
       await assertReadable(join(target, name, "SKILL.md"));
     }
+    await assertRemoved(join(target, "rope-go", "workflows"));
+    await assertRemoved(join(target, "rope-retired"));
+    await assertReadable(join(target, "rope-harness-presets", "settings.json"));
   } finally {
     await rm(target, { recursive: true, force: true });
   }
 });
+
+async function assertRemoved(path) {
+  await assert.rejects(() => stat(path), undefined, path + " should have been retired by reinstall");
+}
