@@ -41,7 +41,7 @@ Slice 2 消费 Slice 1 的 ADR/词条词汇（seam-required）。数字为手工
 
 ## Slice 2: rope-e2e skill 本地草稿
 
-- Status: pending
+- Status: done (commit 见 Final Status；证据：S2-E1–E3 条款/模板成文，SKILL.md 71 行≤100；S2-E4 preset frontmatter 合法且工具面含 agent_browser*；quick_validate.py 本机不存在，记录跳过；`node --test tests/*.test.mjs` 68 用例全绿确认零代码影响)
 - Kind: vertical
 - Goal: 父窗口（或用户）在审查通过后调用 rope-e2e，即可按 ADR 0015 完成整个 E2E 阶段
 - Demo path: 对一份示例 e2e.md 走 skill 步骤，能产出派发 brief、证据记录与交付门结论
