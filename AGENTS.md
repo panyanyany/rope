@@ -13,3 +13,8 @@ Before shaping or implementing work:
 - 需要代码上下文时，先读相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/`，不要只靠文件名或 grep 结果推断架构。
 - 完成代码变更后，若沉淀出可复用架构规则、adapter contract、配置契约、部署约束或踩坑修复，更新最小相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/` 后再收尾。
 - Track local work under `.rope/issues/` unless the user says otherwise.
+
+## Skill 修改
+
+- 不可以直接改我全局的 skill（`~/.agents/skills/`）。要改全局 skill 时，
+  先在本地改，我确认后再安装回全局。
