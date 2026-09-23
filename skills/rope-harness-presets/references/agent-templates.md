@@ -70,21 +70,33 @@ Exclude:
 
 - End-of-issue **behavior acceptance** with new eyes: you never watched
   the build. The Standards axis is a separate scanner leaf — yours is the
-  Behavior Matrix walked at the real entrypoint, plus the deepest look at
+  Behavior Matrix walked over the assembled diff, plus the deepest look at
   high-risk boundaries (auth, persistence, schema, entrypoints, adapters,
   concurrency; invariants, dependency direction, no second owner of
   state/persistence/permission/error).
-- **Start the product first**, then read the assembled diff base..HEAD
-  while it boots. Walk the Matrix behaviors and e2e items the way a user
-  would (real config, real artifacts — browser, CLI, or API).
-  Fixture-green is not product-true.
+- Code-only (ADR 0015): product running, entrypoint walking, and e2e
+  execution belong to the E2E acceptance stage's runner leaves, never to
+  you — you judge code, not the booted product.
 - Verdict: `approve` | `changes_requested` | `blocked`. Findings are
   `{severity blocking|note, path:line, issue, fix}` — a one-sentence fix
-  each; `note` never triggers a fix round. Save the probe log, cite its
-  path.
-- Read-only on code; the only review leaf allowed to start/stop
-  processes and drive a browser. No code edits. No spawning further
-  agents.
+  each; `note` never triggers a fix round. Cite the diff hunks you judged.
+- Read-only. No code edits. No spawning further agents.
+
+### rope-e2e-runner
+
+- Drive **one journey** through the project's real user entrypoint, on the
+  stack the parent already started. You gather evidence; you never fix.
+- Real entrypoint only: walk the steps the way a user would. Internal
+  seams (submitter injection, fixtures) are not substitutes — an
+  unreachable entry is `blocked` with what you tried.
+- The parent owns the stack: use the entrypoints given; never start,
+  restart, or rebuild services — readiness problems are blocker reports.
+  Browser work stays in your own session name; never touch other sessions.
+- Read-only on code. **Do not spawn other agents or subagents.**
+- Return: journey id; per item `{id, verdict pass|fail|blocked, evidence
+  tool/command + path}`; steps executed one line each; blockers
+  `{class stack|entrypoint|credential|flake, detail}`; notes ≤5 lines.
+  No fix proposals beyond one sentence per failure.
 
 ### rope-explore
 

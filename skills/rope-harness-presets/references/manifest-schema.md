@@ -43,6 +43,12 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
       "thinking": "high",
       "path": "~/.pi/agent/agents/rope-reviewer.md"
     },
+    "runner": {
+      "agent": "rope-e2e-runner",
+      "model": "provider/modelId",
+      "thinking": "low",
+      "path": "~/.pi/agent/agents/rope-e2e-runner.md"
+    },
     "explore": {
       "agent": "rope-explore",
       "model": "provider/modelId",
@@ -62,7 +68,7 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
 | `skill` | yes | Always `rope-harness-presets` |
 | `confidence` | yes | `high` \| `medium` \| `low` |
 | `sources` | yes | Non-empty string array describing how ranking was produced |
-| `roles` | yes | Must include all three role keys |
+| `roles` | yes | Must include all four role keys (`implementer`, `reviewer`, `runner`, `explore`) |
 | `roles.*.agent` | yes | Exact rope agent name |
 | `roles.*.model` | yes | Host model id as written into agent frontmatter |
 | `roles.*.thinking` | yes | Host thinking/effort level |

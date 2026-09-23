@@ -4,7 +4,7 @@
 
 - `PASS` — paperwork complete: review recorded, E2E terminal, tree clean.
   Says nothing about product truth — that claim lives in the end-of-issue
-  reviewer's verdict (ADR 0007).
+  review plus the E2E acceptance stage's evidence (ADR 0007/0015).
 - `CHANGES_REQUESTED` — paperwork gaps for go's fix loop to close
   (unrecorded review, drifted E2E, missing commits).
 - `BLOCKED` — a human decision is required (real-environment failure the
