@@ -77,7 +77,7 @@ Completion:
 - [ ] Model list captured (or explicit failure)
 - [ ] No mutation of any host model/provider settings
 
-### 4. Rank models into three roles
+### 4. Rank models into four roles
 
 Follow [ranking.md](references/ranking.md) (unchanged, host-neutral input):
 
@@ -85,7 +85,7 @@ Follow [ranking.md](references/ranking.md) (unchanged, host-neutral input):
    tools are available.
 2. If research fails or is unavailable, use local name/capability heuristics.
 3. Assign one model + default thinking/effort to each role:
-   `implementer`, `reviewer`, `explore`.
+   `implementer`, `reviewer`, `runner`, `explore`.
 4. Record sources and confidence (`high` | `medium` | `low`). Offline /
    research-fail always still ranks; set `confidence: low`.
 
@@ -104,6 +104,7 @@ whatever step 2 verified):
 | --- | --- |
 | implementer | `rope-implementer` |
 | reviewer | `rope-reviewer` |
+| runner | `rope-e2e-runner` |
 | explore | `rope-explore` |
 
 Rules:
@@ -119,7 +120,7 @@ Rules:
 - Re-run is idempotent: same paths, clean overwrite.
 
 Completion:
-- [ ] Three `rope-*` files exist, readable, in the verified host format
+- [ ] Four `rope-*` files exist, readable, in the verified host format
 - [ ] Each forbids nested spawn
 - [ ] No non-`rope-*` agents modified
 
@@ -131,7 +132,7 @@ needed. Overwrite a corrupt/partial prior manifest with a valid full one.
 Append `capability_gaps` when step 2 found any.
 
 Completion:
-- [ ] Manifest maps all three roles → agent name, model, thinking/effort,
+- [ ] Manifest maps all four roles → agent name, model, thinking/effort,
       sources, confidence
 - [ ] `host`, `generated_at`, and skill identity present
 
@@ -166,8 +167,9 @@ the presets written above — through the host's own subagent mechanism.
   read-only. The generated preset carries an unrestricted tool surface, so
   the mode needs no deviation. See
   [references/explore-research-mode.md](references/explore-research-mode.md).
-  No fourth agent name; the three core roles and the ranking flow are
-  unchanged.
+  No fifth agent name; external research stays a mode of `rope-explore`.
+  The `rope-e2e-runner` is the deliberate fourth leaf (ADR 0015) — see
+  role-schema.md; the ranking flow is otherwise unchanged.
 - **Declared deviation:** spawning with a `type` or `model` that differs from
   the preset row requires a one-line reason in the dispatch record (what host
   capability the preset lacks). Undeclared deviation is a dispatch defect.
