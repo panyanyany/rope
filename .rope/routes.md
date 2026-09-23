@@ -99,17 +99,20 @@ Verify with:
 
 Read first:
 - `.rope/adr/0015-agent-mode-e2e-acceptance-stage.md`
+- `skills/rope-go/references/execution-rules.md` (E2E Acceptance Stage section)
+- `skills/rope-harness-presets/references/role-schema.md` (runner role)
 - `.rope/CONTEXT.md` (terms: End-of-Issue Review, E2E Runner)
-- `.agents/skills/rope-e2e/SKILL.md` (local skill draft)
 
 Verify with:
-- file-inspect: skill ↔ ADR ↔ CONTEXT cross-references closed
-- user confirmation before any global install (repo AGENTS rule)
+- file-inspect: execution-rules ↔ ADR 0015 ↔ CONTEXT ↔ role-schema
+  cross-references closed
+- user confirmation before global install of the regenerated presets
+  (repo AGENTS rule)
 
 Notes:
-- Skill path: `.agents/skills/rope-e2e/` (model-invoked local draft; not
-  product `skills/`, not shipped by `rope add`)
-- Runner preset draft: `.agents/skills/rope-e2e/agents/rope-e2e-runner.md`
+- The stage is part of rope-go's final-review flow, not a standalone skill.
+- Runner preset: `rope-e2e-runner` via harness manifest
+  (`rope-harness-presets` regenerates `~/.pi/agent/agents/rope-*.md`).
 
 ### Harvest Matt Pocock upstream inspiration (maintenance)
 

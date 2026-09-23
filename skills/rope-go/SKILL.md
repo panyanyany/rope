@@ -79,17 +79,25 @@ Worktree mode: leaves return corrections; the parent writes after merging.
 1. After every slice is integrated, freeze a clean tree with no active leaf.
    Spawn two fresh read-only leaves concurrently against that HEAD:
    **Standards scanner** (explore preset, affected lint/typecheck/build and
-   diff conventions) and **Behavior reviewer** (`rope-reviewer`, starts the
-   product and walks Matrix/E2E at the real entrypoint). Only the reviewer
-   runs the product. Test scope follows execution-rules, not blanket suites.
+   diff conventions) and **Behavior reviewer** (`rope-reviewer`, walks the
+   Matrix and high-risk boundaries over the assembled diff — code-only,
+   ADR 0015). Neither leaf runs the product. Test scope follows
+   execution-rules, not blanket suites.
 2. Aggregate the worst axis verdict mechanically, retaining both identities
    and evidence. Transcribe blocking findings (`path:line`, issue, fix) into
    one implementer brief; notes stay notes. No new acceptance requirements.
 3. At most two fix rounds, delta-only re-review; unresolved findings become
    a Human Escalation Stop. Record verdict and fix history.
-4. Hand off to `rope-verify` for paperwork after a passing review; finish
-   follows verify PASS. Dynamic execution already performed this review
-   inside its kernel and does not run it again here.
+4. Review passing, run the **E2E acceptance stage** (execution-rules, ADR
+   0015): bring up the project-declared shared stack, fan out read-only
+   `rope-e2e-runner` leaves one journey per leaf (parallel when
+   resource-disjoint, serialized on shared accounts/mutable state), and gate
+   delivery on every required e2e item passing with evidence or an explicit
+   per-item user waiver. Fix failures through the bounded loop, re-run
+   affected journeys on the new HEAD.
+5. Hand off to `rope-verify` for paperwork after a passing review **and** a
+   green E2E stage; finish follows verify PASS. Dynamic execution already
+   performed this review inside its kernel and does not run it again here.
 
 ## Stop / report
 

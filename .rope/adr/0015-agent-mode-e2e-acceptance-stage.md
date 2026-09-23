@@ -37,12 +37,13 @@ acceptance stage** → all required journeys green or explicitly waived →
    data); journeys sharing an account or mutable state serialize. A host
    without session isolation degrades to serial journeys with a recorded
    reason.
-4. **Delivery gate:** every required `e2e.md` item reaches `agent_passed`
-   with runner evidence, or the issue stays blocked. The only alternative is
-   an **explicit per-item user waiver** recorded as such — a waiver or
-   `blocked_on_*` never reads as passed. Executor resolution stays
-   capability-relative (gates-and-vocab); the runner stage runs every item
-   whose mechanism the harness covers.
+4. **Delivery gate:** every required `e2e.md` item carries success evidence
+   — `agent_passed` (runner evidence) or `user_confirmed` (the user ran it)
+   — or the issue stays blocked. The only alternative is an **explicit
+   per-item user waiver** recorded as such — a waiver or `blocked_on_*`
+   never reads as passed. Executor resolution stays capability-relative
+   (gates-and-vocab); the runner stage runs every item whose mechanism the
+   harness covers.
 5. **Fix loop:** an E2E failure routes to one implementer fix brief
    (transcribed findings, Defense Budget intact), ≤2 rounds, then Human
    Escalation Stop. After a fix merges: delta-only code re-review, the stack
@@ -77,12 +78,19 @@ policy. This design is Rope's own, answering Rope's observed failures.
 
 ## Consequences
 
-- `rope-reviewer` preset shrinks to code-only (follow-up product round:
-  `skills/` tree + preset regeneration; ADR 0010 rule 2's exclusivity clause
-  is already superseded here).
-- Go→verify handoff gains a precondition: E2E stage verdict recorded. Verify's
-  existing checks (terminal statuses, drift hunt, waiver honesty) apply
-  unchanged.
+- The stage lives in rope-go's execution-rules (acceptance-stage section +
+  E2E statuses + handoff checklist) — no standalone skill. `rope-reviewer`
+  preset shrinks to code-only (harness-presets role schema + agent template
+  updated here; regenerate `~/.pi/agent/agents/rope-reviewer.md` on
+  install).
+- `rope-e2e-runner` is the deliberate fourth harness role (role-schema,
+  agent-templates, manifest schema updated here); install regenerates
+  `~/.pi/agent/agents/rope-e2e-runner.md`.
+- Go→verify handoff gains a precondition: E2E stage verdict recorded.
+  rope-verify / rope-finish are unchanged by owner decision 2026-09-23 —
+  the gate lives in go; verify stays the paperwork/anti-drift layer
+  (one stale citation pointing product truth at the old reviewer model
+  was corrected).
 - Known cost, accepted: the stage adds one pipeline phase; a stack that
   cannot reach readiness blocks delivery until waived — by design.
 - Known cost, accepted: parallel browser journeys depend on host session

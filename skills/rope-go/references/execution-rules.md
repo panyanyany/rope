@@ -201,9 +201,10 @@ command blocks excluded). The parent checks the budget before dispatch.
 End-of-issue briefs (two, ADR 0010): **scanner** — diff + commit list +
 standards-source paths + inline global invariants + pasted smell baseline
 (below); **reviewer** — diff + commit list + Matrix behavior rows + e2e
-path + entrypoint start hint + inline global invariants (bundle path on
-suspected conflict only; no map). Axes and high-risk list live in the
-reviewer preset body, not the brief. Same allowlist and line cap.
+path (high-risk reading only; the E2E stage owns running them) + inline
+global invariants (bundle path on suspected conflict only; no map). Axes
+and high-risk list live in the reviewer preset body, not the brief. Same
+allowlist and line cap.
 
 ## Return Gate reconciliation & Defense Budget (ADR 0011)
 
@@ -260,9 +261,11 @@ Stop:
    Runs impact-selected lint/typecheck/build first and skips what tooling enforces;
    never runs the product.
 2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
-   worker with explicit review instructions otherwise). Read-only on
-   code; the **only** leaf allowed to start/stop processes and drive a
-   browser. Starts the product first, reads the diff while it boots.
+   worker with explicit review instructions otherwise). Read-only on code;
+   code-only under agent dispatch (ADR 0015): reads the assembled diff,
+   walks the Behavior Matrix and high-risk boundaries. Product running,
+   entrypoint walking, and e2e execution belong to the E2E acceptance
+   stage below — never to the reviewer.
 3. **Aggregate mechanically**: verdict = worst of axis verdicts
    (`approve` < `changes_requested` < `blocked`); blocking findings from
    either leaf → one fix brief. No rerank, no merge, no re-judgment —
@@ -274,7 +277,8 @@ Stop:
    recorded in `tasks.md`, never fixed by a round.
 5. **Delta re-review**: after a fix round, the scanner re-scans the fix
    commit diff only; the reviewer re-probes only affected paths. A full
-   re-review never repeats.
+   re-review never repeats. (E2E-stage fixes add their own re-run rules
+   in the acceptance stage below.)
 
 ### Diff hygiene (both leaves)
 
@@ -316,9 +320,8 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 ### Reviewer brief
 
 - diff command (same excludes) + commit list
-- Matrix behavior rows + e2e path
-- entrypoint start hint: the project's documented start command when one
-  exists; otherwise the leaf derives it from the README
+- Matrix behavior rows + e2e path (for high-risk reading only — the E2E
+  acceptance stage below owns running them)
 - inline global invariants + bundle path (read only on suspected conflict)
 - no map; no upfront bundle read; axes and high-risk focus live in the
   reviewer preset body
@@ -331,6 +334,64 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 - persistence, schema, migration, stored format
 - routing, app entrypoint, runtime wiring, background worker
 - multi-layer behavior; E2E critical path
+
+## E2E Acceptance Stage (agent dispatch, after review approve — ADR 0015)
+
+Runs only after the end-of-issue review returns `approve`. Preconditions:
+clean tree, review verdict recorded, HEAD recorded — every evidence line
+cites the commit it ran on.
+
+**Shared stack, parent-owned.** Start command and entrypoints come from the
+project's declaration (`routes.md` `E2E entrypoints:` / issue Testing
+Decisions). Never invent an entrypoint; no declaration → `blocked_on_user`,
+ask. The parent starts **one** stack, probes readiness before any dispatch,
+saves the boot log + ports under `<issue>/evidence/`, and tears it down after
+the last journey. Readiness failure → `blocked_on_*`, report — no dispatch,
+no fix rounds spent on environment.
+
+**Journeys.** Group e2e items into journeys: one user-visible walk per leaf;
+one journey may prove several items of one mechanism. Resource-disjoint
+journeys run as parallel runner leaves with isolated browser sessions;
+journeys sharing an account or mutable state serialize. Host without
+session isolation → serial journeys with a recorded reason.
+
+**Runner leaf** — `rope-e2e-runner` from the harness manifest (generic
+read-only worker with explicit instructions otherwise; record the type
+used). One journey brief per leaf; collect every structured return; a
+journey that returned nothing is a blocker, never a pass.
+
+Journey brief (~40 lines, same budget discipline as slice briefs):
+
+```md
+# E2E Journey <id> — <issue slug>
+Issue/base commit; stack already running (entrypoints given) — NEVER
+restart/rebuild services; readiness problems are blocker reports.
+Items: <E#> <mechanism> — pass criteria each.
+Entrypoint (project-declared): <URL / CLI / real channel>.
+Browser session name: <journey-id> (isolated; never touch other sessions).
+Steps: Given/When/Then as the user would walk them.
+Evidence: save under <issue>/evidence/e2e/ — per item the tool/command
+used + artifact path; failed step: what you did / observed / which
+criterion broke.
+Bounds: read-only on code; no spawning agents; real entrypoint only —
+internal seams (injection, fixtures) are not substitutes.
+Return: journey id; items [{id, verdict pass|fail|blocked, evidence}];
+steps executed; blockers [{class, detail}]; notes ≤5 lines.
+```
+
+**Fix loop.** `agent_failed` → one fix brief to an implementer leaf:
+transcribe the runner's failure verbatim; zero new acceptance requirements.
+≤2 rounds, then Human Escalation Stop. After a fix merges: delta-only code
+re-review (protocol above), re-deploy the stack onto the new HEAD, re-run
+affected journeys plus a shared-entry smoke, and annotate every reused
+evidence line with its commit — a green from a superseded HEAD is void.
+
+**Delivery gate.** Every required `e2e.md` item carries success evidence —
+`agent_passed` (runner evidence) or `user_confirmed` (the user ran it) —
+or an explicit **per-item user waiver** recorded as a waiver, never as a
+pass; silence is not a waiver. Anything else blocks the run and escalates
+with the exact unproven items. Green: teardown the stack (record), write
+the E2E stage verdict line in `tasks.md`, hand off to `rope-verify`.
 
 ## E2E Execution Statuses
 
@@ -353,9 +414,12 @@ does not run must carry the `reason` it does not, and is recorded with its
 terminal status rather than dropped: a skipped item and a missing item must not
 look the same in the record.
 
-Only an item the agent actually ran gates. A required item kept out of the run
-(`user`, `not-run`, a declined gate) is an honest terminal outcome the run may
-still deliver with; a leaf that *ran* and reported `blocked` has not passed.
+Only success evidence gates the delivery decision: an item the agent ran and
+passed (`agent_passed`), or the user ran and confirmed (`user_confirmed`).
+A required item kept out of the run (`user`, `not-run`, a declined gate) is
+an honest terminal record — but under agent dispatch it delivers only with
+an explicit per-item user waiver (acceptance stage above); otherwise the
+run is blocked. A leaf that *ran* and reported `blocked` has not passed.
 
 - `agent_passed`: agent ran it; record command + evidence.
 - `agent_failed`: ran and failed; fix or record blocker.
@@ -372,8 +436,9 @@ still deliver with; a leaf that *ran* and reported `blocked` has not passed.
 ## Handoff Checklist
 
 - Per-slice commits present; the end-of-issue review verdict (+ fix
-  rounds) recorded with identity; e2e statuses terminal; no unrelated
-  dirty files.
+  rounds) recorded with identity; E2E acceptance stage verdict recorded
+  (agent dispatch, ADR 0015); e2e statuses terminal; no unrelated dirty
+  files.
 
 ---
 

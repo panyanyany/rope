@@ -155,9 +155,10 @@ teardown; runners never build their own. Resource-disjoint journeys run as
 parallel leaves with isolated browser sessions; journeys sharing an account
 or mutable state serialize. A runner never edits code, never spawns, and
 returns structured evidence (steps, tool/command, artifacts, per-item
-pass/fail). Every required `e2e.md` item must reach `agent_passed`, or the
-issue stays blocked; the only alternative is an explicit per-item user
-waiver, recorded as a waiver — never as a pass. After an E2E fix merges:
+pass/fail). Every required `e2e.md` item carries success evidence —
+`agent_passed` (runner) or `user_confirmed` (user ran it) — or an explicit
+per-item user waiver recorded as a waiver, never as a pass; otherwise the
+issue stays blocked. After an E2E fix merges:
 delta code re-review, stack re-deploys on the new HEAD, affected journeys +
 shared-entry smoke re-run, reused evidence annotated with its commit.
 _Avoid_: implementer signing acceptance, reviewer re-walking proved

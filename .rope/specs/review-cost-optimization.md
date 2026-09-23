@@ -2,15 +2,18 @@
 
 Cost contract for the end-of-issue review. Source of truth:
 `.rope/adr/0010-parallel-two-leaf-end-of-issue-review.md` (gate semantics:
-ADR 0007; Matrix-as-spec: ADR 0009). Supersedes the ADR 0004 `review:`
-frontmatter regime, which no longer exists.
+ADR 0007; Matrix-as-spec: ADR 0009; product-run scope split: ADR 0015).
+Supersedes the ADR 0004 `review:` frontmatter regime, which no longer
+exists.
 
 ## Shape (two parallel leaves, one gate)
 
 - Scanner leaf (`rope-explore` + Standards brief) and Behavior reviewer
   (`rope-reviewer`) are spawned **in one message**; first response =
   max(leaf times), not their sum.
-- Only the Behavior reviewer may start/stop processes or drive a browser.
+- Only the E2E acceptance stage touches a live product (ADR 0015): under
+  agent dispatch both review leaves are code-only; ports and processes
+  belong to the parent-owned stack and its runner leaves after `approve`.
 - Aggregation is mechanical: verdict = worst of axis verdicts
   (`approve` < `changes_requested` < `blocked`); no rerank, no merge, no
   parent re-judgment.
@@ -25,9 +28,18 @@ frontmatter regime, which no longer exists.
 ## Reviewer budget
 
 - Brief: diff command (same excludes) + commit list + Matrix rows + e2e
-  path + entrypoint start hint + inline invariants. No map; bundle path
+  path (high-risk reading only) + inline invariants. No map; bundle path
   only on suspected conflict.
-- Starts the product first; reads the diff while it boots.
+- Code-only (ADR 0015): reads the assembled diff against the Matrix and
+  high-risk boundaries; never boots the product.
+
+## E2E stage budget (ADR 0015)
+
+- One parent-owned stack per issue (boot once, readiness-probe, teardown);
+  runner leaves are cheap read-only workers, one journey per leaf.
+- Parallel when resource-disjoint (isolated browser sessions); serialized
+  on shared accounts or mutable state. After a fix: delta re-review +
+  affected journeys only, on the new HEAD — evidence cites its commit.
 
 ## Diff hygiene
 
@@ -52,7 +64,7 @@ pay for every included line.
 ## Forbidden shortcuts
 
 - Scanner running the product (port/process exclusivity lives with the
-  Behavior reviewer).
+  E2E acceptance stage, ADR 0015 — and with it the parent, not any leaf).
 - Parent re-ranking or merging axis findings (second-reviewer emergence).
 - `note` findings entering a fix brief.
 - Full re-review after a fix round.
