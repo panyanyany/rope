@@ -8,7 +8,7 @@ Shared across harness writers. Parent/session role is **not** a preset row.
 | --- | --- | --- | --- | --- |
 | `implementer` | `rope-implementer` | Write, test, commit one unit of work from a self-contained brief | full write set: read, bash, edit, write, grep, find, ls (+ host equivalents) | `medium` |
 | `reviewer` | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk over the assembled diff + high-risk boundaries; verdict owner. Code-only — the Standards axis is a separate scanner leaf (below), the product run belongs to the runner (ADR 0015) | read-only: read, bash, grep, find, ls | `high` |
-| `runner` | `rope-e2e-runner` | E2E acceptance leaf: drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes (ADR 0015) | read-only code + product surface: read, bash, grep, find, ls (+ the host browser family, e.g. `agent_browser*`, when present) | `high` |
+| `runner` | `rope-e2e-runner` | E2E acceptance leaf: drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes (ADR 0015) | read-only code + product surface: read, bash, grep, find, ls (+ the host browser family, e.g. `agent_browser*`, when present) | `low` |
 | `explore` | `rope-explore` | Read-only fact gathering / codebase navigation; **research mode** (brief-selected): external sources + findings persisted to `.rope/research/` (ADR 0011) | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `low` |
 
 ## Shared leaf rules
