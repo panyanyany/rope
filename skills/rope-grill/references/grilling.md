@@ -3,10 +3,11 @@
 ## Fact vs decision
 
 - **Facts** (code, tests, docs, primary sources, mature libraries): look up.
-  Prefer background explore leaves when wide — fan them out in parallel
-  (research briefs per the explore research mode); a running exploration
-  delays only the questions downstream of it, never the current round.
-  Never turn answerable facts into user quizzes.
+  Wide lookups are dispatched to background explore leaves in parallel —
+  mandatory under the research floor below; research briefs carry output
+  contracts per the explore research mode (ADR 0017). A running
+  exploration delays only the questions downstream of it, never the
+  current round. Never turn answerable facts into user quizzes.
 - **Decisions** (product tradeoffs, risk, gates, which option wins): put to
   the user in frontier rounds, each with a recommended answer. Never write
   contested choices into `.rope/` as settled.
@@ -38,11 +39,32 @@ you are only probing structure, step back to a product question.
 - Done when the frontier is empty: every branch visited, nothing silently
   assumed. The Ready-for-shape checklist below still gates shape.
 
-## External libraries
+## Research floor (ADR 0017)
 
-When the capability has mature open-source options, search popular packages and
-official guidance **before** inventing. Write facts to `.rope/research/` and cite
-from the PRD. If network is blocked, retry via `http://127.0.0.1:8118`.
+Before inventing, walk the prior-art ladder
+(`.rope/research/ponytail-prior-art-ladder.md`): question the need → repo
+precedent → standard library / platform-native → installed deps → minimal
+implementation — full behavior understood first, without sacrificing
+boundary checks, error handling, security, accessibility.
+
+**Floor:** a request involving a new mechanism, an external
+platform/service integration, or a "how do mature products do this"
+design judgment requires **parallel research dispatch before the decision
+rounds** — typically two briefs: repo precedent + external product survey
+(brief shape per
+[explore-research-mode.md](../../rope-harness-presets/references/explore-research-mode.md):
+question+why / primary sources / output path+sections / return shape).
+Purely internal small changes record `research: not-needed` + one-line
+reason on the issue/PRD.
+
+**Evidence rule:** an industry-practice claim with no research artifact
+behind it ("X and Y both do it this way") is an unverified memory claim —
+never a decision basis; dispatch a leaf or drop the claim.
+
+When the capability has mature open-source options, search popular
+packages and official guidance **before** inventing. Write facts to
+`.rope/research/` and cite from the PRD. If network is blocked, retry via
+`http://127.0.0.1:8118`.
 
 ## Behavior Contract fields
 
@@ -76,6 +98,8 @@ ADR only when hard to reverse **and** surprising **and** real tradeoff — see
 
 - [ ] Behavior Contract six fields user-confirmed
 - [ ] Key terms in CONTEXT or explicitly deferred
+- [ ] Prior-art ladder walked, or `research: not-needed` recorded with reason
+- [ ] No unverified "industry practice" claims in decisions — each cites research or is dropped
 - [ ] External facts in research or “not needed”
 - [ ] Human gates listed
 - [ ] Primary / failure / forbidden-shortcut scenarios discussed

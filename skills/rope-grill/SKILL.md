@@ -38,7 +38,9 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 
 1. Explore leaf for polluting investigation (`rope-explore` or soft-degrade);
    fan wide lookups out in parallel — a running exploration delays only the
-   questions downstream of it, never the round.
+   questions downstream of it, never the round. Every research brief
+   declares its output contract (question/sources/path/return shape —
+   explore-research-mode.md).
 2. Crystallize confirmed decisions into `.rope/` immediately (chat dies on
    compact).
 3. Read leaf summaries + paths, not full traces.
@@ -48,7 +50,13 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 
 1. Restate target and suspected ambiguity.
 2. Resolve **facts** (code/docs/libs) before asking the user — never turn an
-   answerable fact into a user quiz (grilling.md).
+   answerable fact into a user quiz (grilling.md). **Research floor
+   (ADR 0017):** when the request involves a new mechanism, an external
+   platform/service integration, or a design judgment about how mature
+   products solve this, dispatch the research briefs **before the decision
+   rounds** — typically two in parallel (repo precedent + external product
+   survey). Purely internal small changes record `research: not-needed` +
+   one-line reason on the issue/PRD instead.
 3. Apply **domain discipline** (glossary, fuzzy terms, code contradictions).
 4. Resolve the **Behavior Contract** six fields (grilling.md).
 5. Run the conditional architecture-impact check: targeted lookup through
@@ -66,8 +74,10 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
    pauses.
 9. Stress-test scenarios: primary path, failure visibility, forbidden
    shortcut.
-10. Write CONTEXT / ADR / research / specs as decisions land (ADR
-    three-tests).
+10. Crystallize each round's confirmed decisions into `.rope/` **in the
+    same round** (CONTEXT / ADR / research / specs; chat dies on compact) —
+    a confirmed decision still living only in chat when its round ends is a
+    violation, never a batch for after the interview.
 11. **Shared-understanding gate:** recap 3–6 bullets; the user confirms before
     shape. Do not write the issue package until confirm (unless they said
     "直接 shape"). Shape later projects this recap into the PRD's Contract
