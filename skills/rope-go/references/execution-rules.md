@@ -16,6 +16,12 @@ Rules:
 - Parent spawns leaves with **self-contained briefs**; leaves return
   **summary + artifact paths/status** only.
 - **No nested spawn.** Parent owns all dispatch.
+- **Parent writes no product/test code (ADR 0017):** during go and E2E,
+  every code change rides an implementer brief — including "small" fixes
+  mid-E2E. Parent self-editing is a contract violation; the correction
+  path is always rewrite brief + re-dispatch. A dispatch that failed or
+  returned empty is handled as a dispatch problem (re-brief), never by
+  the parent taking over the leaf's job.
 - Correction = rewrite brief + re-spawn implementer. Max **2** automated fix
   rounds per problem → Human Escalation Stop. Design/contract defect →
   immediate stop. A fix round never pauses dispatch of other ready slices.
@@ -351,7 +357,10 @@ session isolation → serial journeys with a recorded reason.
 **Runner leaf** — `rope-e2e-runner` from the harness manifest (generic
 read-only worker with explicit instructions otherwise; record the type
 used). One journey brief per leaf; collect every structured return; a
-journey that returned nothing is a blocker, never a pass.
+journey that returned nothing is a blocker, never a pass. Every journey
+**must** run as a runner-leaf dispatch — the parent never drives a
+journey itself to substitute for a failed or empty dispatch
+(ADR 0017; documented failure mode in the 2026-09-29 audit).
 
 Journey brief (~40 lines, same budget discipline as slice briefs):
 

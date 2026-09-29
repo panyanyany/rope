@@ -10,6 +10,13 @@ ready slice to a leaf worker, land branches serially, then one two-axis
 review and one E2E acceptance stage. Leaves never spawn leaves; the parent
 never bulk-loads leaf noise into its own context.
 
+**Parent writes no code (ADR 0017):** during slice execution and E2E the
+parent produces no product or test code — every code change rides an
+implementer brief. The correction path is always rewrite-brief +
+re-dispatch, never parent self-editing (field evidence 2026-09-29:
+parent self-writes correlated with ~6 compactions per session and blurred
+stage boundaries — `.rope/research/grill-research-coverage-regression-audit.md`).
+
 Execution rules (test scope, briefs, merge queue, review, E2E stage):
 [references/execution-rules.md](references/execution-rules.md).
 TDD playbook (also for implementer leaves):
@@ -75,12 +82,15 @@ Escalation Stop. Notes stay notes.
 ## E2E acceptance stage
 
 Review approved, then the real environment: bring up the project-declared
-shared stack, fan out read-only `rope-e2e-runner` leaves — one journey per
-leaf, parallel when resource-disjoint, serialized on shared accounts and
-mutable state. Delivery gates on every required e2e item passing with
-evidence or an explicit per-item user waiver. Failures run the same
-bounded fix loop; after a fix lands, re-run affected journeys on the new
-HEAD. Full contract: execution-rules.
+shared stack, then **dispatch** — every journey goes to a read-only
+`rope-e2e-runner` leaf, one journey per leaf, parallel when
+resource-disjoint, serialized on shared accounts and mutable state. The
+parent never substitutes itself for a runner dispatch (driving the browser
+or CLI itself because a leaf failed or returned empty is the documented
+failure mode, not a fallback). Delivery gates on every required e2e item
+passing with evidence or an explicit per-item user waiver. Failures run the
+same bounded fix loop; after a fix lands, re-run affected journeys on the
+new HEAD. Full contract: execution-rules.
 
 ## Stop / report
 
