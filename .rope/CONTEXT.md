@@ -239,3 +239,28 @@ authorization requested, and the blast radius — instead of one-at-a-time
 blocking. Non-gated lanes' continue-or-hold status is stated explicitly.
 _Avoid_: sequential gate blocking idle lanes, vague gate descriptions that
 require a follow-up question to understand
+
+**Research Floor**:
+The grill-stage dispatch floor (ADR 0017): a request involving a new
+mechanism, an external platform/service integration, or a "how do mature
+products solve this" design judgment requires parallel research dispatch
+before the decision rounds — typically two briefs (repo precedent +
+external product survey). Purely internal small changes record
+`research: not-needed` + one-line reason instead. Shape backstops it: a
+PRD citing neither research nor a waiver is refused. Backs the prior-art
+ladder (need → repo precedent → stdlib/platform → installed deps → minimal
+build) and bans unverified industry-practice claims as decision bases.
+_Avoid_: "prefer to research when wide" as a license to skip, treating
+model memory as prior art, floor turned into an excuse to skip quick-path
+work that needs no research
+
+**Dispatch Contract**:
+The ADR 0017 contract family: the dispatch brief is executable (question,
+sources, output path, return shape; leaf honors exactly what it declares;
+unmet requirements return under `unknowns` with attempts); dispatch is the
+mandated path wherever rules name a leaf (E2E journeys, research, fixes);
+and the parent writes no product/test code during go/E2E — correction is
+always rewrite-brief + re-dispatch, never parent self-editing or parent
+takeover of a failed leaf's job.
+_Avoid_: parent takeover framed as "brief correction", empty leaf returns
+accepted as passes, silent shrinking of a brief's scope in the return

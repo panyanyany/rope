@@ -91,6 +91,7 @@ stop lines back to the full pipeline.
 - **2026-08-19 · ADR 0005/0006** — Humans confirm a Contract Note, not a PRD; small fixes get a solo quick path.
 - **2026-08-22 · ADR 0007** — A 7.5-hour all-green session shipped a broken product. Execution turns graph-driven; review collapses to one new-eyes gate with a real-entrypoint probe; verify goes thin.
 - **2026-09-23 · ADR 0016** — The script-driven "dynamic workflow" experiment is retired; parent agent dispatch is the single execution form, and the skills shrink to one path.
+- **2026-09-29 · ADR 0017** — Dispatch becomes a contract: tiered research floor at grill (with shape backstop), brief-as-contract leaf returns with unknowns discipline, must-dispatch + parallel E2E journeys, parent writes no code during go/E2E, per-round crystallize, narrow-first slicing; explore preset thinking rises to medium.
 
 ## Install
 
