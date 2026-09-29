@@ -63,11 +63,20 @@ Historical observations below are evidence, not current operational rules.
    rounds then Human Escalation Stop; S0 ran r1→r2→r2b→r3→r4→r4-续→parent
    self-fix ≈6 rounds, reframed as "简报修正"/"微修复轮". The parent
    stated an escalation promise at 02:35 and did not keep it.
-3. **E2E stage without rope-e2e-runner** (`01a0eac3`): ADR 0015 requires
-   runner leaves (one journey per leaf); the parent started the stack,
-   drove the browser itself across 6+ E1 attempts, committed fixes
+3. **E2E stage without rope-e2e-runner evidence** (`01a0eac3`): ADR 0015
+   requires runner leaves (one journey per leaf); the parent started the
+   stack, drove the browser itself across 6+ E1 attempts, committed fixes
    mid-journey, and performed no delta re-review after E2E fixes.
-   (`01a0d2b3` was compliant — one rope-e2e-runner leaf.)
+   (`01a0d2b3` dispatched one runner leaf — but **correction 2026-09-29
+   deep-dig**: that leaf died on an upstream API 429 with zero effective
+   calls; the parent then said “我直接接手”, drove E2/E1 itself via
+   curl/sqlite (07:02–07:15), fixed `dingtalk_directory_service.py` mid-
+   journey (c8e6f4c4), and recorded parent-collected evidence as PASS. So
+   **both** sessions' E2E evidence was parent-collected; the runner
+   contributed zero evidence anywhere. Rule gap: execution-rules handles
+   `agent_failed` but not a leaf that returns nothing — no dead-leaf/
+   transient-infra (429) handling exists, and "returned nothing is a
+   blocker" was read as license to self-drive.)
 4. **Decision crystallization lag** (`01a0d2b3`): four grill decision
    rounds confirmed on 09-24 lived only in chat + one research facts file;
    ticket-level decision records were written 09-28 03:42 — after one
