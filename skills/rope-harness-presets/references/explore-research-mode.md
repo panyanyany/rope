@@ -1,7 +1,7 @@
-# Explore Research Mode (ADR 0011)
+# Explore Research Mode (ADR 0011; mode wording revised by ADR 0017)
 
-External research with disk output is a **brief-selected mode of
-`rope-explore`** — not a separate agent. The preset carries an
+External research with disk output is a **mode of `rope-explore`, declared
+by the brief** — not a separate agent. The preset carries an
 **unrestricted tool surface**; both modes are body discipline, not tool
 restriction. Historically, plain explore was tool-restricted read-only,
 could not persist findings, and borrowing a general-purpose worker went
@@ -11,12 +11,21 @@ generated without web/write).
 
 ## Mode contract
 
-- Default mode (codebase navigation, end-of-issue scanner): behaves
+**The brief is the contract** (ADR 0017;
+`.rope/research/dispatch-precedents/`): the dispatch prompt states the
+task — question, sources, output path, return shape — and the leaf honors
+exactly what it declares.
+
+- Default dispatch (codebase navigation, end-of-issue scanner): behaves
   read-only — web and writes stay unused even though the tool surface
   grants them.
-- Research mode (the brief asks for a findings file): may use web search /
-  fetch; may write exactly one findings artifact under `.rope/research/**` —
-  nowhere else. Never touches product code, tests, or branches; never spawns.
+- Research dispatch (the brief names a findings output under
+  `.rope/research/`): may use web search / fetch; may write exactly one
+  findings artifact under `.rope/research/**` — nowhere else. Never
+  touches product code, tests, or branches; never spawns.
+- Either mode: a brief requirement that could not be met goes in the
+  return under **unknowns** with what was attempted — a silent gap is a
+  contract violation, not a smaller answer.
 - The reviewed-tree guarantee of ADR 0010 is unaffected: research writes go
   to docs, outside reviewed product code, and scanner briefs never request
   writes.

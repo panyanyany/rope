@@ -9,7 +9,7 @@ Shared across harness writers. Parent/session role is **not** a preset row.
 | `implementer` | `rope-implementer` | Write, test, commit one unit of work from a self-contained brief | full write set: read, bash, edit, write, grep, find, ls (+ host equivalents) | `medium` |
 | `reviewer` | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk over the assembled diff + high-risk boundaries; verdict owner. Code-only — the Standards axis is a separate scanner leaf (below), the product run belongs to the runner (ADR 0015) | read-only: read, bash, grep, find, ls | `high` |
 | `runner` | `rope-e2e-runner` | E2E acceptance leaf: drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes (ADR 0015) | read-only code + product surface: read, bash, grep, find, ls (+ the host browser family, e.g. `agent_browser*`, when present) | `low` |
-| `explore` | `rope-explore` | Read-only fact gathering / codebase navigation; **research mode** (brief-selected): external sources + findings persisted to `.rope/research/` (ADR 0011) | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `low` |
+| `explore` | `rope-explore` | Read-only fact gathering / codebase navigation; **research mode** (brief-declared, ADR 0011/0017): external sources + findings persisted to `.rope/research/` | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `medium` |
 
 ## Shared leaf rules
 
@@ -35,8 +35,9 @@ Harness-native agent type names are exactly:
 - `rope-e2e-runner`
 - `rope-explore`
 
-External research is a **mode of `rope-explore`** (ADR 0011), selected by
-the brief — it is not a fifth agent. Default and scanner dispatches stay
+External research is a **mode of `rope-explore`** (ADR 0011), declared by
+the brief (wording revised by ADR 0017 — the brief is the contract). It
+is not a fifth agent. Default and scanner dispatches stay
 read-only; a research brief may use web/search and write only a findings
 artifact under `.rope/research/**`. The explore preset is generated with
 an **unrestricted tool surface** — mode discipline lives in the agent
