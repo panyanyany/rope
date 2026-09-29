@@ -16,7 +16,7 @@ Rules:
 - Parent spawns leaves with **self-contained briefs**; leaves return
   **summary + artifact paths/status** only.
 - **No nested spawn.** Parent owns all dispatch.
-- **Parent writes no product/test code (ADR 0017):** during go and E2E,
+- **Parent writes no product/test code:** during go and E2E,
   every code change rides an implementer brief — including "small" fixes
   mid-E2E. Parent self-editing is a contract violation; the correction
   path is always rewrite brief + re-dispatch. A dispatch that failed or
@@ -50,15 +50,15 @@ that could touch the same paths.
 1. Merge one branch; conflict → re-dispatch **one** implementer leaf with
    both branch names and conflicting paths, resolving **on the unmerged
    branch** (merge/rebase the landed sibling — the unmerged slice's brief
-   and commits carry its intent, ADR 0012); its fix rejoins the queue.
-   When tasks.md records methodology-order preferences (ADR 0011), order
+   and commits carry its intent); its fix rejoins the queue.
+   When tasks.md records methodology-order preferences, order
    the queue by them when convenient — they never gate dispatch, only
    landing order.
 2. After each merge: update `map.md` from leaf summaries, re-check the
    ready set, dispatch newly-ready slices.
 3. No per-merge test ritual — leaves ran TDD; downstream worktrees
    exercise upstream changes. Assembled behavior is accepted at the
-   end-of-issue review. **Flake discipline (ADR 0013):** a failure under
+   end-of-issue review. **Flake discipline:** a failure under
    parallel load → rerun only the failing tests to classify the flake; a
    full clean rerun needs a recorded reason.
 
@@ -97,7 +97,7 @@ that could touch the same paths.
   back, check whether the host setup script applies manually — it usually
   can, keeping worktree mode available.
 
-## Test tiers & baseline ladder (repo contract, ADR 0013)
+## Test tiers & baseline ladder (repo contract)
 
 `routes.md` declares:
 
@@ -157,7 +157,7 @@ that could touch the same paths.
 
 ## Leaf Brief Contract (hard budget)
 
-Per ADR 0005: **minimal brief** — allowlist + ≤60-line cap (paths and
+**Minimal brief** — allowlist + ≤60-line cap (paths and
 command blocks excluded). The parent checks the budget before dispatch.
 
 **Content payload (allowed inline):**
@@ -177,7 +177,7 @@ command blocks excluded). The parent checks the budget before dispatch.
 - TDD mode: `required` (default for code) | `waived (docs-only)` + reason;
   when required — red command(s) + what counts as red, green command(s)
   after minimal implementation — focused seam commands by default; a
-  full-suite run is issue-level evidence (ADR 0013), never a brief
+  full-suite run is issue-level evidence, never a brief
   requirement
 - Expected return shape: summary, paths changed, delivery branch + the commit
   hash printed by `git rev-parse HEAD`, acceptance text exercised, red evidence
@@ -186,7 +186,7 @@ command blocks excluded). The parent checks the budget before dispatch.
   mode), blockers with a class, one setup line in worktree mode
   (`setup: ran <cmd>` | `setup: no-op`) — **plus the Return Gate payload:**
   every slice Required-evidence item mapped to pasted command output or an
-  artifact path, keyed by evidence id (ADR 0011)
+  artifact path, keyed by evidence id
 - Worktree mode: state the delivery steps in the brief — commit
   everything, leave `git status --porcelain` empty, then
   `git branch -f <delivery branch> HEAD` as the last write; the host's
@@ -199,7 +199,7 @@ command blocks excluded). The parent checks the budget before dispatch.
   one (unconditional; check-first script)
 - No nested spawn; commit rules; Blocked by / Scope
 
-End-of-issue briefs (two, ADR 0010): **scanner** — diff + commit list +
+End-of-issue briefs (two): **scanner** — diff + commit list +
 standards-source paths + inline global invariants + pasted smell baseline
 (below); **reviewer** — diff + commit list + Matrix behavior rows + e2e
 path (high-risk reading only; the E2E stage owns running them) + inline
@@ -207,7 +207,7 @@ global invariants (bundle path on suspected conflict only; no map). Axes
 and high-risk list live in the reviewer preset body, not the brief. Same
 allowlist and line cap.
 
-## Return Gate reconciliation & Defense Budget (ADR 0011)
+## Return Gate reconciliation & Defense Budget
 
 On each landing, reconcile mechanically — a table check, not a review:
 
@@ -221,9 +221,9 @@ On each landing, reconcile mechanically — a table check, not a review:
 - Any `BOUNCE` row → re-dispatch the leaf with exactly the missing item
   ids; nothing else reopens.
 - The gate never re-reads implementations, never reruns tests, never
-  issues verdicts — the end-of-issue review stays the only review gate
-  (ADR 0007). A missing evidence item bounces the **leaf**; the parent
-  never runs tests to back-fill a leaf's evidence (ADR 0013).
+  issues verdicts — the end-of-issue review stays the only review gate.
+  A missing evidence item bounces the **leaf**; the parent
+  never runs tests to back-fill a leaf's evidence.
 - **Defense Budget:** a correction brief contains **zero** acceptance
   requirements absent from the Behavior Matrix. A gap discovered
   mid-execution goes back to shape as a re-cut (new slice) or is demoted
@@ -231,7 +231,7 @@ On each landing, reconcile mechanically — a table check, not a review:
   across rounds ("fix2 replaces what fix1 built") is a Defense Budget
   violation — stop and re-cut instead.
 
-## Human Gate Panel (ADR 0011)
+## Human Gate Panel
 
 Multiple pending gates render once, batched:
 
@@ -250,7 +250,7 @@ other lanes sit idle without an explicit hold statement.
 ## End-of-Issue Review Execution
 
 After all slices and before verify. The parent runs this gate: spawns
-**two read-only leaves in one message** (ADR 0010),
+**two read-only leaves in one message**,
 both new eyes, never watched the build, then does bookkeeping from the
 structured return and renders an exhausted fix budget as the Human Escalation
 Stop:
@@ -261,7 +261,7 @@ Stop:
    never runs the product.
 2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
    worker with explicit review instructions otherwise). Read-only on code;
-   code-only (ADR 0015): reads the assembled diff,
+   code-only: reads the assembled diff,
    walks the Behavior Matrix and high-risk boundaries. Product running,
    entrypoint walking, and e2e execution belong to the E2E acceptance
    stage below — never to the reviewer.
@@ -334,7 +334,7 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 - routing, app entrypoint, runtime wiring, background worker
 - multi-layer behavior; E2E critical path
 
-## E2E Acceptance Stage (after review approve — ADR 0015)
+## E2E Acceptance Stage (after review approve)
 
 Runs only after the end-of-issue review returns `approve`. Preconditions:
 clean tree, review verdict recorded, HEAD recorded — every evidence line
@@ -359,8 +359,7 @@ read-only worker with explicit instructions otherwise; record the type
 used). One journey brief per leaf; collect every structured return; a
 journey that returned nothing is a blocker, never a pass. Every journey
 **must** run as a runner-leaf dispatch — the parent never drives a
-journey itself to substitute for a failed or empty dispatch
-(ADR 0017).
+journey itself to substitute for a failed or empty dispatch.
 
 Journey brief (~40 lines, same budget discipline as slice briefs):
 
@@ -438,7 +437,7 @@ that *ran* and reported `blocked` has not passed.
 
 - Per-slice commits present; the end-of-issue review verdict (+ fix
   rounds) recorded with identity; E2E acceptance stage verdict recorded
-  (ADR 0015); e2e statuses terminal; no unrelated dirty
+  ; e2e statuses terminal; no unrelated dirty
   files.
 
 ---

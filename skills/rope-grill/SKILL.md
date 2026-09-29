@@ -50,8 +50,7 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 
 1. Restate target and suspected ambiguity.
 2. Resolve **facts** (code/docs/libs) before asking the user — never turn an
-   answerable fact into a user quiz (grilling.md). **Research floor
-   (ADR 0017):** when the request involves a new mechanism, an external
+   answerable fact into a user quiz (grilling.md). **Research floor:** when the request involves a new mechanism, an external
    platform/service integration, or a design judgment about how mature
    products solve this, dispatch the research briefs **before the decision
    rounds** — typically two in parallel (repo precedent + external product

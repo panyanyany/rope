@@ -10,12 +10,11 @@ ready slice to a leaf worker, land branches serially, then one two-axis
 review and one E2E acceptance stage. Leaves never spawn leaves; the parent
 never bulk-loads leaf noise into its own context.
 
-**Parent writes no code (ADR 0017):** during slice execution and E2E the
+**Parent writes no code:** during slice execution and E2E the
 parent produces no product or test code — every code change rides an
 implementer brief. The correction path is always rewrite-brief +
 re-dispatch, never parent self-editing: parent self-writes bloat the
-parent context (compaction-dependent decisions, blurred stage
-boundaries; ADR 0017).
+parent context (compaction-dependent decisions, blurred stage boundaries).
 
 Execution rules (test scope, briefs, merge queue, review, E2E stage):
 [references/execution-rules.md](references/execution-rules.md).

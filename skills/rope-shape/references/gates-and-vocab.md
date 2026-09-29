@@ -50,29 +50,29 @@ E2E items carry **real-environment behaviors only** (real APIs, real entrypoints
 
 Upstream “spec/ticket” is upstream vocabulary only; keep Rope names in artifacts we write.
 
-## Edge Classification (ADR 0011, refined by 0012)
+## Edge Classification
 
 Every `Blocked by` edge gets exactly one label at shape; `seam-required`
 always blocks dispatch, `file-overlap` is mode-dependent:
 
 | Label | Test | Effect |
 | --- | --- | --- |
-| **file-overlap** | the downstream slice reads/writes files the upstream owns (verify against owned-files, not intuition) | shared mode: blocks dispatch. Recorded worktree mode (ADR 0012): **merge-order preference** — both dispatch concurrently, merge queue orders landing, conflict = one re-dispatch |
+| **file-overlap** | the downstream slice reads/writes files the upstream owns (verify against owned-files, not intuition) | shared mode: blocks dispatch. Recorded worktree mode: **merge-order preference** — both dispatch concurrently, merge queue orders landing, conflict = one re-dispatch |
 | **seam-required** | the downstream consumes a public seam the upstream must first create | blocks dispatch in both modes |
 | **methodology-order** | no overlap, no seam — only "reads better if done first" (e.g. instrumentation before refactor) | merge-order preference only; go dispatches across it |
 
 A missing label is a shape defect. "Feels safer sequential" is not a label —
 it is a merge-order preference at best.
 
-## Slice granularity hard rules & anti-patterns (ADR 0011)
+## Slice granularity hard rules & anti-patterns
 
 - **Demo path (mandatory per slice):** the answer to "what can I demo when
   this slice lands?" — a behavior, never a layer name ("schema done" fails).
 - **Lower bound:** the whole change fits one fresh context window ⇒ do not
-  make a multi-slice issue; recommend `rope-quick` (ADR 0006).
+  make a multi-slice issue; recommend `rope-quick` — a one-window change pays more in orchestration than it earns.
 - **Upper bound:** one slice ≈ one fresh context window (default ~400 diff
   lines / ~4 owned files); exceeded ⇒ re-cut on the spot.
-- **Narrow-first default (ADR 0017):** the fresh-window upper bound is a
+- **Narrow-first default:** the fresh-window upper bound is a
   re-cut ceiling, not a sizing target — cut the smallest independently
   verifiable behavior with its own demo path; more, thinner slices beat
   fewer packed ones, and file-disjoint slices parallelize.

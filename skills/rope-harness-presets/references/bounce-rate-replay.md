@@ -1,4 +1,4 @@
-# Planner Bounce-rate Replay Protocol (ADR 0011)
+# Planner Bounce-rate Replay Protocol
 
 Offline evaluation for **planner-window model selection**: measure how often a
 candidate planner bounces leaf returns, without running a live issue.

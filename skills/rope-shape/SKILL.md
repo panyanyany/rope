@@ -45,7 +45,7 @@ Default handoff: same-session `rope-go`.
 6. **Slice outline quiz:** title, user-visible delivery, `Blocked by`,
    matrix rows, constraint IDs, evidence → iterate until approved → then
    write full files.
-7. **Research record gate (ADR 0017):** the PRD cites `.rope/research/`
+7. **Research record gate:** the PRD cites `.rope/research/`
    findings or records `research: not-needed` + reason — neither present
    ⇒ refuse to start writing; send it back to grill's research floor.
    Then write `prd.md`, `tasks.md`, and `e2e.md` per the templates. Slicing hard
@@ -65,7 +65,7 @@ Default handoff: same-session `rope-go`.
    `Blocked by` edges; show initial ready count, level widths, and the
    longest gating chain (say which numbers are estimates) beside the serial
    total: a chain of *n* levels is *n* sequential rounds whatever the
-   window is. **Narrow is the default posture (ADR 0017):** the
+   window is. **Narrow is the default posture:** the
    fresh-context window is a ceiling, not a sizing target — cut the
    smallest independently verifiable behavior; file-disjoint slices run
    in parallel, and a methodology-order edge never blocks dispatch.
@@ -98,8 +98,7 @@ Default handoff: same-session `rope-go`.
   conflicts, or facts are open. `not-applicable` requires its trigger-check
   record; a high-risk New decision candidate blocks shape.
 - The PRD's research record (research citation or `not-needed` + reason)
-  is a shape precondition — no record, no package (ADR 0017 floor's
-  backstop).
+  is a shape precondition — no record, no package (the floor's backstop).
 - Do not ask serial-or-parallel before the slice graph exists; the graph
   answers it (step 8), with numbers. Do not merge rivers into one slice to
   dodge the split question. Fresh-context fit is an iron rule.

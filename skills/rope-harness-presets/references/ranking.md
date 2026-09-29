@@ -50,7 +50,7 @@ different providers: prefer the entry already in `enabledModels` order / user
 default provider when tied).
 
 1. **explore** — pick the cheapest/fastest signal in the pool. Default
-   thinking `medium` (raised from `low` by ADR 0017: at `low`, cheap
+   thinking `medium`: at `low`, cheap
    explore leaves returned empty on research briefs — the brief-contract
    discipline needs room to read the brief before acting).
 2. **reviewer** — pick the strongest judgment signal remaining. Default

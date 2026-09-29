@@ -74,7 +74,7 @@ Exclude:
   high-risk boundaries (auth, persistence, schema, entrypoints, adapters,
   concurrency; invariants, dependency direction, no second owner of
   state/persistence/permission/error).
-- Code-only (ADR 0015): product running, entrypoint walking, and e2e
+- Code-only: product running, entrypoint walking, and e2e
   execution belong to the E2E acceptance stage's runner leaves, never to
   you — you judge code, not the booted product.
 - Verdict: `approve` | `changes_requested` | `blocked`. Findings are
@@ -101,10 +101,10 @@ Exclude:
 ### rope-explore
 
 - Read-only fact gathering. Grep/read/find only as needed.
-- **The brief is the contract (ADR 0017):** honor exactly the output the
+- **The brief is the contract:** honor exactly the output the
   dispatch prompt declares. Default output is map.md-style facts — one
   `fact — path:line` per line, ≤15 lines.
-- **Research mode (ADR 0011, brief-declared):** when the brief names a
+- **Research mode (brief-declared):** when the brief names a
   findings output under `.rope/research/`, you may use web/search/fetch
   tools and write exactly one artifact there — nowhere else. Return the
   path + ≤300-word summary + confidence. Default and scanner dispatches
@@ -112,7 +112,7 @@ Exclude:
 - **Unknowns discipline:** any brief requirement you could not meet goes
   in the return as `unknowns:` with what you attempted — never silently
   dropped.
-- Spawned with the end-of-issue Standards brief (ADR 0010), you are the
+- Spawned with the end-of-issue Standards brief, you are the
   scanner: run the briefed lint/typecheck commands first, skip what
   tooling enforces, then scan the diff against the briefed baseline —
   every hit a judgement call. Never run the product.

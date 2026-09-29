@@ -115,7 +115,7 @@
 ```md
 # <Issue Title> Tasks
 
-Execution mode: worktree | shared   # probed at shape (ADR 0012); go consumes, may degrade with recorded reason
+Execution mode: worktree | shared   # probed at shape; go consumes, may degrade with recorded reason
 
 ## Graph summary
 
@@ -145,7 +145,7 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Demo path: <the behavior you can demo when this slice lands — never a layer name>
 - Blocked by: none | Slice N, … (<each edge labeled: file-overlap | seam-required | methodology-order>)
 - Scope: <path/area bounds; disjoint from sibling slices when parallel>
-- Owned files: <explicit files this slice owns; unique within a shared-mode wave — in recorded worktree mode overlap is legal and expressed by a file-overlap edge (ADR 0012)>
+- Owned files: <explicit files this slice owns; unique within a shared-mode wave — in recorded worktree mode overlap is legal and expressed by a file-overlap edge>
 - Size cap: <default ~400 diff lines or ~4 owned files; exceeded ⇒ split>
 - Matrix rows:
 - Constraint IDs: <decision/invariant IDs owned by this slice>
@@ -153,14 +153,14 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Public behavior: <one user-visible sentence of what works when this slice is done>
 - Tests:
 - Implementation notes:
-- Verification: <focused seam tests + guards this slice can affect — never a full-suite run (ADR 0013)>
+- Verification: <focused seam tests + guards this slice can affect — never a full-suite run>
 - Stop conditions:
 ```
 
 Size cap is universal (fresh-context fit); slices that cannot fit are re-cut
 at shape, never shipped oversized.
 
-`Verification` granularity (ADR 0013): default is **focused** — the seam
+`Verification` granularity: default is **focused** — the seam
 tests and guards the slice can affect, seconds not minutes. The full
 suite is an **issue-level** gate (go baseline fallback, end-of-issue
 assembly); writing it into a slice makes every leaf pay for the whole

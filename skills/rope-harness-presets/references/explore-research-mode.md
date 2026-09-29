@@ -1,4 +1,4 @@
-# Explore Research Mode (ADR 0011; mode wording revised by ADR 0017)
+# Explore Research Mode
 
 External research with disk output is a **mode of `rope-explore`, declared
 by the brief** — not a separate agent. The preset carries an
@@ -11,7 +11,7 @@ generated without web/write).
 
 ## Mode contract
 
-**The brief is the contract** (ADR 0017): the dispatch prompt states the
+**The brief is the contract:** the dispatch prompt states the
 task — question, sources, output path, return shape — and the leaf honors
 exactly what it declares.
 
@@ -25,7 +25,7 @@ exactly what it declares.
 - Either mode: a brief requirement that could not be met goes in the
   return under **unknowns** with what was attempted — a silent gap is a
   contract violation, not a smaller answer.
-- The reviewed-tree guarantee of ADR 0010 is unaffected: research writes go
+- The reviewed-tree guarantee is unaffected: research writes go
   to docs, outside reviewed product code, and scanner briefs never request
   writes.
 
@@ -41,5 +41,5 @@ exactly what it declares.
 
 Rare by construction — the preset ships unrestricted. Only when a host
 cannot grant web/write at all: run the research brief on a generic worker
-and **record the type used** (declared deviation, ADR 0011). No schema,
+and **record the type used** (declared deviation). No schema,
 ranking, or manifest change — the three core roles are unchanged.

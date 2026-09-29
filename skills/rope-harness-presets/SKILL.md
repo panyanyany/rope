@@ -21,7 +21,7 @@ Manual invoke only.
 | [ranking.md](references/ranking.md) | Ranking procedure, offline heuristics, confidence |
 | [offline-ranking-fixture.md](references/offline-ranking-fixture.md) | Research-fail → confidence low still ranks |
 | [discovery-fixtures.md](references/discovery-fixtures.md) | Dry checks |
-| [explore-research-mode.md](references/explore-research-mode.md) | Explore research mode (ADR 0011; wording revised by ADR 0017) |
+| [explore-research-mode.md](references/explore-research-mode.md) | Explore research mode |
 | [bounce-rate-replay.md](references/bounce-rate-replay.md) | Planner model-selection replay protocol |
 
 ## Host support
@@ -154,17 +154,17 @@ instantiated once per leaf, each still an ordinary `rope-implementer`
 leaf — no nested spawn, same tool bounds, same output format. No schema
 change; the parent may still override model/thinking per leaf at spawn time.
 
-## Explore research mode & declared dispatch deviation (ADR 0011; ADR 0017)
+## Explore research mode & declared dispatch deviation
 
 - **Research is a mode of `rope-explore`**, declared by the brief (the
-  brief is the contract, ADR 0017): a research brief switches the leaf to
+  brief is the contract): a research brief switches the leaf to
   research behavior — web/search + one findings artifact under
   `.rope/research/**`; default and scanner dispatches behave read-only.
   The generated preset carries an unrestricted tool surface, so the
   mode needs no deviation. See
   [references/explore-research-mode.md](references/explore-research-mode.md).
   No fifth agent name; external research stays a mode of `rope-explore`.
-  The `rope-e2e-runner` is the deliberate fourth leaf (ADR 0015) — see
+  The `rope-e2e-runner` is the deliberate fourth leaf — see
   role-schema.md; the ranking flow is otherwise unchanged.
 - **Declared deviation:** spawning with a `type` or `model` that differs from
   the preset row requires a one-line reason in the dispatch record (what host

@@ -5,7 +5,7 @@
 - **Facts** (code, tests, docs, primary sources, mature libraries): look up.
   Wide lookups are dispatched to background explore leaves in parallel —
   mandatory under the research floor below; research briefs carry output
-  contracts per the explore research mode (ADR 0017). A running
+  contracts per the explore research mode. A running
   exploration delays only the questions downstream of it, never the
   current round. Never turn answerable facts into user quizzes.
 - **Decisions** (product tradeoffs, risk, gates, which option wins): put to
@@ -39,9 +39,9 @@ you are only probing structure, step back to a product question.
 - Done when the frontier is empty: every branch visited, nothing silently
   assumed. The Ready-for-shape checklist below still gates shape.
 
-## Research floor (ADR 0017)
+## Research floor
 
-Before inventing, walk the prior-art ladder (ADR 0017): question the need →
+Before inventing, walk the prior-art ladder: question the need →
 repo precedent → standard library / platform-native → installed deps →
 minimal implementation — full behavior understood first, without
 sacrificing boundary checks, error handling, security, accessibility.
