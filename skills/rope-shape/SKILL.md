@@ -62,7 +62,11 @@ Default handoff: same-session `rope-go`.
    `Blocked by` edges; show initial ready count, level widths, and the
    longest gating chain (say which numbers are estimates) beside the serial
    total: a chain of *n* levels is *n* sequential rounds whatever the
-   window is. Granularity quiz (same message): any slice too coarse to fit
+   window is. **Narrow is the default posture (ADR 0017):** the
+   fresh-context window is a ceiling, not a sizing target — cut the
+   smallest independently verifiable behavior; file-disjoint slices run
+   in parallel, and a methodology-order edge never blocks dispatch.
+   Granularity quiz (same message): any slice too coarse to fit
    a window, or too fine (trivial grouping lost)? Blocking edges real per
    their label? Merge or split? **Then** exactly one execution question:
    two or more rivers ⇒ offer the split (each river its own issue) or one

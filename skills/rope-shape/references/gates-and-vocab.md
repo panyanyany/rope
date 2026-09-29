@@ -72,6 +72,10 @@ it is a merge-order preference at best.
   make a multi-slice issue; recommend `rope-quick` (ADR 0006).
 - **Upper bound:** one slice ≈ one fresh context window (default ~400 diff
   lines / ~4 owned files); exceeded ⇒ re-cut on the spot.
+- **Narrow-first default (ADR 0017):** the fresh-window upper bound is a
+  re-cut ceiling, not a sizing target — cut the smallest independently
+  verifiable behavior with its own demo path; more, thinner slices beat
+  fewer packed ones, and file-disjoint slices parallelize.
 - **Two-stage contract slices:** deep durability/concurrency/protocol work in
   a contract slice is thin-interface + hardening; consumers block only on the
   thin-interface half.
