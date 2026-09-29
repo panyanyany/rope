@@ -64,7 +64,8 @@ never a decision basis; dispatch a leaf or drop the claim.
 When the capability has mature open-source options, search popular
 packages and official guidance **before** inventing. Write facts to
 `.rope/research/` and cite from the PRD. If network is blocked, retry via
-`http://127.0.0.1:8118`.
+the host's proxy (e.g. `HTTP(S)_PROXY`) before degrading to offline
+heuristics — never bake a machine-local proxy address into the skill.
 
 ## Behavior Contract fields
 
