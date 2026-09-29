@@ -13,9 +13,9 @@ never bulk-loads leaf noise into its own context.
 **Parent writes no code (ADR 0017):** during slice execution and E2E the
 parent produces no product or test code — every code change rides an
 implementer brief. The correction path is always rewrite-brief +
-re-dispatch, never parent self-editing (field evidence 2026-09-29:
-parent self-writes correlated with ~6 compactions per session and blurred
-stage boundaries — `.rope/research/grill-research-coverage-regression-audit.md`).
+re-dispatch, never parent self-editing: parent self-writes bloat the
+parent context (compaction-dependent decisions, blurred stage
+boundaries; ADR 0017).
 
 Execution rules (test scope, briefs, merge queue, review, E2E stage):
 [references/execution-rules.md](references/execution-rules.md).

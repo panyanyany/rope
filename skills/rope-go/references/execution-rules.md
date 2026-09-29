@@ -360,7 +360,7 @@ used). One journey brief per leaf; collect every structured return; a
 journey that returned nothing is a blocker, never a pass. Every journey
 **must** run as a runner-leaf dispatch — the parent never drives a
 journey itself to substitute for a failed or empty dispatch
-(ADR 0017; documented failure mode in the 2026-09-29 audit).
+(ADR 0017).
 
 Journey brief (~40 lines, same budget discipline as slice briefs):
 

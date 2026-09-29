@@ -11,8 +11,7 @@ generated without web/write).
 
 ## Mode contract
 
-**The brief is the contract** (ADR 0017;
-`.rope/research/dispatch-precedents/`): the dispatch prompt states the
+**The brief is the contract** (ADR 0017): the dispatch prompt states the
 task — question, sources, output path, return shape — and the leaf honors
 exactly what it declares.
 

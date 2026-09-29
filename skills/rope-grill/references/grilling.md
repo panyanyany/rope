@@ -41,11 +41,10 @@ you are only probing structure, step back to a product question.
 
 ## Research floor (ADR 0017)
 
-Before inventing, walk the prior-art ladder
-(`.rope/research/ponytail-prior-art-ladder.md`): question the need → repo
-precedent → standard library / platform-native → installed deps → minimal
-implementation — full behavior understood first, without sacrificing
-boundary checks, error handling, security, accessibility.
+Before inventing, walk the prior-art ladder (ADR 0017): question the need →
+repo precedent → standard library / platform-native → installed deps →
+minimal implementation — full behavior understood first, without
+sacrificing boundary checks, error handling, security, accessibility.
 
 **Floor:** a request involving a new mechanism, an external
 platform/service integration, or a "how do mature products do this"
@@ -65,7 +64,7 @@ When the capability has mature open-source options, search popular
 packages and official guidance **before** inventing. Write facts to
 `.rope/research/` and cite from the PRD. If network is blocked, retry via
 the host's proxy (e.g. `HTTP(S)_PROXY`) before degrading to offline
-heuristics — never bake a machine-local proxy address into the skill.
+heuristics.
 
 ## Behavior Contract fields
 
