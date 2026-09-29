@@ -22,7 +22,7 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 
 ## Slice 1: harness-presets 简报即契约与 medium 档
 
-- Status: pending
+- Status: done
 - Kind: vertical
 - Goal: explore preset 以简报声明的输出契约为准，模式歧义消除；默认思考档升 medium。
 - Demo path: 重生成的 ~/.pi/agent/agents/rope-explore.md 打开即见 thinking: medium 与"尊重简报输出契约+两默认+unknowns 附尝试记录"正文。
@@ -41,7 +41,7 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 
 ## Slice 2: rope-grill 调研门槛分级与实时落盘
 
-- Status: pending
+- Status: done
 - Kind: vertical
 - Goal: grill 恢复强制调研派生（分级门槛）+ 决议当轮落盘。
 - Demo path: 新 grill 会话遇外部集成需求时，step 2 直接要求并行派两路调研简报，纯内部改动引导记 not-needed。
@@ -60,7 +60,7 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 
 ## Slice 3: rope-shape 兜底与切片收窄默认
 
-- Status: pending
+- Status: done
 - Kind: vertical
 - Goal: shape 拒绝无调研记录的 PRD；切片默认收窄、并行优先。
 - Demo path: shape 开写前检查 PRD 的 research 引用/豁免；粒度 quiz 把"收窄+并行"作为默认答案。
@@ -79,7 +79,7 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 
 ## Slice 4: rope-go 父不自写与 E2E 必派并行
 
-- Status: pending
+- Status: done
 - Kind: vertical
 - Goal: go/E2E 期父会话不产码；E2E 旅程必派 runner 叶且能并行则并行。
 - Demo path: execution-rules.md Parent/Leaf Contract 出现加粗硬规则"父会话不写产品/测试码，纠偏=重写简报重派"；E2E 节"必须派生、并行派"为显式强调。
@@ -98,7 +98,7 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 
 ## Slice 5: ADR 0017 + 0011 修订 + CONTEXT 术语 + 索引同步
 
-- Status: pending
+- Status: done
 - Kind: vertical
 - Goal: 决策记录完整：0017 新增、0011 item 8 措辞修订、CONTEXT.md 收 Research Floor、索引同步。
 - Demo path: .rope/adr/0017 存在且含全部决策与放弃项清单；CONTEXT.md 术语表可查 Research Floor。
@@ -114,3 +114,10 @@ Execution mode: shared（solo mode per user waiver 2026-09-29：父会话自行�
 - Implementation notes: 0017 结构沿用仓库 ADR 格式（Status/Date/Decision/Context/Why this shape/Consequences/Alternatives）；0011 仅改 item 8 触发措辞并加"部分被 0017 取代"标注，不动其他条目。
 - Verification: 冒烟
 - Stop conditions: none 预见
+
+## E2E stage verdict (2026-09-29)
+
+- E1 安装产物检查: agent_passed — node bin/rope.js add --target <tmp> 后 6 处标记全命中（grill SKILL+grilling / go SKILL+execution-rules / shape SKILL / presets agent-templates）；commit d74dbf0..1a61859+收尾
+- E2 preset 工件: agent_passed — ~/.pi/agent/agents/rope-explore.md thinking: medium、brief-contract 正文、unknowns 纪律 ×3；manifest roles.explore.thinking=medium
+- E3 下一真实会话观察: not_run_with_reason（已在 e2e.md 记录豁免）
+- Review: solo waiver 下父侧矩阵自审 B1–B8 全过（对照 assembled diff 逐一核对）；smoke 3/3 绿
