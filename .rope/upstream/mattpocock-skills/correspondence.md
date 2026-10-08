@@ -17,7 +17,7 @@ Rows marked `watch` are recorded for optional named scans; `out` is ignored.
 | `triage` | _(none yet)_ | watch | Tracker intake state machine; not Rope's default path |
 | `prototype` | _(none yet)_ | watch | Throwaway code to answer design questions; optional grill detour |
 | `diagnosing-bugs` / `diagnose` | _(none yet)_ | watch | Debug loop; may inspire a future skill |
-| `domain-modeling` | `.rope/CONTEXT.md` / adr habits | watch | Glossary/ADR sharpening; partly absorbed by rope-grill |
+| `domain-modeling` | `.rope/CONTEXT.md` / adr habits | watch | Glossary/ADR sharpening; partly absorbed by rope-grill. Upstream renamed its convention to GLOSSARY.md (2026-10-08); Rope keeps `.rope/CONTEXT.md` — owner decision; init template carries a coexistence pointer |
 | `handoff` | leaf brief pattern in go/verify | watch | Already partially absorbed |
 | `ask-matt` | _(none)_ | out | Skill router; Rope uses Parent Orchestrator |
 | `zoom-out` / `teach` | _(none)_ | out | Prompting/education, not product workflow |

@@ -6,6 +6,9 @@
 # Context
 
 Project-specific domain language for this repository.
+Terms live here; if a root-level `GLOSSARY.md` appears (global
+skill convention), make it a pointer to this file — never maintain two
+vocabularies.
 
 ## Language
 
