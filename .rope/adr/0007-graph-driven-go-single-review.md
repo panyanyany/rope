@@ -25,8 +25,9 @@ Date: 2026-08-22
    over the assembled diff — Standards axis, Contract axis (Contract Note
    bullets), and a real-entrypoint probe of the primary paths (universal:
    browser, CLI, or API, whatever the project ships). High-risk boundaries
-   get the deepest look. Findings → one fix brief, ≤2 rounds, then Human
-   Escalation Stop.
+   get the deepest look. Findings → one fix brief; fix rounds stop for the
+   human on the first no-progress round (revised 2026-10-08 from ≤2
+   rounds — no-progress = the blocking set stops shrinking).
 4. `rope-verify` degenerates to a thin paperwork gate: review recorded, E2E
    terminal, drift hunted, tree clean, architecture documentation outcomes
    routed. It no longer judges code or product truth.

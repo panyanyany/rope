@@ -58,5 +58,6 @@ PASS | CHANGES_REQUESTED | BLOCKED
 ## Fix loop
 
 `CHANGES_REQUESTED` → fix brief → parent spawns implementer leaf → re-verify
-appends Round N+1 scoped to the must-fix items. Two unsuccessful rounds on
-the same problem, or a design/requirements defect → Human Escalation Stop.
+appends Round N+1 scoped to the must-fix items. A round that leaves the
+must-fix set unchanged, or a design/requirements defect → Human Escalation
+Stop.

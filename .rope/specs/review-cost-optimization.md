@@ -57,7 +57,9 @@ pay for every included line.
   `tasks.md`, never fixed by a round.
 - Every finding: `path:line` + one-sentence fix. The fix brief transcribes
   blocking findings verbatim — zero exploration.
-- ≤2 automated rounds, then Human Escalation Stop (ADR 0007).
+- Rounds continue while each shrinks the blocking set; the first
+  no-progress round is the Human Escalation Stop (ADR 0007; trigger
+  revised from a ≤2 count, 2026-10-08).
 - Post-fix re-review is delta-only: scanner on the fix-commit diff;
   reviewer re-probes affected paths only. Full re-review never repeats.
 

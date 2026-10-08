@@ -54,8 +54,9 @@ Architecture constraints:
   leaf to exactly those items — not a review, not a parent test rerun.
   Missing tests need an explicit brief correction; a changed acceptance
   requirement returns to shape.
-- Fix rounds: re-brief a fresh leaf, at most two per problem; independent
-  ready slices keep running. Design/contract defects stop for the human.
+- Fix rounds: re-brief a fresh leaf per problem; the same failure
+  signature returning from a fresh leaf, or any design/contract defect,
+  stops for the human. Independent ready slices keep running.
 - Merge landed branches serially, one at a time, in landing order.
   Conflicts get one re-dispatch on the unmerged branch using both
   branches' intent; unresolved merges stay blocked. After each merge,
@@ -75,8 +76,9 @@ Spawn two fresh read-only leaves in one message: **Standards scanner**
 and **Behavior reviewer** (`rope-reviewer`; walks the Matrix and
 high-risk boundaries over the assembled diff — code-only). Aggregate
 mechanically, worst verdict wins; transcribe blocking findings into one
-fix brief; at most two fix rounds with delta-only re-review, then Human
-Escalation Stop. Notes stay notes.
+fix brief; fix rounds run with delta-only re-review, and the first
+round that fails to shrink the blocking set is the Human Escalation
+Stop. Notes stay notes.
 
 ## E2E acceptance stage
 

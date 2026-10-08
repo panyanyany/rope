@@ -35,8 +35,8 @@ BLOCKED for the user.
 1. Load the issue package + completion claims; check the five items above
    directly (paperwork is one screen, no leaves needed).
 2. Write/append `verify.md`: PASS | CHANGES_REQUESTED | BLOCKED.
-3. PASS → rope-finish. CHANGES_REQUESTED → fix brief (≤2 rounds, then Human
-   Escalation Stop). BLOCKED → user.
+3. PASS → rope-finish. CHANGES_REQUESTED → fix brief (a round that leaves
+   the must-fix set unchanged → Human Escalation Stop). BLOCKED → user.
 
 ## Guardrails
 

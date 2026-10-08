@@ -22,9 +22,10 @@ Rules:
   path is always rewrite brief + re-dispatch. A dispatch that failed or
   returned empty is handled as a dispatch problem (re-brief), never by
   the parent taking over the leaf's job.
-- Correction = rewrite brief + re-spawn implementer. Max **2** automated fix
-  rounds per problem → Human Escalation Stop. Design/contract defect →
-  immediate stop. A fix round never pauses dispatch of other ready slices.
+- Correction = rewrite brief + re-spawn implementer. No progress — the
+  same failure signature returning from a fresh leaf → Human Escalation
+  Stop. Design/contract defect → immediate stop. A fix round never pauses
+  dispatch of other ready slices.
 - **Concurrency default**: every ready slice gets a background leaf; a
   single parallel pair still runs in parallel; any serialization needs a
   recorded reason in `tasks.md`.
@@ -252,8 +253,8 @@ other lanes sit idle without an explicit hold statement.
 After all slices and before verify. The parent runs this gate: spawns
 **two read-only leaves in one message**,
 both new eyes, never watched the build, then does bookkeeping from the
-structured return and renders an exhausted fix budget as the Human Escalation
-Stop:
+structured return and renders a non-progressing fix loop as the Human
+Escalation Stop:
 
 1. **Scanner leaf** — the `rope-explore` preset with the Standards brief
    below (generic read-only worker otherwise; record the type used).
@@ -272,8 +273,10 @@ Stop:
    identities + fix rounds in `tasks.md`.
 4. **Fix protocol**: the fix brief transcribes blocking findings verbatim
    — `{severity, path:line, issue, fix}` — nothing left to explore.
-   ≤2 automated rounds, then Human Escalation Stop. `note` findings are
-   recorded in `tasks.md`, never fixed by a round.
+   Rounds continue while each shrinks the blocking set; the first
+   no-progress round (same finding returns, new findings offset fixed
+   ones, or a fix reverts a prior fix) is the Human Escalation Stop.
+   `note` findings are recorded in `tasks.md`, never fixed by a round.
 5. **Delta re-review**: after a fix round, the scanner re-scans the fix
    commit diff only; the reviewer re-probes only affected paths. A full
    re-review never repeats. (E2E-stage fixes add their own re-run rules
@@ -382,7 +385,8 @@ steps executed; blockers [{class, detail}]; notes ≤5 lines.
 
 **Fix loop.** `agent_failed` → one fix brief to an implementer leaf:
 transcribe the runner's failure verbatim; zero new acceptance requirements.
-≤2 rounds, then Human Escalation Stop. After a fix merges: delta-only code
+Rounds continue while each shrinks the failing set; the first that doesn't
+is the Human Escalation Stop. After a fix merges: delta-only code
 re-review (protocol above), re-deploy the stack onto the new HEAD, re-run
 affected journeys plus a shared-entry smoke, and annotate every reused
 evidence line with its commit — a green from a superseded HEAD is void.
