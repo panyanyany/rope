@@ -57,6 +57,15 @@ Exclude:
   the brief sets `TDD: waived (docs-only)`.
 - Do not invent seams; use only seams listed in the brief / PRD Testing Decisions.
 - Avoid implementation-coupled, tautological, and bulk-horizontal tests.
+- **Minimal implementation discipline**: solve acceptance with the shortest working diff.
+  Reuse existing helpers, components, and patterns; prefer standard library and
+  already installed dependencies. Zero unrequested abstractions, wrappers, options,
+  configs, or "for later" boilerplate. Deletion beats addition.
+- **Complete the blast radius**: be lazy about the solution, never about the change.
+  Update all callers, tests, and fixtures broken by your change. Bug fixes grep all
+  callers first and address the root cause once in shared code.
+- **Pragmatic shortcuts**: deliberate shortcuts with a known boundary must carry a single-line
+  comment: `shortcut: <the limit>, <when to upgrade>`.
 - May use write/edit/bash.
 - Fresh worktree (isolation spawn): run the brief's worktree-setup step 0
   first — check-first script, fast no-op when already testable. Environment
