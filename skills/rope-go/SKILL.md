@@ -5,107 +5,84 @@ description: Executes a .rope issue package — TDD slices, architecture inherit
 
 # Rope Go
 
-Parent Orchestrator for one `.rope/issues/<slug>/` package. Dispatch every
-ready slice to a leaf worker, land branches serially, then one two-axis
-review and one E2E acceptance stage. Leaves never spawn leaves; the parent
+Parent Orchestrator for one `.rope/issues/<slug>/` package: dispatch ready
+slices to leaf workers, land branches serially, then run one two-axis
+review and one E2E acceptance stage. Leaves never spawn leaves; parent
 never bulk-loads leaf noise into its own context.
 
-**Parent writes no code:** during slice execution and E2E the
-parent produces no product or test code — every code change rides an
-implementer brief. The correction path is always rewrite-brief +
-re-dispatch, never parent self-editing: parent self-writes bloat the
-parent context (compaction-dependent decisions, blurred stage boundaries).
+**Parent writes no code:** all product/test edits ride implementer briefs.
+The correction path is rewrite-brief + re-dispatch; parent self-editing
+violates boundaries and bloats context.
 
-Execution rules (test scope, briefs, merge queue, review, E2E stage):
-[references/execution-rules.md](references/execution-rules.md).
-TDD playbook (also for implementer leaves):
-[references/tdd.md](references/tdd.md).
-Architecture constraints:
-[../rope-shape/references/architecture-continuity.md](../rope-shape/references/architecture-continuity.md).
-Required source reading, guard/exception evidence, and whole-line merge gates:
-[references/architecture-gates.md](references/architecture-gates.md).
+Execution rules, briefs, test scope, and fault manual: [references/execution-rules.md](references/execution-rules.md).
+TDD playbook for implementers: [references/tdd.md](references/tdd.md).
+Architecture constraints, guard/exception evidence, and merge gates: [references/architecture-gates.md](references/architecture-gates.md).
 
 ## Startup
 
-1. Load the Behavior Contract, slice statuses, E2E plan, and Constraint
-   Bundle index — deep-read details on dispatch, not upfront. Check git
-   status; resolve unrelated dirty work before proceeding. Apply the package
-   readiness gate before any dispatch; missing constraints/readings return
-   to shape. For a whole-line/integration merge, use architecture-gates'
-   candidate-merge branch instead of treating it as an ordinary slice landing.
-2. Baseline: reuse same-HEAD green evidence ≤24h that covers the selected
-   scope; else run the declared quick tier or affected tests. Record the
-   scope, command, and reason in Testing Decisions (impact-based ladder in
-   execution-rules — never a blanket suite).
-3. Consume shape's `Execution mode:` (worktree | shared); recheck the host
-   can still isolate. A mismatch degrades to shared with a recorded
-   reason. Commit the issue package before worktree dispatch — fresh
-   worktrees start from HEAD.
+1. Load Behavior Contract, slice statuses, E2E plan, and Constraint Bundle.
+   Check git status; resolve unrelated dirty work. Apply the package
+   readiness gate before dispatch; integration merges use candidate-merge
+   branches per architecture-gates.
+2. Baseline: reuse same-HEAD green evidence ≤24h covering selected scope;
+   else run declared quick tier or affected tests. Record scope, command, and
+   reason in Testing Decisions (never a blanket suite).
+3. Consume shape's `Execution mode:` (worktree | shared); recheck host
+   isolation. Mismatch degrades to shared with a recorded reason. Commit
+   package before worktree dispatch.
 4. Report initial ready count, maximum graph width, planned parallelism,
-   and the reason for any serialization.
+   and serialization reasons.
 
 ## Slice loop
 
-- Worktree mode: a slice is ready when its `seam-required` blockers are
-  merged — dispatch immediately from the latest merged HEAD;
-  `file-overlap` orders merges, never dispatch; no wave barrier.
-- Shared mode: waves with disjoint owned files; file-overlap also blocks
-  dispatch. Collect commits serially — one index, one checkout.
-- Brief each implementer per the ≤60-line budget in execution-rules:
-  contract, mandatory constraint IDs + source sections to read, map path,
-  focused TDD commands, required architecture evidence, and the unconditional
-  worktree-setup step 0. The leaf reads sources and records its Architecture
-  landing before editing; conflicts stop the affected slice.
-- On each landing, reconcile every Required-evidence item to returned
-  output or an artifact path (Return Gate). Missing evidence bounces the
-  leaf to exactly those items — not a review, not a parent test rerun.
-  Missing tests need an explicit brief correction; a changed acceptance
-  requirement returns to shape.
-- Fix rounds: re-brief a fresh leaf per problem; the same failure
-  signature returning from a fresh leaf, or any design/contract defect,
-  stops for the human. Independent ready slices keep running.
-- Merge landed branches serially, one at a time, in landing order.
-  Conflicts get one re-dispatch on the unmerged branch using both
-  branches' intent; unresolved merges stay blocked. After each merge,
-  update map evidence and refill the ready set.
+- Worktree mode: ready when `seam-required` blockers merge; dispatch
+  immediately from latest merged HEAD; `file-overlap` orders merges, never
+  dispatch; no wave barrier.
+- Shared mode: waves with disjoint owned files; file-overlap blocks dispatch.
+  Collect commits serially — one index, one checkout.
+- Brief implementer per the ≤60-line budget in execution-rules: contract,
+  mandatory Constraint IDs + source sections, map path, focused TDD commands,
+  architecture evidence, and step 0 worktree setup. Leaf reads sources and
+  records its Architecture landing before editing; conflicts stop the slice.
+- Return Gate: reconcile every Required-evidence item mechanically to returned
+  output or artifact path. Missing evidence bounces the leaf to missing items;
+  missing tests need brief correction; changed acceptance returns to shape.
+- Fix rounds: re-brief fresh leaf per problem; identical failure signature
+  from fresh leaf or design defect stops for human. Independent ready slices
+  keep running.
+- Merge landed branches serially in landing order. Conflicts get one
+  re-dispatch on unmerged branch using both intents; unresolved merges stay
+  blocked. Update map evidence and refill ready set after each merge.
 
 ## Investigation map
 
 `<issue>/map.md`: one current fact per line, path + date, seeded at shape.
-Shared mode: leaves update falsified lines in their disjoint scope.
-Worktree mode: leaves return corrections; the parent writes after merging.
+Shared mode: leaves update falsified lines in disjoint scope.
+Worktree mode: leaves return corrections; parent writes after merging.
 
 ## End-of-issue review
 
-After every slice is integrated, freeze a clean tree with no active leaf.
-Require declared full architecture guard coverage and per-entry exception
-delta evidence per architecture-gates; focused slice checks do not substitute.
+Freeze clean tree with no active leaf. Require declared full architecture guard
+coverage and per-entry exception delta evidence per architecture-gates.
 Spawn two fresh read-only leaves in one message: **Standards scanner**
-(explore preset; affected lint/typecheck/build; never runs the product)
-and **Behavior reviewer** (`rope-reviewer`; walks the Matrix and
-high-risk boundaries over the assembled diff — code-only). Aggregate
-mechanically, worst verdict wins; transcribe blocking findings into one
-fix brief; fix rounds run with delta-only re-review, and the first
-round that fails to shrink the blocking set is the Human Escalation
-Stop. Notes stay notes.
+(explore preset; affected lint/typecheck/build; never runs product) and
+**Behavior reviewer** (`rope-reviewer`; walks Matrix, architecture sources,
+and high-risk boundaries — code-only). Aggregate mechanically, worst verdict
+wins; transcribe blocking findings into one fix brief; delta-only re-review;
+first round that fails to shrink blocking set is Human Escalation Stop.
 
 ## E2E acceptance stage
 
-Review approved, then the real environment: bring up the project-declared
-shared stack, then **dispatch** — every journey goes to a read-only
-`rope-e2e-runner` leaf, one journey per leaf, parallel when
-resource-disjoint, serialized on shared accounts and mutable state. The
-parent never substitutes itself for a runner dispatch (driving the browser
-or CLI itself because a leaf failed or returned empty is the documented
-failure mode, not a fallback). Delivery gates on every required e2e item
-passing with evidence or an explicit per-item user waiver. Failures run the
-same bounded fix loop; after a fix lands, re-run affected journeys on the
-new HEAD. Full contract: execution-rules.
+Review approved, then real environment: bring up project-declared shared
+stack, then dispatch read-only `rope-e2e-runner` leaves (one journey per leaf;
+parallel when resource-disjoint). Parent never substitutes itself for runner
+dispatch. Delivery gates on all required e2e items passing with evidence or
+explicit user waiver. Failures run bounded fix loop; re-run affected journeys
+on new HEAD. Full contract: execution-rules.
 
 ## Stop / report
 
 Missing evidence, failed gates, missing environment, unresolved contracts,
-and human gates remain explicit blockers. Report slices and commits,
-parallelism, red/green evidence or waivers, review and fix history, E2E
-statuses, held versus continuing work. Never infer success from silence.
-Review + E2E green → hand off to `rope-verify`.
+and human gates remain explicit blockers. Report slices, commits,
+parallelism, red/green evidence or waivers, review/fix history, E2E statuses,
+held vs continuing work. Review + E2E green → hand off to `rope-verify`.

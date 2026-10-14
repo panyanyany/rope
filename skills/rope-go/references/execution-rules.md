@@ -185,27 +185,20 @@ command blocks excluded). The parent checks the budget before dispatch.
   after minimal implementation — focused seam commands by default; a
   full-suite run is issue-level evidence, never a brief
   requirement
-- Required reading: effective spec/ADR source paths + section headings from
-  the slice; read before editing, then record the ≤3-line Architecture landing
-  (responsibility reused / public seam / ownership-direction preserved).
-  Return its record reference and actual source-reading record references;
-  unresolved source
-  conflicts stop the slice. [Architecture gates](architecture-gates.md) owns
-  the reading, guard, and exception evidence rules.
-- Expected return shape: summary, paths changed, delivery branch + the commit
-  hash printed by `git rev-parse HEAD`, acceptance text exercised, red evidence
-  (command + failure) unless waived, green evidence, constraint IDs
-  checked + source-reading/Architecture landing record + disposition conflicts,
-  affected guard and exception delta evidence, falsified/needed map lines (worktree
-  mode), blockers with a class, one setup line in worktree mode
-  (`setup: ran <cmd>` | `setup: no-op`) — **plus the Return Gate payload:**
-  every slice Required-evidence item mapped to pasted command output or an
-  artifact path, keyed by evidence id
-- Worktree mode: state the delivery steps in the brief — commit
-  everything, leave `git status --porcelain` empty, then
-  `git branch -f <delivery branch> HEAD` as the last write; the host's
-  own `pi-agent-<id>` cleanup branch is not a name the merge queue can
-  route on.
+- Required reading: effective spec/ADR paths + sections; read before editing,
+  then record the ≤3-line Architecture landing (responsibility reused / public seam /
+  ownership direction preserved). Return actual source-reading and landing record
+  references; unresolved conflicts stop the slice. See [architecture gates](architecture-gates.md).
+- Expected return shape: summary, paths changed, delivery branch + commit
+  hash (`git rev-parse HEAD`), acceptance text exercised, red evidence (command +
+  failure) unless waived, green evidence, constraint IDs checked + landing record +
+  disposition conflicts, affected guard/exception delta evidence, falsified/needed
+  map lines (worktree mode), blockers with class, setup line (`setup: ran <cmd>` |
+  `setup: no-op`) — **plus Return Gate payload:** every Required-evidence item
+  mapped to pasted command output or artifact path, keyed by evidence id
+- Worktree mode: state delivery steps in brief — commit everything, leave
+  `git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`;
+  the host's cleanup branch is not a name the merge queue routes on.
 - Relevant artifact paths (prd/tasks/e2e, bundle, map, specs, files)
 - Map path — orient by it; update falsified lines before commit (shared
   mode) or report them in the summary (worktree mode)
@@ -235,23 +228,16 @@ On each landing, reconcile mechanically — a table check, not a review:
 | S2-A1 source reading + pre-edit landing | D1 | work log path | ok |
 ```
 
-- Any `BOUNCE` row → re-dispatch the leaf with exactly the missing item
-  ids; nothing else reopens.
-- Architecture evidence is declared at shape: source sections read,
-  pre-edit landing record, applicable IDs checked, affected guards and
-  exception deltas. Missing items bounce; reported source/disposition
+- Any `BOUNCE` row → re-dispatch leaf with missing item IDs; nothing else reopens.
+- Architecture evidence is declared at shape: source sections read, pre-edit landing
+  record, applicable IDs checked, affected guards/exception deltas. Missing items bounce;
   conflicts hold the affected landing for resolution. See architecture-gates.
-- The gate never re-reads implementations, never reruns tests, never
-  issues verdicts — the end-of-issue review stays the only review gate.
-  A missing evidence item bounces the **leaf**; the parent
-  never runs tests to back-fill a leaf's evidence.
-- **Defense Budget:** a correction brief contains **zero** new acceptance
-  requirements absent from the shaped Behavior Matrix/Constraint Bundle.
-  Architecture obligations are declared at shape, not invented in fixes. A gap discovered
-  mid-execution goes back to shape as a re-cut (new slice) or is demoted
-  to a recorded non-blocking note in tasks.md. Design-constraint drift
-  across rounds ("fix2 replaces what fix1 built") is a Defense Budget
-  violation — stop and re-cut instead.
+- The gate never re-reads implementations, reruns tests, or issues verdicts — the
+  end-of-issue review is the only review gate. Parent never tests to backfill evidence.
+- **Defense Budget:** correction briefs contain **zero** new acceptance requirements absent
+  from the shaped Behavior Matrix/Constraint Bundle. Architecture obligations are declared
+  at shape, not invented in fixes. Mid-execution gaps return to shape as re-cuts or become
+  non-blocking notes in tasks.md. Drift across rounds is a Defense Budget violation — re-cut instead.
 
 ## Human Gate Panel
 
@@ -472,10 +458,8 @@ that *ran* and reported `blocked` has not passed.
 
 ## Handoff Checklist
 
-- Per-slice commits present; the end-of-issue review verdict (+ fix
-  rounds) recorded with identity; E2E acceptance stage verdict recorded
-  ; e2e statuses terminal; no unrelated dirty
-  files.
+- Per-slice commits present; end-of-issue review verdict (+ fix rounds) and identity
+  recorded; E2E stage verdict recorded; e2e statuses terminal; tree clean.
 - Architecture source/landing evidence, declared guard coverage, per-entry
   exception delta review, and resolved dispositions recorded in tasks.md.
 
@@ -484,31 +468,26 @@ that *ran* and reported `blocked` has not passed.
 ## Fault manual (read on failure, not upfront)
 
 **No harness presets** (`~/.config/rope/harness/<host>.json` or `rope-*`
-agents missing): use a generic host worker without model pin; record
-`preset_missing` in `tasks.md`; continue. Never auto-run
-`rope-harness-presets`; never hard-block.
+agents missing): use generic host worker without model pin; record
+`preset_missing` in `tasks.md`; continue. Never auto-run `rope-harness-presets`; never hard-block.
 
 **Cannot background-spawn**: run waves foreground, one leaf at a time;
-record the reason in the parallelism declaration.
+record reason in parallelism declaration.
 
 **Worktree requested but result carries no branch name / copy toplevel**:
-the host downgraded to a shared-checkout run — record the downgrade and
-hold shared-mode discipline for the rest of the issue.
+downgraded to shared checkout — record downgrade and hold shared discipline.
 
 **Cannot spawn any reviewer worker at all**: self-review and record
-`review_degraded: no_subagent_tool_available` + what was attempted + why
-self-review. Never silently skip review when a worker can be spawned; never
-instruct an implementer leaf to spawn the reviewer.
+`review_degraded: no_subagent_tool_available` + what was attempted + why.
+Never silently skip review when worker can be spawned; never instruct implementer to review.
 
 **Leaf truncated / aborted mid-work**: probe git status + test state before
 re-dispatch; recover uncommitted work or reset, then re-brief.
 
 **Implementer quota exhausted (429 / Insufficient Quota / Terminal API error)**:
-Switch to the backup model declared in `~/.config/rope/harness/<host>.json`
-(`roles.implementer.backup_model` + `backup_thinking`). Re-dispatch the
-affected slice with `Agent({ subagent_type: "rope-implementer", model: backup_model, thinking: backup_thinking, ... })`.
+Switch to backup model declared in `~/.config/rope/harness/<host>.json`
+(`roles.implementer.backup_model` + `backup_thinking`). Re-dispatch affected slice
+with `Agent({ subagent_type: "rope-implementer", model: backup_model, thinking: backup_thinking, ... })`.
 Record `implementer_degraded: switched to <backup_model> (quota)` in `tasks.md`.
-Maintain sticky degradation for all remaining uncompleted slices in this issue
-session (dispatch them directly with `backup_model` without re-trying the exhausted primary).
-If no `backup_model` is configured in the manifest, stop immediately for human
-decision (Human Escalation Stop).
+Maintain sticky degradation for remaining slices in this issue session.
+If no `backup_model` in manifest, stop immediately for human decision (Human Escalation Stop).

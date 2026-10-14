@@ -38,81 +38,48 @@ Default handoff: same-session `rope-go`.
    degrades to shared with a recorded reason.
 5. Architecture Impact trigger check (architecture-continuity.md): record
    `required`, or `not-applicable` with the lightweight check. For
-   `required`, read the effective source sections **before slicing** and
-   record every source's status, disposition, invariant,
-   forbidden shortcut, evidence, scope, and conflict; no source found ⇒ a
-   risk-reviewed New decision candidate. Confirm high-risk candidates,
-   supersedes, exceptions, and unresolved conflicts with the user.
+   `required`, read effective source sections **before slicing** and record
+   every source status, disposition, invariant, forbidden shortcut, evidence,
+   scope, and conflict; no source found ⇒ risk-reviewed New decision candidate.
+   Confirm high-risk candidates, supersedes, exceptions, and conflicts with user.
 6. **Slice outline quiz:** title, user-visible delivery, `Blocked by`,
    matrix rows, constraint IDs, evidence → iterate until approved → then
    write full files.
-7. **Research record gate:** the PRD cites `.rope/research/`
-   findings or records `research: not-needed` + reason — neither present
-   ⇒ refuse to start writing; send it back to grill's research floor.
-   Then write `prd.md`, `tasks.md`, and `e2e.md` per the templates.
-   Each slice carries mandatory Constraint IDs, required source paths/sections,
-   and Architecture landing evidence; Testing Decisions declares architecture
-   guards and exception-list paths. Apply architecture-continuity's package
-   readiness gate before handoff. Slicing hard
-   rules — edge labels, fresh-context fit, demo path, component/prefactor
-   slices, two-stage contracts, wide refactor, anti-patterns — live in
-   [gates-and-vocab.md](references/gates-and-vocab.md); apply them all.
-   Evidence rules stay here because only shape writes them:
-   - Evidence projection: matrix evidence cites the rows it proves;
-     architecture evidence cites the applicable Constraint IDs. A matrix row
-     or applicable invariant with no evidence is a shape defect.
-   - A seam-migration slice carries a mandatory **consumer-sweep** entry
-     (gates-and-vocab).
-   - Shared ledgers (`map.md`, registries, standards files) never appear in
-     two same-wave Owned files; leaves return evidence rows, the wave
-     integrator appends once.
-8. **Read the graph, then quiz granularity, then ask one question.** Derive
-   waves (topological levels) and rivers (edge-free clusters) from the
-   `Blocked by` edges; show initial ready count, level widths, and the
-   longest gating chain (say which numbers are estimates) beside the serial
-   total: a chain of *n* levels is *n* sequential rounds whatever the
-   window is. **Narrow is the default posture:** the
-   fresh-context window is a ceiling, not a sizing target — cut the
-   smallest independently verifiable behavior; file-disjoint slices run
-   in parallel, and a methodology-order edge never blocks dispatch.
-   Granularity quiz (same message): any slice too coarse to fit
-   a window, or too fine (trivial grouping lost)? Blocking edges real per
-   their label? Merge or split? **Then** exactly one execution question:
-   two or more rivers ⇒ offer the split (each river its own issue) or one
-   issue with rivers in parallel; one chain ⇒ confirm wave order and go.
-   A re-cut that bends the requirement goes back to grill.
+7. **Research record gate:** PRD cites `.rope/research/` findings or records
+   `research: not-needed` + reason — neither present ⇒ return to grill.
+   Write `prd.md`, `tasks.md`, and `e2e.md` per templates. Each slice carries
+   mandatory Constraint IDs, required source paths/sections, and Architecture
+   landing evidence; Testing Decisions declares architecture guards and
+   exception paths. Apply package readiness gate before handoff. Slicing hard
+   rules and evidence projection live in [gates-and-vocab.md](references/gates-and-vocab.md)
+   and [architecture-continuity.md](references/architecture-continuity.md).
+8. **Graph, granularity quiz, and execution choice:** derive waves (levels)
+   and rivers (clusters) from `Blocked by` edges; show ready count, level
+   widths, and longest gating chain. **Narrow is default:** window is a ceiling,
+   not sizing target; file-disjoint slices run parallel. Quiz granularity in
+   same message (coarse/fine, edge labels real). Then ask execution choice:
+   ≥2 rivers ⇒ offer split or parallel; 1 chain ⇒ confirm wave order and go.
+   Requirements-bending re-cuts return to grill.
 9. `e2e.md` carries **real-environment behaviors only** — real external
-   systems, real entrypoints, real data the mocks cannot prove; never
-   ticket-level test reruns. Label each item's **mechanism**
-   (browser-walk/cli/api/file-inspect/judgment/credentialed/unreachable)
-   and classify executors against it (gates-and-vocab), resolving
-   non-agent gates at shape; go re-resolves against the live harness
-   capability probe.
-10. **Contract Note gate:** output the `## Contract Note` from prd.md
-    (3–5 one-sentence observable bullets + failure visibility). The user
-    confirms the note **instead of reading the full PRD** — it is the
-    Behavior Contract's direct human projection, never a second contract.
-    Then confirm architecture decisions + gates → commit the package.
-11. **Done when** the package is committed, the package readiness gate passes,
-    every applicable impact entry has a resolved disposition, and gates are
-    decided. A recorded blocker is not ready for execution. Handoff go
-    in-session (issue path + commit); cross-window only if the user
-    switches sessions.
+   systems, real entrypoints, real data mocks cannot prove; never ticket-level
+   reruns. Label each item's **mechanism** (gates-and-vocab); resolve non-agent
+   gates at shape; go re-resolves against live capability probe.
+10. **Contract Note gate:** output `## Contract Note` from prd.md (3–5
+    one-sentence observable bullets + failure visibility). User confirms note
+    **instead of reading full PRD**. Then confirm architecture decisions +
+    gates → commit package.
+11. **Done when** package is committed, package readiness gate passes, every
+    applicable impact entry has resolved disposition, and gates are decided.
+    Recorded blockers are not ready for execution. Handoff go in-session
+    (issue path + commit).
 
 ## Guardrails
 
-- No feature code; no ready mark while Contract, seams, dispositions,
-  conflicts, or facts are open. `not-applicable` requires its trigger-check
-  record; a high-risk New decision candidate blocks shape.
-- The PRD's research record (research citation or `not-needed` + reason)
-  is a shape precondition — no record, no package (the floor's backstop).
-- Do not ask serial-or-parallel before the slice graph exists; the graph
-  answers it (step 8), with numbers. Do not merge rivers into one slice to
-  dodge the split question. Fresh-context fit is an iron rule.
-- No stale file-by-file plans in PRD — public interfaces and seams only.
-  Do not call the PRD a "spec" or slices "tickets" in written artifacts.
-- The Contract Note gate (step 10) replaces default full-PRD review; the
-  note is the Behavior Contract's projection, never a second contract.
-- A seam-migration slice without a consumer-sweep evidence entry is not
-  ready; mocks at a migrated seam instead of the outer boundary are a
-  shape defect, not a test-style preference.
+- No feature code; no package ready while Contract, seams, dispositions,
+  conflicts, or research records are open.
+- High-risk New decision candidates block shape; not-applicable requires
+  its trigger-check record.
+- Fresh-context fit is iron: never merge rivers to dodge the split question.
+  No stale file-by-file plans — public interfaces and seams only.
+- Contract Note gate (step 10) replaces default full-PRD review.
+- Seam-migration slices require a consumer-sweep evidence entry (gates-and-vocab).
