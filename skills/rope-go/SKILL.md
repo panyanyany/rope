@@ -1,6 +1,6 @@
 ---
 name: rope-go
-description: Executes a .rope issue package — TDD slices dispatched to leaf workers, one end-of-issue review, then a real-entrypoint E2E stage. Use after rope-shape when running slices on an issue.
+description: Executes a .rope issue package — TDD slices, architecture inheritance, one end-of-issue review, then E2E. Use after rope-shape, or when landing a long-lived feature/integration branch with architecture reconciliation.
 ---
 
 # Rope Go
@@ -22,12 +22,17 @@ TDD playbook (also for implementer leaves):
 [references/tdd.md](references/tdd.md).
 Architecture constraints:
 [../rope-shape/references/architecture-continuity.md](../rope-shape/references/architecture-continuity.md).
+Required source reading, guard/exception evidence, and whole-line merge gates:
+[references/architecture-gates.md](references/architecture-gates.md).
 
 ## Startup
 
 1. Load the Behavior Contract, slice statuses, E2E plan, and Constraint
    Bundle index — deep-read details on dispatch, not upfront. Check git
-   status; resolve unrelated dirty work before proceeding.
+   status; resolve unrelated dirty work before proceeding. Apply the package
+   readiness gate before any dispatch; missing constraints/readings return
+   to shape. For a whole-line/integration merge, use architecture-gates'
+   candidate-merge branch instead of treating it as an ordinary slice landing.
 2. Baseline: reuse same-HEAD green evidence ≤24h that covers the selected
    scope; else run the declared quick tier or affected tests. Record the
    scope, command, and reason in Testing Decisions (impact-based ladder in
@@ -47,8 +52,10 @@ Architecture constraints:
 - Shared mode: waves with disjoint owned files; file-overlap also blocks
   dispatch. Collect commits serially — one index, one checkout.
 - Brief each implementer per the ≤60-line budget in execution-rules:
-  contract, constraint IDs, map path, focused TDD commands, required
-  evidence, and the unconditional worktree-setup step 0.
+  contract, mandatory constraint IDs + source sections to read, map path,
+  focused TDD commands, required architecture evidence, and the unconditional
+  worktree-setup step 0. The leaf reads sources and records its Architecture
+  landing before editing; conflicts stop the affected slice.
 - On each landing, reconcile every Required-evidence item to returned
   output or an artifact path (Return Gate). Missing evidence bounces the
   leaf to exactly those items — not a review, not a parent test rerun.
@@ -71,6 +78,8 @@ Worktree mode: leaves return corrections; the parent writes after merging.
 ## End-of-issue review
 
 After every slice is integrated, freeze a clean tree with no active leaf.
+Require declared full architecture guard coverage and per-entry exception
+delta evidence per architecture-gates; focused slice checks do not substitute.
 Spawn two fresh read-only leaves in one message: **Standards scanner**
 (explore preset; affected lint/typecheck/build; never runs the product)
 and **Behavior reviewer** (`rope-reviewer`; walks the Matrix and

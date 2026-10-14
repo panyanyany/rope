@@ -2,7 +2,8 @@
 
 ## Verdict
 
-- `PASS` — paperwork complete: review recorded, E2E terminal, tree clean.
+- `PASS` — paperwork complete: review recorded, E2E terminal, tree clean,
+  architecture inheritance and guard/exception records complete.
   Says nothing about product truth — that claim lives in the end-of-issue
   review plus the E2E acceptance stage's evidence.
 - `CHANGES_REQUESTED` — paperwork gaps for go's fix loop to close
@@ -19,7 +20,8 @@
 ## Document fixes (verify may edit issue docs only)
 
 `tasks.md` verdict/status fields left blank, `e2e.md` Result fields left
-blank, stale Open Questions — fix directly, record under Document Fixes
+blank, stale Open Questions — fill only from existing verified evidence,
+never from completion claims alone; record under Document Fixes
 Applied with file + change + reason. Never touch code.
 
 ## Drift
@@ -45,6 +47,9 @@ PASS | CHANGES_REQUESTED | BLOCKED
 - Review recorded: <verdict line + identity + fix rounds, or finding>
 - E2E terminal / drift: <status sweep result>
 - Commits / tree: <result>
+- Architecture inheritance: <package mapping + actual source-reading records + pre-edit landing evidence pointers; justified none where applicable>
+- Architecture guards / exceptions: <coverage + command/output/commit; per-entry delta reasons + confirmations + reviewer outcome; or recorded absence/manual review>
+- Integration reconciliation (when applicable): <target/candidate commits + decisions + pre-landing guard/review records>
 - Architecture docs: <outcome routing>
 - Matrix evidence: <spot-check pointers>
 

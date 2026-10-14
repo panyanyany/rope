@@ -145,16 +145,20 @@ The per-decision statement of how an issue handles a relevant existing architect
 _Avoid_: one issue-level disposition for several decisions, silently choosing a disposition during implementation, treating exception as an undocumented shortcut
 
 **Constraint Bundle**:
-The portable architecture constraint set derived during shaping: decision sources and statuses, scope, invariants, public seams, forbidden shortcuts, acceptance evidence, and unresolved conflicts. The parent keeps the issue-level bundle; each leaf receives the global constraints plus the subset relevant to its slice.
-_Avoid_: a bare instruction to “follow the ADR”, leaf-local reinterpretation, or a second canonical architecture document
+The portable architecture constraint set derived from effective sources before slicing: decision sources/statuses, scope, invariants, public seams, forbidden shortcuts, evidence, and conflicts. The parent keeps the full bundle; each slice/brief requires applicable global + slice IDs and source sections to read. A justified `none` is explicit. Effective sources take precedence over slice-local convenience; conflicts return to the parent.
+_Avoid_: a bare instruction to “follow the ADR”, IDs without source reading, leaf-local reinterpretation, or a second canonical architecture document
+
+**Architecture Landing**:
+The implementer's pre-edit statement after reading mapped source sections: at most three lines naming the existing responsibility reused, public seam used, and ownership/dependency direction preserved. Returned with source sections read and the pre-edit record reference; checked mechanically, judged by the end-of-issue reviewer. No separate approval round.
+_Avoid_: a copy of the spec, a file-by-file plan, retrospective evidence claimed as pre-edit reading
 
 **Contract Note**:
 A shape-time, user-facing projection of the issue's Behavior Contract: 3–5 one-sentence bullets answering “when this issue is done, what can you observe?”, plus failure visibility where relevant. Written into `prd.md` as `## Contract Note`; step 11 of `rope-shape` asks the user to confirm the note instead of reading the full PRD. Confirming the note confirms the Behavior Contract because the note is a direct projection of it — not a separate wish list. Verify still accepts against the Behavior Contract, matrix, and E2E.
 _Avoid_: a second contract that can drift from the PRD, asking the user to read the full PRD by default, treating the note as an acceptance artifact
 
 **Minimal Leaf Brief**:
-The hard budget for implementer/reviewer briefs: a content allowlist (slice Public behavior one sentence; Behavior Contract 6 fields at their thinnest; Constraint Bundle path + slice Constraint IDs + short global invariant list; test seam + one prior-art path) plus a required operational contract (relevant artifact paths for by-reference — including the investigation map path
-reads, TDD red/green commands + red signal, expected return shape, no-nested-spawn
+The hard budget for implementer/reviewer briefs: a content allowlist (slice Public behavior one sentence; Behavior Contract 6 fields at their thinnest; mandatory Constraint Bundle path + global/slice Constraint IDs + short global invariants; test seam + one prior-art path) plus a required operational contract (source files/sections to read before editing and Architecture landing evidence; relevant artifact paths including the investigation map;
+TDD red/green commands + red signal, expected return shape, no-nested-spawn
 and commit rules). Everything else loads by reference; brief body ≤ 60 lines (paths and command blocks excluded). More enforceable than “be concise” because it can be checked before dispatch.
 _Avoid_: full inline PRD paragraphs, inline bundle detail, speculative file-by-file plans, dropping TDD commands or return shape to save tokens
 
@@ -204,8 +208,10 @@ migration file
 
 **Mechanical Return Gate**:
 The join-time reconciliation between a leaf's return summary and its slice's
-Required evidence: every evidence item must map to pasted command output or an
-artifact path; a missing item bounces the leaf back to exactly those items. It
+Required evidence, including mapped source reading/Architecture landing,
+affected guards, and exception deltas: every item maps to recorded output or
+an artifact/message reference; missing items bounce exactly those IDs, reported
+architecture conflicts hold the affected landing for resolution. It
 is **evidence reconciliation, not code review** (ADR 0007 boundary): no
 implementation re-read, no test reruns, no second review point — the
 end-of-issue review stays the only review gate.
@@ -214,7 +220,8 @@ using the gate to inject new acceptance requirements
 
 **Defense Budget**:
 The rule that a correction brief may not introduce acceptance requirements
-absent from the issue's Behavior Matrix — new acceptance lines = 0. A genuine
+absent from the shaped Behavior Matrix/Constraint Bundle — new acceptance
+lines = 0; architecture obligations are declared at shape, not invented in fixes. A genuine
 gap found during execution goes back to shape (re-cut as a new slice) or is
 demoted to a recorded non-blocking note. Acceptance scope is fixed at shape;
 fix rounds converge instead of escalating.

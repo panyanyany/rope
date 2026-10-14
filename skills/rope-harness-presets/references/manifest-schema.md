@@ -35,6 +35,8 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
       "agent": "rope-implementer",
       "model": "provider/modelId",
       "thinking": "medium",
+      "backup_model": "provider/backupModelId",
+      "backup_thinking": "medium",
       "path": "~/.pi/agent/agents/rope-implementer.md"
     },
     "reviewer": {
@@ -73,6 +75,8 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
 | `roles.*.model` | yes | Host model id as written into agent frontmatter |
 | `roles.*.thinking` | yes | Host thinking/effort level |
 | `roles.*.path` | yes | Absolute or `~/…` path of the agent file (host-native location/format, e.g. `.toml` on codex) |
+| `roles.*.backup_model` | no | Optional fallback host model id when primary encounters quota/rate-limit errors |
+| `roles.*.backup_thinking` | no | Optional fallback thinking/effort level |
 | `capability_gaps` | no | String array; present only when host-discovery recorded gaps (e.g. `no_agent_mechanism` detail); consumers treat entries as information, not failure |
 
 ## Write policy
@@ -97,3 +101,8 @@ When `rope-go` / `rope-verify` / a future parent orchestrator wants a leaf:
    use a generic host worker without forced model pin, continue. Do **not**
    hard-block. Do **not** auto-run this skill. A `capability_gaps` entry rides
    the same path: record it, keep going.
+3. If a leaf hits an API quota or rate-limit error and its role maps a
+   `backup_model`, re-dispatch that slice with the backup model (and
+   `backup_thinking` if mapped), record `[degraded: switched to <backup_model> (quota)]`,
+   and maintain sticky degradation for subsequent dispatches of that role in
+   the session.

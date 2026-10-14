@@ -38,7 +38,8 @@ Default handoff: same-session `rope-go`.
    degrades to shared with a recorded reason.
 5. Architecture Impact trigger check (architecture-continuity.md): record
    `required`, or `not-applicable` with the lightweight check. For
-   `required`, record every source's status, disposition, invariant,
+   `required`, read the effective source sections **before slicing** and
+   record every source's status, disposition, invariant,
    forbidden shortcut, evidence, scope, and conflict; no source found ⇒ a
    risk-reviewed New decision candidate. Confirm high-risk candidates,
    supersedes, exceptions, and unresolved conflicts with the user.
@@ -48,13 +49,18 @@ Default handoff: same-session `rope-go`.
 7. **Research record gate:** the PRD cites `.rope/research/`
    findings or records `research: not-needed` + reason — neither present
    ⇒ refuse to start writing; send it back to grill's research floor.
-   Then write `prd.md`, `tasks.md`, and `e2e.md` per the templates. Slicing hard
+   Then write `prd.md`, `tasks.md`, and `e2e.md` per the templates.
+   Each slice carries mandatory Constraint IDs, required source paths/sections,
+   and Architecture landing evidence; Testing Decisions declares architecture
+   guards and exception-list paths. Apply architecture-continuity's package
+   readiness gate before handoff. Slicing hard
    rules — edge labels, fresh-context fit, demo path, component/prefactor
    slices, two-stage contracts, wide refactor, anti-patterns — live in
    [gates-and-vocab.md](references/gates-and-vocab.md); apply them all.
    Evidence rules stay here because only shape writes them:
-   - Evidence projection: every Required-evidence entry cites the matrix
-     rows it proves; a matrix row with no slice evidence is a shape defect.
+   - Evidence projection: matrix evidence cites the rows it proves;
+     architecture evidence cites the applicable Constraint IDs. A matrix row
+     or applicable invariant with no evidence is a shape defect.
    - A seam-migration slice carries a mandatory **consumer-sweep** entry
      (gates-and-vocab).
    - Shared ledgers (`map.md`, registries, standards files) never appear in
@@ -87,8 +93,9 @@ Default handoff: same-session `rope-go`.
     confirms the note **instead of reading the full PRD** — it is the
     Behavior Contract's direct human projection, never a second contract.
     Then confirm architecture decisions + gates → commit the package.
-11. **Done when** the package is committed, every impact entry has a
-    disposition or recorded blocker, and gates are decided. Handoff go
+11. **Done when** the package is committed, the package readiness gate passes,
+    every applicable impact entry has a resolved disposition, and gates are
+    decided. A recorded blocker is not ready for execution. Handoff go
     in-session (issue path + commit); cross-window only if the user
     switches sessions.
 

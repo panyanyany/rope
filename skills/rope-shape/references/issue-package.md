@@ -48,6 +48,8 @@
 - Contract sweep (only when the issue retires or re-keys a contract): <the vocabulary grepped across the test tree, the files it hit, and which hits are migrated in-issue versus named out of scope with a reason>
 - Broader-suite trigger: <impact/uncertainty/repo requirement, or none; apply [test selection](../../rope-go/references/execution-rules.md#test-tiers--baseline-ladder-repo-contract-adr-0013)>
 - Repo suite policy: <`fast-iteration` | `full-at-freeze` — copied from `routes.md`'s `Test policy:` line; say `undeclared` when the repo has none, and the impact ladder decides>
+- Architecture guards: <commands + full architecture coverage, affected slice checks, evidence IDs; or none found + manual invariant review scope>
+- Exception lists: <guard whitelist/waiver paths + comparison base; or none found; additions/removals/modifications require per-entry reasons and disposition references>
 
 ## Behavior Contract
 
@@ -64,7 +66,7 @@
 - Trigger check: <for required, name the matched trigger; for not-applicable, explain why all triggers were checked and missed>
 - Relevant decisions:
   - ID: D1
-    Source: `.rope/adr/NNNN-slug.md` or `.rope/specs/<area>/<topic>.md`
+    Source: `.rope/adr/NNNN-slug.md` or `.rope/specs/<area>/<topic>.md` + section heading(s)
     Decision status: active | superseded | deprecated | provisional | unknown
     Scope: <behavior and boundary covered>
     Decision disposition: inherit | extend | supersede | exception | not-applicable
@@ -77,7 +79,7 @@
     Applies to: issue | Slice N | e2e | verify
     Documentation update: pending-finish | updated-existing | added-new | no-new-decision | exception-recorded
     Unresolved conflicts: <none or conflicting sources and affected behavior>
-- New decision candidate: none | <scope, risk, and required decision/rationale>
+- New decision candidate: none | <ID, scope, risk, resolved decision/rationale; map its invariant/seam/evidence into the bundle when no existing source was found>
 - Constraint Bundle:
   - Decision sources: <IDs and paths>
   - Decision statuses: <source statuses>
@@ -148,17 +150,32 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Owned files: <explicit files this slice owns; unique within a shared-mode wave — in recorded worktree mode overlap is legal and expressed by a file-overlap edge>
 - Size cap: <default ~400 diff lines or ~4 owned files; exceeded ⇒ split>
 - Matrix rows:
-- Constraint IDs: <decision/invariant IDs owned by this slice>
-- Required evidence: <evidence for those IDs — each entry cites the matrix row(s) it proves; a matrix row with no slice evidence is a shape defect>
+- Constraint IDs: <mandatory: applicable global + slice IDs; or none — checked non-applicability reason>
+- Required reading: <mandatory: effective source paths + section headings for those IDs, including status/scope context; or none — reason>
+- Required evidence: <matrix evidence IDs + architecture evidence IDs; matrix evidence cites the rows it proves, architecture evidence cites Constraint IDs; include sources read + Architecture landing and affected guard/exception delta evidence>
 - Public behavior: <one user-visible sentence of what works when this slice is done>
 - Tests:
 - Implementation notes:
 - Verification: <focused seam tests + guards this slice can affect — never a full-suite run>
 - Stop conditions:
+
+## Architecture execution evidence (filled during go)
+
+- Per-slice reading / landing: <slice + evidence IDs → actual source-read records + pre-edit landing record; justified none or honest omission/correction where applicable>
+- Architecture guards: <accepted commit, coverage, commands, exit status, output paths; or recorded absence + manual reviewer outcome>
+- Exception delta: <comparison base → accepted commit; per added/removed/modified entry: path, reason, Constraint ID, disposition/confirmation, expiry or invalidating condition; or none>
+- Architecture review: <reviewer identity + source-reading pointers + ownership/seam/invariant/exception outcome>
+- Conflicts / changed dispositions: <resolution + required user confirmation references; or none>
 ```
 
 Size cap is universal (fresh-context fit); slices that cannot fit are re-cut
 at shape, never shipped oversized.
+
+An Architecture landing is at most three lines: existing responsibility reused,
+public seam used, ownership/dependency direction preserved. The implementer
+records it after reading sources and before writing code, and returns it as
+evidence; `none` requires the checked non-applicability reason. It is not a
+second approval round. See [package readiness](architecture-continuity.md#package-readiness-gate).
 
 `Verification` granularity: default is **focused** — the seam
 tests and guards the slice can affect, seconds not minutes. The full

@@ -19,6 +19,21 @@ Shared across harness writers. Parent/session role is **not** a preset row.
 4. Do not expand scope beyond the brief.
 5. Prefer filesystem artifacts (issue package, git) over chat history.
 
+Implementer bodies require reading brief-mapped effective spec/ADR sections
+before product/test edits and recording the ≤3-line Architecture landing
+(existing responsibility / public seam / preserved ownership-direction).
+Return actual source-reading record references, the pre-edit record reference, and applicable Constraint
+IDs checked. A source conflict stops the unit for parent resolution; slice-local
+convenience never silently changes an effective specification.
+
+Reviewer bodies require reading the applicable bundle/source sections upfront
+and checking responsibility ownership, lifecycle, seams, dependency direction,
+and every exception-list/guard-rule delta against confirmed dispositions.
+Scanner briefs carry declared full architecture guard commands/evidence.
+Execution details: [architecture gates](../../rope-go/references/architecture-gates.md).
+These obligations must also travel in briefs so already-generated presets do
+not need a refresh to execute the contract.
+
 ## Parent override
 
 Presets pin default `model` + `thinking` (effort). The parent orchestrator may

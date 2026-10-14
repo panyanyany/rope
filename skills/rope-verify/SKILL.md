@@ -22,12 +22,23 @@ Verdict rules and `verify.md` format: [references/verify-rules.md](references/ve
    drift — send it back to agent execution instead of accepting the
    parking.
 3. Per-slice commits present; no unrelated dirty files.
-4. Architecture Impact: every entry has a terminal documentation outcome or
-   a confirmed `pending-finish` routed to finish.
+4. Architecture continuity paperwork: package readiness passes; every slice
+   has Constraint IDs, required source sections, and source-reading/pre-edit
+   Architecture landing evidence (or justified non-applicability; a missed
+   pre-edit step needs an honest omission/corrective-work record and reviewer
+   acceptance, never a retroactive claim). Check
+   declared full architecture guard evidence at the accepted code state,
+   per-entry exception delta reasons + review outcome, and confirmed changed
+   dispositions; integration merges also carry candidate/target/reconciliation
+   records. Missing evidence returns to go; missing constraints return to shape.
+   Every impact entry has a terminal documentation outcome or a confirmed
+   `pending-finish` routed to finish. Check records per
+   [architecture gates](../rope-go/references/architecture-gates.md), not code.
 5. Matrix rows point at recorded evidence (spot-check pointers, never re-run).
 
-Paperwork gaps verify fixes directly in issue docs (recorded under Document
-Fixes Applied). Anything that is not paperwork → back to go's fix loop, or
+Verified existing evidence may be linked into missing paperwork fields directly
+(recorded under Document Fixes Applied). Never manufacture a source-reading,
+guard-pass, exception approval, or review record. Anything that is not paperwork → back to go's fix loop, or
 BLOCKED for the user.
 
 ## Workflow
