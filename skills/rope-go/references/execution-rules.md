@@ -415,7 +415,7 @@ evidence line with its commit — a green from a superseded HEAD is void.
 or an explicit **per-item user waiver** recorded as a waiver, never as a
 pass; silence is not a waiver. Anything else blocks the run and escalates
 with the exact unproven items. Green: teardown the stack (record), write
-the E2E stage verdict line in `tasks.md`, hand off to `rope-verify`.
+the E2E stage verdict line in `tasks.md`, hand off to `rope-finish`.
 
 ## E2E Execution Statuses
 

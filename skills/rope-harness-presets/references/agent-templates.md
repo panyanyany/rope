@@ -1,7 +1,7 @@
 # Medium-Depth Agent Template Rules
 
 Leaf agent files are **medium depth**: enough contract for a clean spawn,
-not a full copy of `rope-go` / `rope-verify`.
+not a full copy of `rope-go` / `rope-finish`.
 
 ## Required structure (pi markdown agents)
 
@@ -44,7 +44,7 @@ Include:
 Exclude:
 
 - full rope-go slice loop, TDD playbook, commit essay
-- full rope-verify verdict matrix
+- full finish verify-stage verdict matrix
 - permanent hardcoded model ranking tables
 - instructions to call `Agent`, `spawn`, or equivalent
 

@@ -93,7 +93,7 @@ Not project `.rope/`. Not skill-local settings. Not a second prompt database.
 
 ## Soft-degrade contract (consumers)
 
-When `rope-go` / `rope-verify` / a future parent orchestrator wants a leaf:
+When `rope-go` / `rope-finish` / a future parent orchestrator wants a leaf:
 
 1. If `~/.config/rope/harness/<host>.json` exists and maps the role, prefer the
    named `rope-*` agent (and its pinned model/thinking).

@@ -59,8 +59,8 @@ One issue, one parent session, five moves:
    runner leaves drive the project's real entrypoint — one user journey
    per leaf on a parent-owned stack — and every required item passes with
    evidence or gets your explicit waiver.
-5. **Verify & finish** — verify is a thin paperwork gate (review recorded,
-   E2E terminal, tree clean); finish closes the issue and routes
+5. **Finish** — finish first runs the thin paperwork gate (review recorded,
+   E2E terminal, tree clean), then closes the issue and routes
    architecture-doc updates home.
 
 Small task that fits one fresh context window — fix with the diagnosis done,
@@ -80,7 +80,7 @@ stop lines back to the full pipeline.
 | **Real entrypoint walk** | Fixture-green is not product-true. After review passes, dedicated runner leaves start the product — browser, CLI, or API, whatever the project ships — and walk one user journey each. |
 | **Investigation map** | One fact per line, path + date. Leaves stop re-finding the same code (in our field data, 56–71% of big-slice tool calls were wayfinding). |
 | **Architecture continuity** | Every issue records a disposition — inherit, extend, supersede — for each ADR it touches, and hands leaves a Constraint Bundle by reference. |
-| **Thin verify** | Paperwork only. It never re-judges code; it checks the gate really closed. |
+| **Thin verify** | Paperwork only, run as finish's first stage. It never re-judges code; it checks the gate really closed. |
 
 ## How our thinking evolved
 
@@ -131,8 +131,7 @@ Missing presets never block — go/verify soft-degrade and record it.
 | `rope-grill` | Plain-language requirement interview; decisions land in durable docs |
 | `rope-shape` | Issue package: PRD + Contract Note, slices, matrix, E2E, graph read |
 | `rope-go` | Slice dispatch + serial merge queue, investigation map, TDD at seams, one two-axis review, E2E acceptance stage |
-| `rope-verify` | Thin paperwork gate between go and finish |
-| `rope-finish` | Close the issue; route architecture-doc updates |
+| `rope-finish` | Verify paperwork gate, then close the issue and route architecture-doc updates |
 | `rope-summary` | Preserve reusable contracts/learnings into `.rope/` after the fact |
 | `rope-clear` | Propose and apply approved cleanup of stale docs; retain decision history |
 | `rope-quick` | Solo single-window path (fixes + small features): grill-lite, stop lines back to the pipeline |

@@ -143,7 +143,7 @@ Return a short report only:
 - host (+ how identified), confidence, sources summary
 - agent paths written (host-native), manifest path
 - capability gaps / degrade notes (`research_offline`, `no_agent_mechanism`,
-  migrate hint if old `rope-verify/settings.json` is found on disk)
+  migrate hint if an old `rope-verify/settings.json` pin is found on disk)
 
 ## Concurrency
 
@@ -175,7 +175,7 @@ change; the parent may still override model/thinking per leaf at spawn time.
 ## Soft-degrade contract (for consumers)
 
 If the manifest or `rope-*` agents are missing later, orchestrators
-(`rope-go`, `rope-verify`) soft-degrade: use generic host workers, record
+(`rope-go`, `rope-finish`) soft-degrade: use generic host workers, record
 `preset_missing`, continue. No hard block; no auto-refresh. A manifest
 `capability_gaps` entry (e.g. the host cannot spawn model-pinned subagents)
 is information for the same degrade path — record it, use generic workers,

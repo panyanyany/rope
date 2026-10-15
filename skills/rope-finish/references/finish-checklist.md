@@ -4,7 +4,7 @@
 
 - Issue directory exists.
 - `prd.md`, `tasks.md`, and `e2e.md` are present.
-- `verify.md` is present with `Verdict: PASS`, or the user explicitly waived issue-level verify.
+- `verify.md` is present with `Verdict: PASS` (written by finish Stage 1 or a prior run), or the user explicitly waived issue-level verify.
 - All slices are completed or explicitly waived.
 - Review findings are resolved or explicitly waived.
 - E2E entries have terminal statuses:

@@ -85,4 +85,4 @@ on new HEAD. Full contract: execution-rules.
 Missing evidence, failed gates, missing environment, unresolved contracts,
 and human gates remain explicit blockers. Report slices, commits,
 parallelism, red/green evidence or waivers, review/fix history, E2E statuses,
-held vs continuing work. Review + E2E green → hand off to `rope-verify`.
+held vs continuing work. Review + E2E green → hand off to `rope-finish`.

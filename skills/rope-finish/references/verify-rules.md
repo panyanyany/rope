@@ -1,5 +1,8 @@
 # Rope Verify Rules
 
+The verify stage runs inside `rope-finish` (Stage 1). "Verify" below means
+that stage; its verdict gates finish's closeout.
+
 ## Verdict
 
 - `PASS` — paperwork complete: review recorded, E2E terminal, tree clean,
