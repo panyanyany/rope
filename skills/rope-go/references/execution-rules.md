@@ -7,7 +7,7 @@ The go session is the **Parent Orchestrator**. Leaf workers:
 | Role | Typical preset | Job |
 | --- | --- | --- |
 | implementer | `rope-implementer` | TDD, implement one slice unit, commit, return summary + paths |
-| reviewer | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk at the real entrypoint + probe; verdict owner |
+| reviewer | `rope-reviewer` | End-of-issue behavior acceptance: code-only Matrix walk over the assembled diff + high-risk boundaries; verdict owner |
 | scanner | `rope-explore` + Standards brief | End-of-issue Standards fast-scan: lint/typecheck gate, conventions, smell baseline; never runs the product |
 | explore | `rope-explore` | Read-only facts when re-brief needs more context |
 
@@ -184,7 +184,7 @@ command blocks excluded). The parent checks the budget before dispatch.
   when required — red command(s) + what counts as red, green command(s)
   after minimal implementation — focused seam commands by default; a
   full-suite run is issue-level evidence, never a brief
-  requirement
+  requirement. Require the [TDD playbook](tdd.md) in the implementer's reading.
 - Required reading: effective spec/ADR paths + sections; read before editing,
   then record the ≤3-line Architecture landing (responsibility reused / public seam /
   ownership direction preserved). Return actual source-reading and landing record
@@ -336,6 +336,12 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 - diff command (same excludes) + commit list
 - Matrix behavior rows + e2e path (for high-risk reading only — the E2E
   acceptance stage below owns running them)
+- Judge whether test inputs and observable assertions at the agreed seams
+  prove each slice's promised behavior / Matrix rows, not merely that a new
+  function works in isolation. Where the promise includes caller wiring,
+  check that the tests exercise that wiring; a component-only promise may
+  be proved at its own public interface. This is code/test review judgment,
+  not a requirement to run mutation testing.
 - inline global invariants + mandatory Constraint IDs + bundle path + required
   effective source sections (read applicable records/sections upfront)
 - architecture guard evidence paths + per-entry exception delta/reasons and
@@ -404,6 +410,11 @@ steps executed; blockers [{class, detail}]; notes ≤5 lines.
 
 **Fix loop.** `agent_failed` → one fix brief to an implementer leaf:
 transcribe the runner's failure verbatim; zero new acceptance requirements.
+For a code defect, require a failing regression test at an appropriate agreed
+public seam, then minimal green per [TDD](tdd.md); seam gaps follow its existing
+plan-adjustment rule. For an environment/deployment defect, retain the
+corresponding real-environment validation rather than forcing it into ordinary
+TDD. Stack operation and E2E remain with the parent and runner, not the implementer.
 Rounds continue while each shrinks the failing set; the first that doesn't
 is the Human Escalation Stop. After a fix merges: delta-only code
 re-review (protocol above), re-deploy the stack onto the new HEAD, re-run

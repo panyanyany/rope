@@ -28,4 +28,5 @@ are explicit and each has an assigned verification path.
 - Mark rows `yes` only when they apply to the issue.
 - Every `yes` row needs verification: test, smoke, or explicit waiver with reason.
 - Claims in `tasks.md` are not evidence; verification must exist in code or recorded run output.
-- Issue-level verify checks matrix truth after `rope-go`, not only per-slice self-report.
+- Test-interface proof scope is declared in [Testing Decisions and slice tests](../../../skills/rope-shape/references/issue-package.md); the existing [behavior review](../../../skills/rope-go/references/execution-rules.md#reviewer-brief) judges whether those tests prove the slice promises. [E2E fixes](../../../skills/rope-go/references/execution-rules.md#e2e-acceptance-stage-after-review-approve) distinguish code regressions from environment/deployment validation.
+- Issue-level verify checks recorded review/E2E evidence after `rope-go`, not code or product truth; it does not accept per-slice self-report alone.

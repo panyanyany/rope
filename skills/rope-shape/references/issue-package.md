@@ -42,7 +42,7 @@
 ## Testing Decisions
 
 - Good test: observe external behavior at agreed seams — not implementation details
-- Seams under test: <list confirmed with user during shape; when placement is contested, argue it with [seam-design.md](seam-design.md)>
+- Seams under test: <public interfaces confirmed with user during shape; for each, state which behavior it proves and what it cannot prove, mapping real-environment limits to e2e.md; choose an interface sufficient to prove the behavior, not necessarily the system's top-level entrypoint; when placement is contested, consult [seam-design.md](seam-design.md)>
 - Prior art (optional): <paths or patterns of similar tests in-repo>
 - Test scope: <affected modules/consumers, selected commands, excluded suites and reasons>
 - Contract sweep (only when the issue retires or re-keys a contract): <the vocabulary grepped across the test tree, the files it hit, and which hits are migrated in-issue versus named out of scope with a reason>
@@ -154,7 +154,7 @@ chain of n levels is n sequential rounds whatever the window is.>
 - Required reading: <mandatory: effective source paths + section headings for those IDs, including status/scope context; or none — reason>
 - Required evidence: <matrix evidence IDs + architecture evidence IDs; matrix evidence cites the rows it proves, architecture evidence cites Constraint IDs; include sources read + Architecture landing and affected guard/exception delta evidence>
 - Public behavior: <one user-visible sentence of what works when this slice is done>
-- Tests:
+- Tests: <agreed seam(s) from Testing Decisions + observable results proving this slice's Public behavior / Matrix rows>
 - Implementation notes:
 - Verification: <focused seam tests + guards this slice can affect — never a full-suite run>
 - Stop conditions:

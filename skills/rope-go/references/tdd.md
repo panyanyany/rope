@@ -34,8 +34,9 @@ replace that.
 - Test **only** at seams listed in the issue `prd.md` **Testing Decisions**
   (and slice brief). Prefer existing public boundaries; fewer is better.
 - **No new seam** during go without plan adjustment + human/shape confirmation.
-- Tests observe through the seam's public interface — not private methods or
-  internal collaborators.
+- Tests trigger and observe behavior through the seam's public interface —
+  not private methods, internal collaborators, or a side channel that bypasses
+  the interface (e.g. inspect stored rows instead of the public query).
 - When the *shape* of the seam's interface is itself in question — how deep
   the module is, where the boundary belongs, what it exposes — that is a
   design question, not a test question: consult the shared vocabulary in
@@ -68,7 +69,7 @@ replace that.
 
 | Anti-pattern | Tell |
 | --- | --- |
-| **Implementation-coupled** | Mocks internal modules, private APIs, call-order asserts; locates UI by CSS selector / class / DOM structure; breaks on refactor with same behavior |
+| **Implementation-coupled** | Mocks internal modules, tests private APIs, or substitutes internal call-count/order asserts for observable results; locates UI by CSS selector / class / DOM structure; breaks on refactor with same behavior |
 | **Aesthetic-coupled** | Asserts computed styles or pixel values; breaks on a design change though every behavior holds |
 | **Tautological** | Expected value computed the same way as production (`expect(f(x)).toBe(sameAlgorithm(x))`) |
 | **Horizontal bulk tests** | All tests written before any green for this slice’s behaviors |
