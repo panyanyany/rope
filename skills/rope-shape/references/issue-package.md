@@ -46,7 +46,7 @@
 - Prior art (optional): <paths or patterns of similar tests in-repo>
 - Test scope: <affected modules/consumers, selected commands, excluded suites and reasons>
 - Contract sweep (only when the issue retires or re-keys a contract): <the vocabulary grepped across the test tree, the files it hit, and which hits are migrated in-issue versus named out of scope with a reason>
-- Broader-suite trigger: <impact/uncertainty/repo requirement, or none; apply [test selection](../../rope-go/references/execution-rules.md#test-tiers--baseline-ladder-repo-contract-adr-0013)>
+- Broader-suite trigger: <impact/uncertainty/repo requirement, or none; apply [test selection](../../rope-go/references/execution-rules.md#test-tiers--baseline-ladder-repo-contract)>
 - Repo suite policy: <`fast-iteration` | `full-at-freeze` — copied from `routes.md`'s `Test policy:` line; say `undeclared` when the repo has none, and the impact ladder decides>
 - Architecture guards: <commands + full architecture coverage, affected slice checks, evidence IDs; or none found + manual invariant review scope>
 - Exception lists: <guard whitelist/waiver paths + comparison base; or none found; additions/removals/modifications require per-entry reasons and disposition references>

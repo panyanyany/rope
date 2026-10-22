@@ -112,7 +112,7 @@ host finds duplicate skill names, check which path it loaded before updating.
 Then, in the repo you want to manage:
 
 ```bash
-rope-init        # scaffold .rope/ (CONTEXT, routes, adr, specs, …)
+rope-init        # scaffold .rope/ (GLOSSARY, routes, adr, specs, …)
 ```
 
 Optional, once per machine or model-catalog change:
@@ -133,7 +133,7 @@ Missing presets never block — go/verify soft-degrade and record it.
 | `rope-go` | Slice dispatch + serial merge queue, investigation map, TDD at seams, one two-axis review, E2E acceptance stage |
 | `rope-finish` | Verify paperwork gate, then close the issue and route architecture-doc updates |
 | `rope-summary` | Preserve reusable contracts/learnings into `.rope/` after the fact |
-| `rope-clear` | Propose and apply approved cleanup of stale docs; retain decision history |
+| `rope-clear` | Organize docs and migrate legacy `.rope` layouts in approved batches; retain decision history |
 | `rope-quick` | Solo single-window path (fixes + small features): grill-lite, stop lines back to the pipeline |
 | `rope-harness-presets` | Bind leaf roles to harness-native presets for your host |
 
@@ -141,7 +141,7 @@ Missing presets never block — go/verify soft-degrade and record it.
 
 ```text
 .rope/
-  CONTEXT.md        # glossary / project language
+  GLOSSARY.md       # glossary / project language
   routes.md         # navigation map
   adr/              # architecture decision records
   research/         # verified external/internal facts
@@ -154,6 +154,10 @@ Missing presets never block — go/verify soft-degrade and record it.
     verify.md       # paperwork rounds
     quick.md        # solo-path record (rope-quick)
 ```
+
+Existing `.rope/CONTEXT.md` remains readable until `rope-clear` migrates it
+to `.rope/GLOSSARY.md` and repairs active references. `rope-init` preserves
+existing knowledge rather than creating a second vocabulary.
 
 ## Development
 

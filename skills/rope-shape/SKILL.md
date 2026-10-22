@@ -18,10 +18,17 @@ Default handoff: same-session `rope-go`.
 
 ## Workflow
 
-1. Read CONTEXT, routes, architecture continuity, and relevant
-   adr/research/specs.
+1. Read `.rope/GLOSSARY.md` (legacy lookup per
+   [current documents](../rope-clear/references/current-docs.md#project-language)),
+   routes, architecture continuity, and relevant adr/research/specs.
 2. Inspect only enough for public interfaces and verification **seams**
-   (explore leaf if wide). Seed `<issue>/map.md` from what exploration
+   using explore per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+   Request source locations, consumers, existing test seams, file ownership,
+   and dependency facts. The parent decides the contract, dispositions,
+   slices/edges, and writes the complete PRD/tasks/E2E package; facts are
+   delegated, not design judgment or package drafting.
+   Seed `<issue>/map.md` from what exploration
    learned — one fact per line, each with a file path and a date; later
    leaves orient by it and update the lines they falsify.
 3. Fill missing `routes.md` repo contracts (existing repos join here without

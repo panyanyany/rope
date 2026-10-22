@@ -2,9 +2,11 @@
 
 ## Fact vs decision
 
-- **Facts** (code, tests, docs, primary sources, mature libraries): look up.
-  Wide lookups are dispatched to background explore leaves in parallel —
-  mandatory under the research floor below; research briefs carry output
+- **Facts** (code, tests, docs, primary sources, mature libraries): resolve
+  through explore by default, per the
+  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+  Dispatch independent lookups in parallel — mandatory under the research
+  floor below; research briefs carry output
   contracts per the explore research mode. A running
   exploration delays only the questions downstream of it, never the
   current round. Never turn answerable facts into user quizzes.
@@ -14,7 +16,7 @@
 
 ## Domain discipline
 
-1. Glossary clash with `.rope/CONTEXT.md` → force a choice immediately.
+1. Glossary clash with `.rope/GLOSSARY.md` → force a choice immediately.
 2. Fuzzy language → propose canonical term + `_Avoid_`.
 3. User claim vs code → surface evidence before continuing.
 4. Abstract boundaries → concrete scenario (prefer this issue’s world).
@@ -66,6 +68,16 @@ packages and official guidance **before** inventing. Write facts to
 the host's proxy (e.g. `HTTP(S)_PROXY`) before degrading to offline
 heuristics.
 
+**Use the findings before recommending a new mechanism/tool surface.** Ask
+the research leaf how mature implementations solve the same user task and
+which route can be reused or adapted. Verify the project's additional
+constraints from effective contracts and implementation evidence; an existing
+custom mechanism is not proof that it is necessary. Compare reuse, adopting
+the mature approach, and custom work with reasons and the smallest residual
+build scope. Persist that conclusion in the existing decision/research record,
+not just a list of sources. Independent questions determine dispatch count;
+there is no fixed fan-out quota.
+
 ## Behavior Contract fields
 
 - System under test
@@ -86,7 +98,7 @@ heuristics.
 
 | Decision | File |
 | --- | --- |
-| Term | `.rope/CONTEXT.md` |
+| Term | `.rope/GLOSSARY.md` |
 | Hard-to-reverse tradeoff (all three ADR tests) | `.rope/adr/` |
 | External fact | `.rope/research/` |
 | Stable contract/gotcha | `.rope/specs/` |
@@ -97,7 +109,7 @@ ADR only when hard to reverse **and** surprising **and** real tradeoff — see
 ## Ready for shape checklist
 
 - [ ] Behavior Contract six fields user-confirmed
-- [ ] Key terms in CONTEXT or explicitly deferred
+- [ ] Key terms in the glossary or explicitly deferred
 - [ ] Prior-art ladder walked, or `research: not-needed` recorded with reason
 - [ ] No unverified "industry practice" claims in decisions — each cites research or is dropped
 - [ ] External facts in research or “not needed”

@@ -1,7 +1,8 @@
 # Medium-Depth Agent Template Rules
 
 Leaf agent files are **medium depth**: enough contract for a clean spawn,
-not a full copy of `rope-go` / `rope-finish`.
+not a full copy of `rope-go` / `rope-finish`. Runtime reading paths travel in
+briefs; do not embed the TDD playbook in generated presets.
 
 ## Required structure (pi markdown agents)
 
@@ -53,8 +54,8 @@ Exclude:
 ### rope-implementer
 
 - Implement one briefed unit with **acceptance-driven TDD by default**: red at a
-  briefed seam (record failure) → minimal green → next acceptance. Waive only if
-  the brief sets `TDD: waived (docs-only)`.
+  briefed seam (record failure) → minimal green → next acceptance. Waive only
+  when the brief declares a waiver supported by the independent playbook.
 - Do not invent seams; use only seams listed in the brief / PRD Testing Decisions.
 - Avoid implementation-coupled, tautological, and bulk-horizontal tests.
 - **Minimal implementation discipline**: solve acceptance with the shortest working diff.
@@ -110,6 +111,9 @@ Exclude:
 ### rope-explore
 
 - Read-only fact gathering. Grep/read/find only as needed.
+- Check briefs may authorize running validation and saving command evidence,
+  not product/test edits or service lifecycle operations. Return the briefed
+  check summary instead of full logs.
 - **The brief is the contract:** honor exactly the output the
   dispatch prompt declares. Default output is map.md-style facts — one
   `fact — path:line` per line, ≤15 lines.

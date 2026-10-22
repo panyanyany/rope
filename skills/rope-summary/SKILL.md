@@ -14,7 +14,7 @@ disable-model-invocation: true
    - `git status --short`
    - changed files / recent commits relevant to the just-finished work
 2. Read context before writing:
-   - `.rope/CONTEXT.md`
+   - `.rope/GLOSSARY.md` (legacy lookup per [current documents](../rope-clear/references/current-docs.md#project-language))
    - `.rope/routes.md`
    - relevant `.rope/specs/`
    - relevant `.rope/adr/`
@@ -24,7 +24,7 @@ disable-model-invocation: true
    - update when work created or clarified reusable architecture rule, adapter contract, config contract, deployment constraint, validation pattern, or recurring failure mode
    - skip when change is one-off, private implementation detail, or already covered by existing docs
    - distinguish `pending-finish` documentation closure from a new, unconfirmed architecture change; the latter pauses for parent/user disposition
-   - **completion criterion:** every changed file since the issue's shape commit has been considered against the four doc homes (specs / adr / research / CONTEXT); each is either updated or explicitly skipped with reason. Do not declare done while any changed file is unconsidered.
+   - **completion criterion:** every changed file since the issue's shape commit has been considered against the four doc homes (specs / adr / research / glossary); each is either updated or explicitly skipped with reason. Do not declare done while any changed file is unconsidered.
 4. Read [current documents](../rope-clear/references/current-docs.md), then
    update the smallest durable doc in place. If the issue already confirmed a disposition,
    preserve its source, status, scope, invariants, exception bounds, and evidence;
@@ -32,7 +32,7 @@ disable-model-invocation: true
    - `.rope/specs/` for stable implementation contracts and tests required
    - `.rope/adr/` for architecture decisions with trade-offs
    - `.rope/research/` for external/platform facts
-   - `.rope/CONTEXT.md` only for domain language changes
+   - `.rope/GLOSSARY.md` only for domain language changes
 5. Keep docs evidence-based:
    - link rule to observed code/test/log behavior when useful
    - do not invent product facts or future workflow runtime

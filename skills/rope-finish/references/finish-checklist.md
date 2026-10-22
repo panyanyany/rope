@@ -22,7 +22,7 @@ Read the Architecture Impact and Constraint Bundle from `prd.md`.
 
 - A confirmed `pending-finish` outcome is finish work, not a verify failure.
 - Route confirmed changes using the existing homes: ADR for a hard-to-reverse,
-  surprising tradeoff; spec for a stable implementation contract/gotcha; CONTEXT
+  surprising tradeoff; spec for a stable implementation contract/gotcha; glossary
   for a domain term; research for an external fact.
 - Write directly when the disposition was already confirmed. Preserve source
   status, scope, invariants, exception bounds, evidence, and invalidating condition.
@@ -34,7 +34,7 @@ Read the Architecture Impact and Constraint Bundle from `prd.md`.
 
 ## Reusable Lesson Routing
 
-- Stable term -> `.rope/CONTEXT.md`
+- Stable term -> `.rope/GLOSSARY.md`
 - External/platform fact -> `.rope/research/`
 - Implementation contract/gotcha -> `.rope/specs/`
 - Durable architecture tradeoff -> `.rope/adr/`

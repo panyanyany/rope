@@ -76,7 +76,7 @@ round unless state changed after it.
    the current owner in place. If reusable lessons were learned:
    - update `.rope/specs/` for implementation contracts or gotchas
    - update `.rope/research/` for external facts
-   - update `.rope/CONTEXT.md` for stable project terms
+   - update `.rope/GLOSSARY.md` for stable project terms
    - update `.rope/adr/` for hard-to-reverse decisions
 8. Commit final doc updates if any were made.
 9. Report final status, terminal documentation outcome, and remaining blocked/user-only validation, if any.

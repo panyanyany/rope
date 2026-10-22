@@ -2,12 +2,8 @@
 
 External research with disk output is a **mode of `rope-explore`, declared
 by the brief** — not a separate agent. The preset carries an
-**unrestricted tool surface**; both modes are body discipline, not tool
-restriction. Historically, plain explore was tool-restricted read-only,
-could not persist findings, and borrowing a general-purpose worker went
-undeclared (observed twice in the field; again 2026-09-09 — every grill
-research leaf degraded to a twin because the pi preset had been
-generated without web/write).
+**unrestricted tool surface**; modes constrain behavior, not available tools.
+Tool-restricted presets can prevent research leaves from persisting findings.
 
 ## Mode contract
 
@@ -15,9 +11,11 @@ generated without web/write).
 task — question, sources, output path, return shape — and the leaf honors
 exactly what it declares.
 
-- Default dispatch (codebase navigation, end-of-issue scanner): behaves
-  read-only — web and writes stay unused even though the tool surface
-  grants them.
+- Default dispatch (investigation, validation, end-of-issue scanner): keeps
+  product code/tests unchanged. Validation may run briefed commands and save
+  their evidence logs at the declared location, following the
+  [handoff contract](role-schema.md#exploration-and-validation-handoff).
+  It does not use research permissions or rewrite project documents.
 - Research dispatch (the brief names a findings output under
   `.rope/research/`): may use web search / fetch; may write exactly one
   findings artifact under `.rope/research/**` — nowhere else. Never

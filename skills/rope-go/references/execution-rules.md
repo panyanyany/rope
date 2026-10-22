@@ -9,13 +9,17 @@ The go session is the **Parent Orchestrator**. Leaf workers:
 | implementer | `rope-implementer` | TDD, implement one slice unit, commit, return summary + paths |
 | reviewer | `rope-reviewer` | End-of-issue behavior acceptance: code-only Matrix walk over the assembled diff + high-risk boundaries; verdict owner |
 | scanner | `rope-explore` + Standards brief | End-of-issue Standards fast-scan: lint/typecheck gate, conventions, smell baseline; never runs the product |
-| explore | `rope-explore` | Read-only facts when re-brief needs more context |
+| explore | `rope-explore` | Investigation and baseline/integration checks per the brief; no product/test edits |
 
 Rules:
 
 - Parent spawns leaves with **self-contained briefs**; leaves return
   **summary + artifact paths/status** only.
 - **No nested spawn.** Parent owns all dispatch.
+- Investigation and validation follow the shared
+  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+  A new symptom can be dispatched before its cause is known; the parent
+  decides repair scope from findings instead of doing the full diagnosis.
 - **Parent writes no product/test code:** during go and E2E,
   every code change rides an implementer brief — including "small" fixes
   mid-E2E. Parent self-editing is a contract violation; the correction
@@ -132,7 +136,8 @@ that could touch the same paths.
     sweep.
 - **Baseline ladder** (go startup): reuse same-HEAD green evidence (CI or
   recorded run ≤24h) that covers the selected scope and relevant environment;
-  otherwise run the declared quick tier or affected tests. Broader suites
+  otherwise delegate the declared quick tier or affected tests to an existing
+  leaf under the handoff contract above. Broader suites
   are an issue-level fallback only with one of the impact reasons above.
   Record the selected scope, command, reason, and reused/run evidence in
   existing Testing Decisions/work records.
@@ -144,6 +149,11 @@ that could touch the same paths.
   pipeline reports the grep's status and silently turns a red suite green,
   so `set -o pipefail` first. Recover a stack trace by grepping the saved
   file, never by rerunning the command.
+- **Validation return:** require the shared handoff's commit/environment,
+  command/exit status, counts/failing items and full-log path in the check
+  brief. Parent reviews coverage and disposition, not the full log; needed
+  failure investigation returns to explore. This applies to baseline and
+  assembled checks, not just implementer self-tests.
 - **Full is a scope, not a frequency.** Baseline and final review are
   decision points, not two mandatory full-suite executions. Scope-green
   proves only that scope. Backend-only local changes do not automatically
@@ -180,11 +190,18 @@ command blocks excluded). The parent checks the budget before dispatch.
 
 **Operational contract (required, not counted as content):**
 
-- TDD mode: `required` (default for code) | `waived (docs-only)` + reason;
+- TDD mode: `required` (default for behavior-bearing code) | `waived (<kind>)`
+  with a playbook-supported kind + reason;
   when required — red command(s) + what counts as red, green command(s)
   after minimal implementation — focused seam commands by default; a
   full-suite run is issue-level evidence, never a brief
-  requirement. Require the [TDD playbook](tdd.md) in the implementer's reading.
+  requirement. Resolve the [TDD playbook](tdd.md) relative to this loaded
+  skill reference, verify that the file exists, and pass its **absolute path**
+  in Required reading: read before product/test edits. This applies to correction
+  briefs and generic fallback workers too, without a preset refresh. Keep
+  task-specific acceptance/seams/commands in the brief; keep policy in the
+  playbook. The parent locates the file rather than loading and retransmitting its body.
+  An inaccessible path is a blocker to resolve, not permission to skip reading.
 - Required reading: effective spec/ADR paths + sections; read before editing,
   then record the ≤3-line Architecture landing (responsibility reused / public seam /
   ownership direction preserved). Return actual source-reading and landing record

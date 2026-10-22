@@ -19,7 +19,8 @@ Issue-level E2E + verify  (assembled behavior — not re-TDD of every unit)
 ```
 
 - **Acceptance behavior**: the slice `Public behavior` sentence and the Behavior
-  Matrix rows this slice owns. Prefer domain words from `.rope/CONTEXT.md`.
+  Matrix rows this slice owns. Prefer domain words from `.rope/GLOSSARY.md`
+  (legacy lookup per [current documents](../../rope-clear/references/current-docs.md#project-language)).
 - **Spec test**: name and assert like a specification (“caller can …”, “user
   sees …”), not like an implementation step.
 - **Minimal green**: only enough code to pass the current red; do not implement

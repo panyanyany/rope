@@ -8,7 +8,7 @@ check its status, scope, and replacement. A grep hit alone is not a constraint.
 
 ## Trigger check
 
-Shape performs a targeted lookup through `.rope/CONTEXT.md`, routes, the confirmed seams, task references, and relevant ADR/spec paths. It does not scan every architecture document.
+Shape performs a targeted lookup through `.rope/GLOSSARY.md`, routes, the confirmed seams, task references, and relevant ADR/spec paths. It does not scan every architecture document.
 
 Set `Impact: required` when any trigger applies:
 

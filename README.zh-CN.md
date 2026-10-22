@@ -90,7 +90,7 @@ npx git+https://github.com/WufeiHalf/rope.git add --target ./.agents/skills
 然后在你要管理的仓库里：
 
 ```bash
-rope-init        # 搭起 .rope/（CONTEXT、routes、adr、specs……）
+rope-init        # 搭起 .rope/（GLOSSARY、routes、adr、specs……）
 ```
 
 可选，每台机器或模型目录变化时跑一次：
@@ -115,7 +115,7 @@ rope-harness-presets   # 为你的宿主写 rope-* 叶子预设
 | `rope-go` | 切片就绪/波次双模执行、调查地图、seam 上的 TDD、一次双轴评审 + E2E 验收、逐片提交 |
 | `rope-finish` | 先跑薄文书门，再关闭 issue、路由架构文档更新 |
 | `rope-summary` | 事后把可复用契约/经验沉进 `.rope/` |
-| `rope-clear` | 提出清理清单，经确认修订旧文档，保留正式决策历史 |
+| `rope-clear` | 按确认批次整理文档、迁移旧版 `.rope` 布局，保留正式决策历史 |
 | `rope-quick` | 单人快修道，四条停止线退回管线 |
 | `rope-harness-presets` | 把叶子角色绑到宿主原生预设 |
 
@@ -123,7 +123,7 @@ rope-harness-presets   # 为你的宿主写 rope-* 叶子预设
 
 ```text
 .rope/
-  CONTEXT.md        # 词汇表 / 项目语言
+  GLOSSARY.md       # 词汇表 / 项目语言
   routes.md         # 导航地图
   adr/              # 架构决策记录
   research/         # 已验证的内部/外部事实
@@ -136,6 +136,9 @@ rope-harness-presets   # 为你的宿主写 rope-* 叶子预设
     verify.md       # 文书轮次
     quick.md        # 快道记录（rope-quick）
 ```
+
+已有的 `.rope/CONTEXT.md` 在迁移前仍可读取；执行 `rope-clear` 按批次迁移到
+`.rope/GLOSSARY.md` 并修复有效引用。`rope-init` 保留已有知识，不创建第二份词汇表。
 
 ## 开发
 

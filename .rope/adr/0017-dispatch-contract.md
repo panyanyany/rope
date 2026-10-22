@@ -19,6 +19,12 @@ Date: 2026-09-29
    not-needed record is refused. Unverified industry-practice claims
    ("X and Y both do it") are never a decision basis without a research
    artifact.
+   Clarification (2026-10-22): before recommending a new mechanism/tool
+   surface, research how mature implementations solve the same user task,
+   verify this project's additional constraints rather than assuming every
+   custom mechanism is necessary, and put reuse/adapt/build conclusions and
+   minimal custom scope into the decision. Findings must affect the choice,
+   not merely produce a bibliography; independent questions determine fan-out.
 2. **Brief-as-contract.** The dispatch prompt states the task — question,
    sources, output path, return shape — and the leaf honors exactly what it
    declares. `rope-explore` returns map.md-style facts by default; a brief
@@ -35,6 +41,13 @@ Date: 2026-09-29
 4. **Parent writes no product/test code** during go and E2E. Every code
    change rides an implementer brief; course correction = rewrite brief +
    re-dispatch. "Small" mid-E2E fixes by the parent are equally violations.
+   Clarification (2026-10-22): default unknown searches, call-chain tracing
+   and diagnosis to explore before the cause is known; parent retains short
+   known-location reads, decisive evidence checks, contract interpretation
+   and scope decisions. Delegate substantive baseline/integration execution
+   and log summarization to existing leaves, while parent selects scope,
+   handles failures and owns stack lifecycle. No tool-count threshold,
+   additional role, or replacement of assembled acceptance by slice self-tests.
 5. **Per-round crystallize.** A grill decision confirmed in a round is
    written to `.rope/` in that same round; a confirmed decision still living
    only in chat when its round ends is a violation.
@@ -98,3 +111,28 @@ parent-side bounded escalation rather than leaf self-rescue.
 - Restore 0016's dynamic research fan machinery: rejected — the regression
   was textual (a deleted directive), not mechanical; text floors restore
   the behavior without the retired kernel.
+
+## Context-protection clarification (2026-10-22)
+
+Confirmed in [the parent-token retrospective](../issues/parent-token-retro/retro.md):
+
+- Shape delegates source/consumer/test-seam/ownership/dependency facts, not
+  contract decisions, slicing, or complete issue-package writing. Parent
+  remains the author of PRD/tasks/E2E; delegated package drafting was declined.
+- The TDD playbook stays independent. Parent passes its verified installed
+  absolute path in implementer briefs (including corrections/generic fallback),
+  not its body; no global preset refresh is required. The upstream comparison
+  found no reason to add TDD policy; existing Rope acceptance/evidence
+  adaptations remain. Runtime owner: [brief contract](../../skills/rope-go/references/execution-rules.md#leaf-brief-contract-hard-budget).
+- Documentation maintenance belongs to clear, initial scaffolding to init.
+  `.rope/GLOSSARY.md` is the sole new glossary convention, not a root-level
+  file. Clear proposes content-preserving CONTEXT rename/consolidation and
+  active-reference repair through its existing approved batch; rename and
+  content cleanup are separate. Legacy content remains readable before
+  migration. Runtime owners: [current docs](../../skills/rope-clear/references/current-docs.md)
+  and [clear](../../skills/rope-clear/SKILL.md).
+
+These clarify existing dispatch/reader boundaries without restoring a kernel,
+adding fixed fan-out or an automatic installation/migration system. The
+approved per-task owner can be overridden by an explicit user instruction;
+this repository's skill edits were deliberately performed without subagents.

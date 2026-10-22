@@ -1,6 +1,6 @@
 ---
 name: rope-init
-description: Initializes the .rope coding harness (context, routes, specs, research, ADR, issue dirs) in a repo. One-time setup; invoke by name.
+description: Initializes the .rope coding harness (glossary, routes, specs, research, ADR, issue dirs) in a repo. One-time setup; invoke by name.
 disable-model-invocation: true
 ---
 
@@ -14,13 +14,14 @@ For output templates, read [references/templates.md](references/templates.md).
 
 1. Inspect the repo before writing:
    - root agent docs: `AGENTS.md`, `CLAUDE.md`
-   - root docs: `README*`, existing `CONTEXT.md`, `docs/adr/`
+   - root docs: `README*`, existing glossaries/context docs, `docs/adr/`
+   - existing `.rope/GLOSSARY.md` and legacy `.rope/CONTEXT.md`
    - package/build markers: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Makefile`
    - likely source/test roots: `src/`, `app/`, `apps/`, `packages/`, `tests/`, `test/`, `spec/`
 2. Create `.rope/` if missing using the template reference:
    ```text
    .rope/
-     CONTEXT.md
+     GLOSSARY.md
      routes.md
      adr/
      research/
@@ -31,7 +32,11 @@ For output templates, read [references/templates.md](references/templates.md).
          integration-boundary.md
      issues/
    ```
-3. Keep `.rope/CONTEXT.md` as an empty glossary template unless the user has already resolved project-specific terms.
+3. For a new knowledge layer, keep `.rope/GLOSSARY.md` as an empty glossary
+   template unless the user has already resolved project-specific terms.
+   Preserve existing glossaries. If legacy `.rope/CONTEXT.md` exists, leave it
+   intact and direct migration/consolidation to `rope-clear`; do not create a
+   competing glossary. Init scaffolds; clear migrates existing content.
 4. Generate `.rope/routes.md` as conservative navigation:
    - repo shape
    - source roots
@@ -49,7 +54,8 @@ For output templates, read [references/templates.md](references/templates.md).
 6. Update the root agent doc in place using the `## Rope` block template:
    - prefer existing `AGENTS.md`; if only `CLAUDE.md` exists, edit that
    - add or update a `## Rope` block
-   - tell agents to read `.rope/CONTEXT.md`, `.rope/routes.md`, relevant `.rope/specs/`, `.rope/adr/`, and `.rope/research/`
+   - tell agents to read `.rope/GLOSSARY.md` (legacy CONTEXT until migrated),
+     `.rope/routes.md`, relevant `.rope/specs/`, `.rope/adr/`, and `.rope/research/`
 
 ## Guardrails
 

@@ -15,7 +15,8 @@ The correction path is rewrite-brief + re-dispatch; parent self-editing
 violates boundaries and bloats context.
 
 Execution rules, briefs, test scope, and fault manual: [references/execution-rules.md](references/execution-rules.md).
-TDD playbook for implementers: [references/tdd.md](references/tdd.md).
+Implementer reading, not parent startup reading: [references/tdd.md](references/tdd.md).
+Pass its resolved absolute path per the brief contract; do not copy its body.
 Architecture constraints, guard/exception evidence, and merge gates: [references/architecture-gates.md](references/architecture-gates.md).
 
 ## Startup
@@ -25,8 +26,10 @@ Architecture constraints, guard/exception evidence, and merge gates: [references
    readiness gate before dispatch; integration merges use candidate-merge
    branches per architecture-gates.
 2. Baseline: reuse same-HEAD green evidence ≤24h covering selected scope;
-   else run declared quick tier or affected tests. Record scope, command, and
-   reason in Testing Decisions (never a blanket suite).
+   otherwise delegate declared quick-tier or affected checks per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+   Record scope, command, reason, and returned evidence in Testing Decisions
+   (never a blanket suite). The parent decides scope and failure disposition.
 3. Consume shape's `Execution mode:` (worktree | shared); recheck host
    isolation. Mismatch degrades to shared with a recorded reason. Commit
    package before worktree dispatch.
@@ -42,7 +45,8 @@ Architecture constraints, guard/exception evidence, and merge gates: [references
   Collect commits serially — one index, one checkout.
 - Brief implementer per the ≤60-line budget in execution-rules: contract,
   mandatory Constraint IDs + source sections, map path, focused TDD commands,
-  architecture evidence, and step 0 worktree setup. Leaf reads sources and
+  resolved TDD playbook path, architecture evidence, and step 0 worktree setup.
+  Leaf reads the playbook and sources and
   records its Architecture landing before editing; conflicts stop the slice.
 - Return Gate: reconcile every Required-evidence item mechanically to returned
   output or artifact path. Missing evidence bounces the leaf to missing items;
@@ -50,6 +54,11 @@ Architecture constraints, guard/exception evidence, and merge gates: [references
 - Fix rounds: re-brief fresh leaf per problem; identical failure signature
   from fresh leaf or design defect stops for human. Independent ready slices
   keep running.
+- New symptoms/unknown failures: brief explore with observations, expected
+  behavior, reproduction entrypoint and relevant contracts before a long
+  diagnosis. The parent decides the fix boundary from findings; already
+  diagnosed, bounded defects go directly to implementers. See the handoff
+  contract above.
 - Merge landed branches serially in landing order. Conflicts get one
   re-dispatch on unmerged branch using both intents; unresolved merges stay
   blocked. Update map evidence and refill ready set after each merge.

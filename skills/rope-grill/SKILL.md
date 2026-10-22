@@ -31,13 +31,15 @@ scenario, not more framework language.
 
 ## Inputs
 
-When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
-`specs/`, and code named by routes.
+When present: `.rope/GLOSSARY.md`, `routes.md`, relevant `adr/`, `research/`,
+`specs/`, and code named by routes. Legacy glossary lookup follows
+[current documents](../rope-clear/references/current-docs.md#project-language).
 
 ## Context-protective parent
 
-1. Explore leaf for polluting investigation (`rope-explore` or soft-degrade);
-   fan wide lookups out in parallel — a running exploration delays only the
+1. Default searches and diagnosis to explore per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff);
+   fan independent lookups out in parallel — a running exploration delays only the
    questions downstream of it, never the round. Every research brief
    declares its output contract (question/sources/path/return shape —
    explore-research-mode.md).
@@ -54,12 +56,13 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
    platform/service integration, or a design judgment about how mature
    products solve this, dispatch the research briefs **before the decision
    rounds** — typically two in parallel (repo precedent + external product
-   survey). Purely internal small changes record `research: not-needed` +
-   one-line reason on the issue/PRD instead.
+   survey). Feed the findings into the reuse/adapt/build comparison before
+   recommending an implementation (grilling.md). Purely internal small changes
+   record `research: not-needed` + one-line reason on the issue/PRD instead.
 3. Apply **domain discipline** (glossary, fuzzy terms, code contradictions).
 4. Resolve the **Behavior Contract** six fields (grilling.md).
 5. Run the conditional architecture-impact check: targeted lookup through
-   CONTEXT, routes, seams, relevant ADR/spec paths; record `required`, or
+   glossary, routes, seams, relevant ADR/spec paths; record `required`, or
    `not-applicable` with the lightweight trigger check. If a trigger is
    present, resolve each decision's disposition before shape.
 6. Ask **product/design-first** decisions in **frontier rounds** (grilling.md):
@@ -74,7 +77,7 @@ When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
 9. Stress-test scenarios: primary path, failure visibility, forbidden
    shortcut.
 10. Crystallize each round's confirmed decisions into `.rope/` **in the
-    same round** (CONTEXT / ADR / research / specs; chat dies on compact) —
+    same round** (glossary / ADR / research / specs; chat dies on compact) —
     a confirmed decision still living only in chat when its round ends is a
     violation, never a batch for after the interview.
 11. **Shared-understanding gate:** recap 3–6 bullets; the user confirms before

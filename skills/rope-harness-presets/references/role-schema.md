@@ -9,7 +9,7 @@ Shared across harness writers. Parent/session role is **not** a preset row.
 | `implementer` | `rope-implementer` | Write, test, commit one unit of work from a self-contained brief | full write set: read, bash, edit, write, grep, find, ls (+ host equivalents) | `medium` |
 | `reviewer` | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk over the assembled diff + high-risk boundaries; verdict owner. Code-only — the Standards axis is a separate scanner leaf (below), the product run belongs to the runner | read-only: read, bash, grep, find, ls | `high` |
 | `runner` | `rope-e2e-runner` | E2E acceptance leaf: drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes | read-only code + product surface: read, bash, grep, find, ls (+ the host browser family, e.g. `agent_browser*`, when present) | `low` |
-| `explore` | `rope-explore` | Read-only fact gathering / codebase navigation; **research mode** (brief-declared): external sources + findings persisted to `.rope/research/` | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `medium` |
+| `explore` | `rope-explore` | Investigation and validation without product-code edits; **research mode** (brief-declared): external sources + findings persisted to `.rope/research/` | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `medium` |
 
 ## Shared leaf rules
 
@@ -34,6 +34,32 @@ Execution details: [architecture gates](../../rope-go/references/architecture-ga
 These obligations must also travel in briefs so already-generated presets do
 not need a refresh to execute the contract.
 
+## Exploration and validation handoff
+
+- Default unknown-answer searches, call-chain tracing, and diagnosis to an
+  explore leaf. The parent may read a known location briefly and verify
+  decisive evidence; no tool-call quota decides the handoff.
+- Brief from symptoms: observed/expected behavior, reproduction entrypoint,
+  relevant contracts and the question. A diagnosed root cause or file-level
+  fix plan is not a dispatch prerequisite. The parent interprets findings,
+  decides scope/contract changes, and re-briefs incomplete investigations
+  instead of duplicating the leaf's search.
+- The parent selects validation scope and evidence reuse. Delegate substantive
+  baseline/integration checks to existing leaves; include the return contract
+  below in their briefs. Reuse an already assigned check where appropriate,
+  rather than add a worker for every command. Slice self-tests do not replace
+  assembled validation. Product journeys remain the E2E runner's job.
+- Check returns: tested commit and relevant environment, command, exit status,
+  pass/fail counts and failing items, full-log path, and blockers. Save full
+  logs at the briefed evidence location; return summaries, not traces. The
+  parent decides failure disposition; unknown failures follow the diagnosis
+  handoff above. Stack lifecycle remains parent-owned; check leaves do not
+  start/restart services or edit code/tests to make a check pass.
+
+These obligations travel in briefs; existing presets and generic fallback
+workers must not depend on a preset refresh to follow them. The solo quick
+path retains its own execution boundary.
+
 ## Parent override
 
 Presets pin default `model` + `thinking` (effort). The parent orchestrator may
@@ -56,9 +82,8 @@ scanner dispatches stay
 read-only; a research brief may use web/search and write only a findings
 artifact under `.rope/research/**`. The explore preset is generated with
 an **unrestricted tool surface** — mode discipline lives in the agent
-body. Preset-level tool restriction made research mode unreachable in
-the field (2026-09-09: every grill research leaf degraded to a
-general-purpose twin). If a host truly cannot grant the tools, run the
+body. Restricting tools at preset level can make research mode unreachable
+and force generic-worker fallbacks. If a host truly cannot grant the tools, run the
 research brief on a generic worker and record the type used
 (declared deviation).
 
