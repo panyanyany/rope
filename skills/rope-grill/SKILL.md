@@ -1,6 +1,6 @@
 ---
 name: rope-grill
-description: Grills requirements against .rope docs to a shape-ready contract, including architecture impact and decision disposition. Use when clarifying a feature before slices or discussing ADR/spec inheritance.
+description: Grills requirements against .rope docs to a shape-ready contract — behavior, architecture impact, decision dispositions. Use when clarifying a feature before slices or discussing ADR/spec inheritance.
 ---
 
 # Rope Grill
@@ -9,103 +9,100 @@ Plain requirements interview. Internally this is a judgment-primary,
 **context-protective** Parent Orchestrator workflow; with the user, speak in
 simple product language.
 
-Doc formats: [references/doc-formats.md](references/doc-formats.md).  
-Interview habits (fact vs decision, domain discipline, scenarios, checklist):
+Interview habits (fact vs decision, frontier rounds, scenarios, checklist):
 [references/grilling.md](references/grilling.md).
+Doc formats: [references/doc-formats.md](references/doc-formats.md).
 Architecture continuity fields and dispositions:
 [../rope-shape/references/architecture-continuity.md](../rope-shape/references/architecture-continuity.md).
 
 ## Plain interview
 
 Internal Rope terms are reasoning labels, not user language. Translate before
-speaking: say “what behavior must we guarantee” before Behavior Contract, “where
-the user sees the error” before failure visibility, and “a lazy implementation
-that could still pass tests” before forbidden shortcut.
+speaking: say "what behavior must we guarantee" before Behavior Contract,
+"where the user sees the error" before failure visibility, "a lazy
+implementation that could still pass tests" before forbidden shortcut.
 
-Every decision question must use this shape:
+Every decision question has four parts: one plain-language question, a
+recommended answer, a concrete example of what the user would click, run,
+see, or receive, and the tradeoff of the other option. Completion criterion:
+the user can repeat the decision in their own words without asking what a
+Rope term means. If they look confused, pause and re-explain with a real
+scenario, not more framework language.
 
-1. One plain-language question.
-2. Recommended answer.
-3. Concrete example of what the user would click, run, see, or receive.
-4. Tradeoff if they choose the other option.
-
-Every option-bearing question must show options as a numbered list. A numeric
-reply such as `1` or `2` selects that option; repeat or expand only when the
-choice remains ambiguous.
-
-Completion criterion: the user can repeat the decision in their own words without
-asking what a Rope term means. If they look confused, pause the workflow and
-explain with a real scenario, not more framework language.
+Every option-bearing question must show options as a numbered list. A bare
+numeric reply selects that option; mirror the selected label before continuing.
 
 ## Inputs
 
-When present: `.rope/CONTEXT.md`, `routes.md`, relevant `adr/`, `research/`,
-`specs/`, and code named by routes.
+When present: `.rope/GLOSSARY.md`, `routes.md`, relevant `adr/`, `research/`,
+`specs/`, and code named by routes. Legacy glossary lookup follows
+[current documents](../rope-clear/references/current-docs.md#project-language).
 
 ## Context-protective parent
 
-1. Explore leaf for polluting investigation (`rope-explore` or soft-degrade).
-2. Crystallize confirmed decisions into `.rope/` immediately (chat dies on compact).
+1. Default searches and diagnosis to explore per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff);
+   fan independent lookups out in parallel — a running exploration delays only the
+   questions downstream of it, never the round. Every research brief
+   declares its output contract (question/sources/path/return shape —
+   explore-research-mode.md).
+2. Crystallize confirmed decisions into `.rope/` immediately (chat dies on
+   compact).
 3. Read leaf summaries + paths, not full traces.
 4. Never ask a leaf to spawn a leaf.
 
 ## Workflow
 
-0. Before investigation, read **Startup** in the installed
-   [dynamic workflow reference](../rope-go/references/dynamic-workflow.md).
-   Resolve config + host capability once per session. Under `dynamic`, also
-   read **Grill / shape** there and apply its coverage-driven research fan;
-   carry the resolution to shape and go.
 1. Restate target and suspected ambiguity.
-2. Resolve **facts** (code/docs/libs) before asking the user — dispatch
-   background explore leaves for wide lookups (parallel fan under a
-   dynamic execution config; research briefs per the harness-presets
-   explore research mode); a running exploration delays only
-   the questions downstream of it, never the round. See grilling.md.
+2. Resolve **facts** (code/docs/libs) before asking the user — never turn an
+   answerable fact into a user quiz (grilling.md). **Research floor:** when the request involves a new mechanism, an external
+   platform/service integration, or a design judgment about how mature
+   products solve this, dispatch the research briefs **before the decision
+   rounds** — typically two in parallel (repo precedent + external product
+   survey). Feed the findings into the reuse/adapt/build comparison before
+   recommending an implementation (grilling.md). Purely internal small changes
+   record `research: not-needed` + one-line reason on the issue/PRD instead.
 3. Apply **domain discipline** (glossary, fuzzy terms, code contradictions).
-4. Resolve **Behavior Contract** six fields (grilling.md).
-5. Run a conditional architecture-impact check. Use targeted lookup through
-   CONTEXT, routes, seams, and relevant ADR/spec paths; record `required`, or
-   `not-applicable` with the lightweight trigger check. If a trigger is present,
-   resolve each decision's disposition before shape.
-6. Ask **product/design-first** decisions with a recommendation, plain language,
-   and a concrete example, in **frontier rounds** (grilling.md): one numbered
-   round for every decision whose prerequisites are settled; a decision that
-   depends on an answer still open goes to a later round. Recompute the
-   frontier after each round of answers.
-7. When the host exposes `ask_user_question` or an equivalent structured tool,
-   prefer it for batches and choices. If unavailable, use the same plain-text
-   questions with recommendation, concrete scenario, and tradeoff; do not block.
-8. Keep the loop moving: answer digressions, restate until confirmed, then next
-   unblocked question — do not wait for “continue” unless the user pauses.
-9. Stress-test scenarios (primary / failure visibility / forbidden shortcut).
-10. Write CONTEXT / ADR / research / specs as decisions land (ADR three-tests).
-11. **Shared-understanding gate:** recap 3–6 bullets; user confirms before shape.
-    After confirmation, ask one explicit numbered routing question **before
-    writing any issue, shape, or go artifacts**:
-    “这些需求已经确认。你要走哪条路径？
+4. Resolve the **Behavior Contract** six fields (grilling.md).
+5. Run the conditional architecture-impact check: targeted lookup through
+   glossary, routes, seams, relevant ADR/spec paths; record `required`, or
+   `not-applicable` with the lightweight trigger check. If a trigger is
+   present, resolve each decision's disposition before shape.
+6. Ask **product/design-first** decisions in **frontier rounds** (grilling.md):
+   one numbered round for every decision whose prerequisites are settled; a
+   decision that depends on an answer still open goes to a later round.
+   Recompute the frontier after each round.
+7. Prefer the host's structured question tool for batches and choices; if
+   unavailable, use the same plain-text questions — do not block.
+8. Keep the loop moving: answer digressions, restate until confirmed, then
+   the next unblocked question — do not wait for "continue" unless the user
+   pauses.
+9. Stress-test scenarios: primary path, failure visibility, forbidden
+   shortcut.
+10. Crystallize each round's confirmed decisions into `.rope/` **in the
+    same round** (glossary / ADR / research / specs; chat dies on compact) —
+    a confirmed decision still living only in chat when its round ends is a
+    violation, never a batch for after the interview.
+11. **Shared-understanding gate:** recap 3–6 bullets; the user confirms before
+    shape. Do not write the issue package until confirm (unless they said
+    "直接 shape"). Shape later projects this recap into the PRD's Contract
+    Note. After confirmation, ask one numbered routing question before writing
+    issue, shape, or go artifacts:
     1. 完整流程：写 issue → shape → go（推荐）
-    2. 直接 quick：小任务走 `rope-quick`，跳过 issue 和 shape”
-    Show the concrete result and tradeoff of each path. Treat `1` as full flow
-    and `2` as direct quick. If the user chooses direct quick, hand the
-    confirmed recap and decisions to `rope-quick` as its briefing (its
-    grill-lite records them into `quick.md`; no `.rope/issues/<slug>/` files
-    are written) — its stop lines send oversized work back to the full
-    pipeline. If they choose full flow, continue to shape. Do not write the
-    issue package until the shared-understanding confirmation exists (unless
-    they said “直接 shape”).
-    Shape later projects this recap into a **Contract Note** for the final
-    PRD confirmation (ADR 0005) — not a separate wish list, a human projection
-    of the Behavior Contract.
-12. **Done when** grilling.md Ready checklist holds + user confirm. Else list blockers.
-13. Handoff shape in-session by default; cross-window paste only if user switches
-    sessions. Inline shape: summary then nod before commit.
+    2. 直接 quick：小任务走 `rope-quick`，跳过 issue 和 shape
+    State each path's result and tradeoff. A reply of `1` selects full flow;
+    `2` hands the confirmed recap and decisions to `rope-quick`, whose
+    grill-lite records them in `quick.md` and whose stop lines route oversized
+    work back to the full pipeline. Create no full issue package on that path.
+12. **Done when** grilling.md's Ready checklist holds + user confirm. Else
+    list blockers.
+13. Handoff shape in-session by default; cross-window paste only if the user
+    switches sessions. Inline shape: summary then nod before commit.
 
 ## Guardrails
 
-- No feature implementation code; no issue package before step 9 confirm.
-- Option-bearing questions must be numbered; a bare option number is a valid
-  answer.
-- No answerable uncertainty as an “implementation branch.”
+- No feature implementation code; no issue package before step 11 confirm.
+- Number visible options; a bare option number is a valid answer.
+- No answerable uncertainty as an "implementation branch".
 - No product decisions only in chat — write `.rope/`.
 - Schema, dependency, auth, deploy, destructive FS/git, prod/shared → human gate.

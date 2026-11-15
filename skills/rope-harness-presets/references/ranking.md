@@ -49,8 +49,10 @@ Work from a mutable pool of discovered models (duplicates of same model under
 different providers: prefer the entry already in `enabledModels` order / user
 default provider when tied).
 
-1. **explore** — pick the cheapest/fastest signal in the pool. Default thinking
-   `low`.
+1. **explore** — pick the cheapest/fastest signal in the pool. Default
+   thinking `medium`: at `low`, cheap
+   explore leaves returned empty on research briefs — the brief-contract
+   discipline needs room to read the brief before acting).
 2. **reviewer** — pick the strongest judgment signal remaining. Default
    thinking `high`.
 3. **implementer** — pick the best remaining coding-capable mid/strong model

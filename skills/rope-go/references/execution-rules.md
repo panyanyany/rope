@@ -7,18 +7,29 @@ The go session is the **Parent Orchestrator**. Leaf workers:
 | Role | Typical preset | Job |
 | --- | --- | --- |
 | implementer | `rope-implementer` | TDD, implement one slice unit, commit, return summary + paths |
-| reviewer | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk at the real entrypoint + probe; verdict owner |
+| reviewer | `rope-reviewer` | End-of-issue behavior acceptance: code-only Matrix walk over the assembled diff + high-risk boundaries; verdict owner |
 | scanner | `rope-explore` + Standards brief | End-of-issue Standards fast-scan: lint/typecheck gate, conventions, smell baseline; never runs the product |
-| explore | `rope-explore` | Read-only facts when re-brief needs more context |
+| explore | `rope-explore` | Investigation and baseline/integration checks per the brief; no product/test edits |
 
 Rules:
 
 - Parent spawns leaves with **self-contained briefs**; leaves return
   **summary + artifact paths/status** only.
 - **No nested spawn.** Parent owns all dispatch.
-- Correction = rewrite brief + re-spawn implementer. Max **2** automated fix
-  rounds per problem → Human Escalation Stop. Design/contract defect →
-  immediate stop. A fix round never pauses dispatch of other ready slices.
+- Investigation and validation follow the shared
+  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+  A new symptom can be dispatched before its cause is known; the parent
+  decides repair scope from findings instead of doing the full diagnosis.
+- **Parent writes no product/test code:** during go and E2E,
+  every code change rides an implementer brief — including "small" fixes
+  mid-E2E. Parent self-editing is a contract violation; the correction
+  path is always rewrite brief + re-dispatch. A dispatch that failed or
+  returned empty is handled as a dispatch problem (re-brief), never by
+  the parent taking over the leaf's job.
+- Correction = rewrite brief + re-spawn implementer. No progress — the
+  same failure signature returning from a fresh leaf → Human Escalation
+  Stop. Design/contract defect → immediate stop. A fix round never pauses
+  dispatch of other ready slices.
 - **Concurrency default**: every ready slice gets a background leaf; a
   single parallel pair still runs in parallel; any serialization needs a
   recorded reason in `tasks.md`.
@@ -37,25 +48,24 @@ Rules:
 
 ## Merge queue (worktree mode)
 
-Under dynamic execution the **kernel** owns this queue; the parent reads the
-`merged` rows out of the run record. Under agent dispatch the parent runs it.
-Either way the rules are the same: landed branches merge **serially, one at a
+The parent runs this queue. Landed branches merge **serially, one at a
 time**, in landing order, and the parent never merges while a leaf is running
 that could touch the same paths.
 
 1. Merge one branch; conflict → re-dispatch **one** implementer leaf with
    both branch names and conflicting paths, resolving **on the unmerged
    branch** (merge/rebase the landed sibling — the unmerged slice's brief
-   and commits carry its intent, ADR 0012); its fix rejoins the queue.
-   When tasks.md records methodology-order preferences (ADR 0011), order
+   and commits carry its intent); its fix rejoins the queue.
+   When tasks.md records methodology-order preferences, order
    the queue by them when convenient — they never gate dispatch, only
    landing order.
 2. After each merge: update `map.md` from leaf summaries, re-check the
    ready set, dispatch newly-ready slices.
-3. Agent dispatch adds no per-merge test ritual — leaves ran TDD;
-   downstream worktrees exercise upstream changes. Dynamic execution uses
-   its declared L2/L3 integration checks, not extra full-suite reruns.
-   Assembled behavior is accepted at the end-of-issue review. **Flake discipline (ADR 0013):** a failure under
+3. No per-merge test ritual — leaves ran TDD; downstream worktrees
+   exercise upstream changes. Assembled behavior is accepted at the
+   end-of-issue review. Long-lived/whole-line integration branches use the
+   separate [candidate-merge gate](architecture-gates.md#whole-line--integration-merge),
+   not this ordinary slice path. **Flake discipline:** a failure under
    parallel load → rerun only the failing tests to classify the flake; a
    full clean rerun needs a recorded reason.
 
@@ -94,7 +104,7 @@ that could touch the same paths.
   back, check whether the host setup script applies manually — it usually
   can, keeping worktree mode available.
 
-## Test tiers & baseline ladder (repo contract, ADR 0013)
+## Test tiers & baseline ladder (repo contract)
 
 `routes.md` declares:
 
@@ -126,7 +136,8 @@ that could touch the same paths.
     sweep.
 - **Baseline ladder** (go startup): reuse same-HEAD green evidence (CI or
   recorded run ≤24h) that covers the selected scope and relevant environment;
-  otherwise run the declared quick tier or affected tests. Broader suites
+  otherwise delegate the declared quick tier or affected tests to an existing
+  leaf under the handoff contract above. Broader suites
   are an issue-level fallback only with one of the impact reasons above.
   Record the selected scope, command, reason, and reused/run evidence in
   existing Testing Decisions/work records.
@@ -138,6 +149,11 @@ that could touch the same paths.
   pipeline reports the grep's status and silently turns a red suite green,
   so `set -o pipefail` first. Recover a stack trace by grepping the saved
   file, never by rerunning the command.
+- **Validation return:** require the shared handoff's commit/environment,
+  command/exit status, counts/failing items and full-log path in the check
+  brief. Parent reviews coverage and disposition, not the full log; needed
+  failure investigation returns to explore. This applies to baseline and
+  assembled checks, not just implementer self-tests.
 - **Full is a scope, not a frequency.** Baseline and final review are
   decision points, not two mandatory full-suite executions. Scope-green
   proves only that scope. Backend-only local changes do not automatically
@@ -154,7 +170,7 @@ that could touch the same paths.
 
 ## Leaf Brief Contract (hard budget)
 
-Per ADR 0005: **minimal brief** — allowlist + ≤60-line cap (paths and
+**Minimal brief** — allowlist + ≤60-line cap (paths and
 command blocks excluded). The parent checks the budget before dispatch.
 
 **Content payload (allowed inline):**
@@ -164,33 +180,42 @@ command blocks excluded). The parent checks the budget before dispatch.
    slice, the user-story row it serves + its own completion criteria
    (interface signature / tests green)
 3. **Behavior Contract:** the 6 fields cut to their thinnest form
-4. **Architecture constraints (by reference):** Constraint Bundle **path**
-   + slice **Constraint IDs** + short global invariant list
+4. **Architecture constraints (mandatory, by reference):** Constraint Bundle
+   **path** + explicit `Constraint IDs:` + short global invariant list.
+   Required source paths/sections go in the operational contract; blank or
+   placeholder IDs block dispatch. Justified `none` follows the
+   [package readiness gate](../../rope-shape/references/architecture-continuity.md#package-readiness-gate).
 5. **Test seam + prior art:** the seam from PRD Testing Decisions + one
    prior-art path
 
 **Operational contract (required, not counted as content):**
 
-- TDD mode: `required` (default for code) | `waived (docs-only)` + reason;
+- TDD mode: `required` (default for behavior-bearing code) | `waived (<kind>)`
+  with a playbook-supported kind + reason;
   when required — red command(s) + what counts as red, green command(s)
   after minimal implementation — focused seam commands by default; a
-  full-suite run is issue-level evidence (ADR 0013), never a brief
-  requirement
-- Expected return shape: summary, paths changed, delivery branch + the commit
-  hash printed by `git rev-parse HEAD`, acceptance text exercised, red evidence
-  (command + failure) unless waived, green evidence, constraint IDs
-  checked + disposition conflicts, falsified/needed map lines (worktree
-  mode), blockers with a class, one setup line in worktree mode
-  (`setup: ran <cmd>` | `setup: no-op`) — **plus the Return Gate payload:**
-  every slice Required-evidence item mapped to pasted command output or an
-  artifact path, keyed by evidence id (ADR 0011)
-- Worktree mode, dynamic: the kernel injects the delivery contract, so the
-  parent does not write it — commit everything, leave `git status --porcelain`
-  empty, then `git branch -f <delivery branch> HEAD` as the last write. A leaf
-  that misses a step costs a flag (`recovered` / `moved` in the delivery
-  verdict), never the implementation. Worktree mode, agent dispatch: state the
-  same three steps in the brief, because the host's own `pi-agent-<id>` cleanup
-  branch is not a name the plan can route on.
+  full-suite run is issue-level evidence, never a brief
+  requirement. Resolve the [TDD playbook](tdd.md) relative to this loaded
+  skill reference, verify that the file exists, and pass its **absolute path**
+  in Required reading: read before product/test edits. This applies to correction
+  briefs and generic fallback workers too, without a preset refresh. Keep
+  task-specific acceptance/seams/commands in the brief; keep policy in the
+  playbook. The parent locates the file rather than loading and retransmitting its body.
+  An inaccessible path is a blocker to resolve, not permission to skip reading.
+- Required reading: effective spec/ADR paths + sections; read before editing,
+  then record the ≤3-line Architecture landing (responsibility reused / public seam /
+  ownership direction preserved). Return actual source-reading and landing record
+  references; unresolved conflicts stop the slice. See [architecture gates](architecture-gates.md).
+- Expected return shape: summary, paths changed, delivery branch + commit
+  hash (`git rev-parse HEAD`), acceptance text exercised, red evidence (command +
+  failure) unless waived, green evidence, constraint IDs checked + landing record +
+  disposition conflicts, affected guard/exception delta evidence, falsified/needed
+  map lines (worktree mode), blockers with class, setup line (`setup: ran <cmd>` |
+  `setup: no-op`) — **plus Return Gate payload:** every Required-evidence item
+  mapped to pasted command output or artifact path, keyed by evidence id
+- Worktree mode: state delivery steps in brief — commit everything, leave
+  `git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`;
+  the host's cleanup branch is not a name the merge queue routes on.
 - Relevant artifact paths (prd/tasks/e2e, bundle, map, specs, files)
 - Map path — orient by it; update falsified lines before commit (shared
   mode) or report them in the summary (worktree mode)
@@ -198,38 +223,40 @@ command blocks excluded). The parent checks the budget before dispatch.
   one (unconditional; check-first script)
 - No nested spawn; commit rules; Blocked by / Scope
 
-End-of-issue briefs (two, ADR 0010): **scanner** — diff + commit list +
-standards-source paths + inline global invariants + pasted smell baseline
+End-of-issue briefs (two): **scanner** — diff + commit list +
+standards-source paths + required architecture block + guard commands/evidence
++ inline global invariants + pasted smell baseline
 (below); **reviewer** — diff + commit list + Matrix behavior rows + e2e
-path + entrypoint start hint + inline global invariants (bundle path on
-suspected conflict only; no map). Axes and high-risk list live in the
-reviewer preset body, not the brief. Same allowlist and line cap.
+path (high-risk reading only; the E2E stage owns running them) + inline
+global invariants + required architecture block + exception delta paths
+(read applicable bundle/source sections upfront; no map). Axes
+and high-risk list live in the reviewer preset body, not the brief. Same
+allowlist and line cap.
 
-## Return Gate reconciliation & Defense Budget (ADR 0011)
+## Return Gate reconciliation & Defense Budget
 
 On each landing, reconcile mechanically — a table check, not a review:
 
 ```md
-| Evidence item (id) | Required by (matrix row) | Returned output/path | verdict |
+| Evidence item (id) | Required by (matrix row / Constraint ID) | Returned output/path | verdict |
 | --- | --- | --- | --- |
 | S2-E1 crash-after-rename | B4 | pasted pytest output | ok |
 | S2-E2 concurrent get-or-create | B5 | (missing) | BOUNCE |
+| S2-A1 source reading + pre-edit landing | D1 | work log path | ok |
 ```
 
-- Any `BOUNCE` row → re-dispatch the leaf with exactly the missing item
-  ids; nothing else reopens.
-- The gate never re-reads implementations, never reruns tests, never
-  issues verdicts — the end-of-issue review stays the only review gate
-  (ADR 0007). A missing evidence item bounces the **leaf**; the parent
-  never runs tests to back-fill a leaf's evidence (ADR 0013).
-- **Defense Budget:** a correction brief contains **zero** acceptance
-  requirements absent from the Behavior Matrix. A gap discovered
-  mid-execution goes back to shape as a re-cut (new slice) or is demoted
-  to a recorded non-blocking note in tasks.md. Design-constraint drift
-  across rounds ("fix2 replaces what fix1 built") is a Defense Budget
-  violation — stop and re-cut instead.
+- Any `BOUNCE` row → re-dispatch leaf with missing item IDs; nothing else reopens.
+- Architecture evidence is declared at shape: source sections read, pre-edit landing
+  record, applicable IDs checked, affected guards/exception deltas. Missing items bounce;
+  conflicts hold the affected landing for resolution. See architecture-gates.
+- The gate never re-reads implementations, reruns tests, or issues verdicts — the
+  end-of-issue review is the only review gate. Parent never tests to backfill evidence.
+- **Defense Budget:** correction briefs contain **zero** new acceptance requirements absent
+  from the shaped Behavior Matrix/Constraint Bundle. Architecture obligations are declared
+  at shape, not invented in fixes. Mid-execution gaps return to shape as re-cuts or become
+  non-blocking notes in tasks.md. Drift across rounds is a Defense Budget violation — re-cut instead.
 
-## Human Gate Panel (ADR 0011)
+## Human Gate Panel
 
 Multiple pending gates render once, batched:
 
@@ -247,22 +274,24 @@ other lanes sit idle without an explicit hold statement.
 
 ## End-of-Issue Review Execution
 
-After all slices and before verify. Under dynamic execution the **kernel** owns
-this gate (ADR 0014) — freeze point, both axes, mechanical aggregation and the
-bounded fix loop — and the parent only reads the record. Under agent dispatch
-the parent runs it: spawns **two read-only leaves in one message** (ADR 0010),
+After all slices and before verify. The parent runs this gate: spawns
+**two read-only leaves in one message**,
 both new eyes, never watched the build, then does bookkeeping from the
-structured return and renders an exhausted fix budget as the Human Escalation
-Stop:
+structured return and renders a non-progressing fix loop as the Human
+Escalation Stop:
 
 1. **Scanner leaf** — the `rope-explore` preset with the Standards brief
    below (generic read-only worker otherwise; record the type used).
-   Runs impact-selected lint/typecheck/build first and skips what tooling enforces;
+   Runs declared full architecture guard coverage and impact-selected
+   lint/typecheck/build first (or checks reusable evidence) and skips what tooling enforces;
    never runs the product.
 2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
-   worker with explicit review instructions otherwise). Read-only on
-   code; the **only** leaf allowed to start/stop processes and drive a
-   browser. Starts the product first, reads the diff while it boots.
+   worker with explicit review instructions otherwise). Read-only on code;
+   code-only: reads the assembled diff,
+   reads applicable architecture sources upfront, then walks the Behavior
+   Matrix, ownership/seam invariants, exception deltas, and high-risk boundaries. Product running,
+   entrypoint walking, and e2e execution belong to the E2E acceptance
+   stage below — never to the reviewer.
 3. **Aggregate mechanically**: verdict = worst of axis verdicts
    (`approve` < `changes_requested` < `blocked`); blocking findings from
    either leaf → one fix brief. No rerank, no merge, no re-judgment —
@@ -270,11 +299,14 @@ Stop:
    identities + fix rounds in `tasks.md`.
 4. **Fix protocol**: the fix brief transcribes blocking findings verbatim
    — `{severity, path:line, issue, fix}` — nothing left to explore.
-   ≤2 automated rounds, then Human Escalation Stop. `note` findings are
-   recorded in `tasks.md`, never fixed by a round.
+   Rounds continue while each shrinks the blocking set; the first
+   no-progress round (same finding returns, new findings offset fixed
+   ones, or a fix reverts a prior fix) is the Human Escalation Stop.
+   `note` findings are recorded in `tasks.md`, never fixed by a round.
 5. **Delta re-review**: after a fix round, the scanner re-scans the fix
    commit diff only; the reviewer re-probes only affected paths. A full
-   re-review never repeats.
+   re-review never repeats. (E2E-stage fixes add their own re-run rules
+   in the acceptance stage below.)
 
 ### Diff hygiene (both leaves)
 
@@ -288,14 +320,17 @@ both leaves pay for every included line.
 
 ### Scanner brief (paste, ~35 lines)
 
-- diff command (with excludes) + commit list
+- diff command (with excludes) + commit list; preserve guard/exception changes
 - standards-source paths (CODING_STANDARDS / CONTRIBUTING / lint config)
+- Constraint IDs + bundle path + required source sections; declared architecture
+  guard commands or reusable evidence paths (full architecture scope)
 - inline global invariants (short list from the bundle)
 - the smell baseline below, pasted verbatim
 - return contract: "Report `clean` or findings, ≤200 words, each
   `{severity blocking|note, path:line, issue, fix}`. Every hit is a
   judgement call, never a violation; documented repo standards override
-  the baseline; skip what tooling enforces."
+  the baseline; skip what tooling enforces. Return guard command/coverage/exit
+  status/output/commit pointers separately from the findings summary."
 
 **Smell baseline** (Fowler, _Refactoring_ ch.3, one line each; plus rope's
 TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
@@ -316,12 +351,22 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 ### Reviewer brief
 
 - diff command (same excludes) + commit list
-- Matrix behavior rows + e2e path
-- entrypoint start hint: the project's documented start command when one
-  exists; otherwise the leaf derives it from the README
-- inline global invariants + bundle path (read only on suspected conflict)
-- no map; no upfront bundle read; axes and high-risk focus live in the
+- Matrix behavior rows + e2e path (for high-risk reading only — the E2E
+  acceptance stage below owns running them)
+- Judge whether test inputs and observable assertions at the agreed seams
+  prove each slice's promised behavior / Matrix rows, not merely that a new
+  function works in isolation. Where the promise includes caller wiring,
+  check that the tests exercise that wiring; a component-only promise may
+  be proved at its own public interface. This is code/test review judgment,
+  not a requirement to run mutation testing.
+- inline global invariants + mandatory Constraint IDs + bundle path + required
+  effective source sections (read applicable records/sections upfront)
+- architecture guard evidence paths + per-entry exception delta/reasons and
+  confirmed disposition records; review guard weakening as well as additions
+- no map; axes and high-risk focus live in the
   reviewer preset body
+- return source-reading record references + per-entry exception coverage/outcome
+  alongside the verdict/findings; do not dump the bundle or source prose
 
 ## High-risk boundaries (the reviewer's deepest look)
 
@@ -331,6 +376,74 @@ TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
 - persistence, schema, migration, stored format
 - routing, app entrypoint, runtime wiring, background worker
 - multi-layer behavior; E2E critical path
+- architecture responsibility/lifecycle ownership, public seam/dependency
+  direction, guard coverage changes, whitelist/exception deltas
+
+## E2E Acceptance Stage (after review approve)
+
+Runs only after the end-of-issue review returns `approve`. Preconditions:
+clean tree, review verdict recorded, HEAD recorded — every evidence line
+cites the commit it ran on.
+
+**Shared stack, parent-owned.** Start command and entrypoints come from the
+project's declaration (`routes.md` `E2E entrypoints:` / issue Testing
+Decisions). Never invent an entrypoint; no declaration → `blocked_on_user`,
+ask. The parent starts **one** stack, probes readiness before any dispatch,
+saves the boot log + ports under `<issue>/evidence/`, and tears it down after
+the last journey. Readiness failure → `blocked_on_*`, report — no dispatch,
+no fix rounds spent on environment.
+
+**Journeys.** Group e2e items into journeys: one user-visible walk per leaf;
+one journey may prove several items of one mechanism. Resource-disjoint
+journeys run as parallel runner leaves with isolated browser sessions;
+journeys sharing an account or mutable state serialize. Host without
+session isolation → serial journeys with a recorded reason.
+
+**Runner leaf** — `rope-e2e-runner` from the harness manifest (generic
+read-only worker with explicit instructions otherwise; record the type
+used). One journey brief per leaf; collect every structured return; a
+journey that returned nothing is a blocker, never a pass. Every journey
+**must** run as a runner-leaf dispatch — the parent never drives a
+journey itself to substitute for a failed or empty dispatch.
+
+Journey brief (~40 lines, same budget discipline as slice briefs):
+
+```md
+# E2E Journey <id> — <issue slug>
+Issue/base commit; stack already running (entrypoints given) — NEVER
+restart/rebuild services; readiness problems are blocker reports.
+Items: <E#> <mechanism> — pass criteria each.
+Entrypoint (project-declared): <URL / CLI / real channel>.
+Browser session name: <journey-id> (isolated; never touch other sessions).
+Steps: Given/When/Then as the user would walk them.
+Evidence: save under <issue>/evidence/e2e/ — per item the tool/command
+used + artifact path; failed step: what you did / observed / which
+criterion broke.
+Bounds: read-only on code; no spawning agents; real entrypoint only —
+internal seams (injection, fixtures) are not substitutes.
+Return: journey id; items [{id, verdict pass|fail|blocked, evidence}];
+steps executed; blockers [{class, detail}]; notes ≤5 lines.
+```
+
+**Fix loop.** `agent_failed` → one fix brief to an implementer leaf:
+transcribe the runner's failure verbatim; zero new acceptance requirements.
+For a code defect, require a failing regression test at an appropriate agreed
+public seam, then minimal green per [TDD](tdd.md); seam gaps follow its existing
+plan-adjustment rule. For an environment/deployment defect, retain the
+corresponding real-environment validation rather than forcing it into ordinary
+TDD. Stack operation and E2E remain with the parent and runner, not the implementer.
+Rounds continue while each shrinks the failing set; the first that doesn't
+is the Human Escalation Stop. After a fix merges: delta-only code
+re-review (protocol above), re-deploy the stack onto the new HEAD, re-run
+affected journeys plus a shared-entry smoke, and annotate every reused
+evidence line with its commit — a green from a superseded HEAD is void.
+
+**Delivery gate.** Every required `e2e.md` item carries success evidence —
+`agent_passed` (runner evidence) or `user_confirmed` (the user ran it) —
+or an explicit **per-item user waiver** recorded as a waiver, never as a
+pass; silence is not a waiver. Anything else blocks the run and escalates
+with the exact unproven items. Green: teardown the stack (record), write
+the E2E stage verdict line in `tasks.md`, hand off to `rope-finish`.
 
 ## E2E Execution Statuses
 
@@ -344,18 +457,20 @@ covered mechanism as agent. A user handing an item over mid-go
 (“你自己跑吧”) is the probe firing late — run it and record it as agent
 execution with evidence, never as an exception.
 
-**The resolution is written into the plan before dispatch.** The kernel runs
-no probe and asks no human, so each e2e item carries `executor`
-(`agent` | `agent-with-gate` | `user` | `not-run`) plus its `decision`, and the
-plan is rejected when the two disagree — a gated action cannot start without a
-recorded `approved`. An item that runs must name its `preset`. An item that
-does not run must carry the `reason` it does not, and is recorded with its
-terminal status rather than dropped: a skipped item and a missing item must not
-look the same in the record.
+**The resolution is recorded in `e2e.md` before dispatch.** Each item
+carries `executor` (`agent` | `agent-with-gate` | `user` | `not-run`) plus
+its `decision`; a gated action cannot start without a recorded `approved`.
+An item that runs must name its `preset`. An item that does not run must
+carry the `reason` it does not, and is recorded with its terminal status
+rather than dropped: a skipped item and a missing item must not look the
+same in the record.
 
-Only an item the agent actually ran gates. A required item kept out of the run
-(`user`, `not-run`, a declined gate) is an honest terminal outcome the run may
-still deliver with; a leaf that *ran* and reported `blocked` has not passed.
+Only success evidence gates the delivery decision: an item the agent ran and
+passed (`agent_passed`), or the user ran and confirmed (`user_confirmed`).
+A required item kept out of the run (`user`, `not-run`, a declined gate) is
+an honest terminal record — but it delivers only with an explicit per-item
+user waiver (acceptance stage above); otherwise the run is blocked. A leaf
+that *ran* and reported `blocked` has not passed.
 
 - `agent_passed`: agent ran it; record command + evidence.
 - `agent_failed`: ran and failed; fix or record blocker.
@@ -371,30 +486,36 @@ still deliver with; a leaf that *ran* and reported `blocked` has not passed.
 
 ## Handoff Checklist
 
-- Per-slice commits present; the end-of-issue review verdict (+ fix
-  rounds) recorded with identity; e2e statuses terminal; no unrelated
-  dirty files.
+- Per-slice commits present; end-of-issue review verdict (+ fix rounds) and identity
+  recorded; E2E stage verdict recorded; e2e statuses terminal; tree clean.
+- Architecture source/landing evidence, declared guard coverage, per-entry
+  exception delta review, and resolved dispositions recorded in tasks.md.
 
 ---
 
 ## Fault manual (read on failure, not upfront)
 
 **No harness presets** (`~/.config/rope/harness/<host>.json` or `rope-*`
-agents missing): use a generic host worker without model pin; record
-`preset_missing` in `tasks.md`; continue. Never auto-run
-`rope-harness-presets`; never hard-block.
+agents missing): use generic host worker without model pin; record
+`preset_missing` in `tasks.md`; continue. Never auto-run `rope-harness-presets`; never hard-block.
 
 **Cannot background-spawn**: run waves foreground, one leaf at a time;
-record the reason in the parallelism declaration.
+record reason in parallelism declaration.
 
 **Worktree requested but result carries no branch name / copy toplevel**:
-the host downgraded to a shared-checkout run — record the downgrade and
-hold shared-mode discipline for the rest of the issue.
+downgraded to shared checkout — record downgrade and hold shared discipline.
 
 **Cannot spawn any reviewer worker at all**: self-review and record
-`review_degraded: no_subagent_tool_available` + what was attempted + why
-self-review. Never silently skip review when a worker can be spawned; never
-instruct an implementer leaf to spawn the reviewer.
+`review_degraded: no_subagent_tool_available` + what was attempted + why.
+Never silently skip review when worker can be spawned; never instruct implementer to review.
 
 **Leaf truncated / aborted mid-work**: probe git status + test state before
 re-dispatch; recover uncommitted work or reset, then re-brief.
+
+**Implementer quota exhausted (429 / Insufficient Quota / Terminal API error)**:
+Switch to backup model declared in `~/.config/rope/harness/<host>.json`
+(`roles.implementer.backup_model` + `backup_thinking`). Re-dispatch affected slice
+with `Agent({ subagent_type: "rope-implementer", model: backup_model, thinking: backup_thinking, ... })`.
+Record `implementer_degraded: switched to <backup_model> (quota)` in `tasks.md`.
+Maintain sticky degradation for remaining slices in this issue session.
+If no `backup_model` in manifest, stop immediately for human decision (Human Escalation Stop).

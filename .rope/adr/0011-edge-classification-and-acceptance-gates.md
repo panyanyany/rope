@@ -43,10 +43,12 @@ Date: 2026-08-27
    (affected slices / authorization / blast radius) with explicit
    continue-or-hold status of other lanes.
 8. **Research mode & declared dispatch deviation.** External research with
-   disk output is a brief-selected **mode of `rope-explore`**: a research
-   brief unlocks web/search and write scoped to `.rope/research/**` (one
-   findings artifact); default and scanner dispatches stay read-only. No
-   fourth agent name; ranking/manifest schema unchanged. Spawning with a
+   disk output is a **mode of `rope-explore`, declared by the brief**
+   (wording revised by [0017](0017-dispatch-contract.md): the brief is the
+   contract): a research brief unlocks web/search and write scoped to
+   `.rope/research/**` (one findings artifact); default and scanner
+   dispatches stay read-only. No fourth agent name; ranking/manifest
+   schema unchanged. Spawning with a
    type/model differing from the preset requires a one-line reason in the
    dispatch record.
 9. **Bounce-rate replay protocol.** `rope-harness-presets` carries an offline

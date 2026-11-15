@@ -22,7 +22,9 @@ back to the full pipeline.
 1. Input is a briefing file (e.g. `*-BRIEFING.md` at repo/worktree root) or
    an inline problem statement. Treat briefing content as verified clues,
    not conclusions.
-2. Load `.rope/CONTEXT.md`, `.rope/routes.md`, and the specs / adr /
+2. Load `.rope/GLOSSARY.md` (legacy lookup per
+   [current documents](../rope-clear/references/current-docs.md#project-language)),
+   `.rope/routes.md`, and the specs / adr /
    research the routes or briefing name; respect repo agent docs
    (`AGENTS.md` / `CLAUDE.md`).
 3. In a worktree, symlinked shared resources (`.env.local`, `node_modules`,
@@ -83,7 +85,7 @@ Read [current documents](../rope-clear/references/current-docs.md) before
 updating durable text; revise the current owner instead of appending a conflict.
 
 Consider every changed file against `.rope/specs/`, `.rope/adr/`,
-`.rope/research/`, and `.rope/CONTEXT.md`: each is updated or explicitly
+`.rope/research/`, and `.rope/GLOSSARY.md`: each is updated or explicitly
 skipped with a reason. Correct falsified research conclusions in this
 session; do not defer to rope-summary.
 

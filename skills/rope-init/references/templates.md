@@ -1,11 +1,13 @@
 # Rope Init Templates
 
-## `.rope/CONTEXT.md`
+## `.rope/GLOSSARY.md`
 
 ```md
-# Context
+# Glossary
 
 Project-specific domain language for this repository.
+This is the single Rope vocabulary; keep definitions short and put
+implementation contracts in `.rope/specs/`, not here.
 
 ## Language
 
@@ -71,7 +73,7 @@ bug or discovering a reusable contract, update the smallest relevant spec.
 This repository uses `.rope/` as a local agent knowledge layer.
 
 Before shaping or implementing work:
-- Read `.rope/CONTEXT.md` for project language.
+- Read `.rope/GLOSSARY.md` for project language (legacy `.rope/CONTEXT.md` until rope-clear migrates it).
 - Read `.rope/routes.md` for navigation.
 - Read relevant `.rope/specs/` before changing code.
 - Read relevant `.rope/adr/` before changing architecture.

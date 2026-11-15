@@ -41,7 +41,8 @@ Implementer/reviewer briefs follow an allowlist plus a line cap:
      list (ADR 0004);
   4. test seam + one prior-art path.
 - **Operational contract (required, not counted as content):**
-  - TDD red/green commands + what failure signal counts as red;
+  - resolved absolute path to the installed TDD playbook for implementer
+    pre-edit reading; task-specific red/green commands + the red signal;
   - expected return shape (summary, paths, commit);
   - no-nested-spawn and commit rules;
   - relevant artifact paths (prd/tasks/e2e, bundle, specs, files) — the
@@ -49,6 +50,13 @@ Implementer/reviewer briefs follow an allowlist plus a line cap:
 - **By reference only (never inline):** slice notes, PRD paragraphs, bundle
   detail, implementation notes, speculative file-by-file plans.
 - **Line cap:** brief body ≤ 60 lines; paths and command blocks excluded.
+
+Runtime handoff rules live in the shipped
+[role contract](../../skills/rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff)
+and [brief contract](../../skills/rope-go/references/execution-rules.md#leaf-brief-contract-hard-budget).
+Shape delegates fact gathering, not complete package drafting; parent remains
+the author and decision owner. TDD policy stays in its independent playbook,
+not copied into parent skill bodies, presets, or briefs.
 
 ## Unresolved questions
 

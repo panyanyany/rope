@@ -5,12 +5,12 @@ Before writing durable docs, read
 Apply its replace-in-place and source-status checks; the formats below
 choose the home, not a reason to create another copy.
 
-## `.rope/CONTEXT.md`
+## `.rope/GLOSSARY.md`
 
 Use for project-specific domain language only.
 
 ```md
-# Context
+# Glossary
 
 ## Language
 

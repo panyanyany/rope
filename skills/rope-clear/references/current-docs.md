@@ -18,6 +18,12 @@ and historical evidence serve different readers; keep their boundaries explicit.
 
 ## Maintain one owner
 
+- Before writing, classify the information and find its existing owner:
+  `.rope/GLOSSARY.md` for short domain definitions; specs for current behavior
+  and implementation contracts; ADRs for qualifying design tradeoffs; research
+  for reusable source-backed facts; the current issue for task progress and
+  temporary evidence; routes for navigation. Split mixed paragraphs by role
+  and link them rather than grow a glossary into an implementation manual.
 - Edit the smallest existing current document in place. Replace obsolete
   clauses and remove redundant explanations within the authorized scope;
   adding a later contradictory paragraph is not an update.
@@ -36,6 +42,15 @@ and historical evidence serve different readers; keep their boundaries explicit.
 - Resolve skill runtime references relative to the loaded skill directory.
   Installed copies are deployment outputs, not extra canonical sources; report
   discrepancies and leave installation changes to an authorized update.
+
+## Project language
+
+The sole Rope glossary is `.rope/GLOSSARY.md`, inside `.rope/`, not at the
+repo root. Until migration, read and update `.rope/CONTEXT.md` when it is the
+only glossary; route its rename through rope-clear rather than create a
+second vocabulary. If both exist, surface conflicting
+definitions instead of treating both as authoritative or choosing by recency.
+Initialization preserves existing content; cleanup owns legacy migration.
 
 ## Completion check
 

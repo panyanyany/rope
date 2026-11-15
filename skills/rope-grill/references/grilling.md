@@ -2,19 +2,21 @@
 
 ## Fact vs decision
 
-- **Facts** (code, tests, docs, primary sources, mature libraries): look up.
-  Prefer background explore leaves when wide — fan them out in parallel
-  under a dynamic execution config (research briefs per the explore
-  research mode); a running exploration delays only the questions
-  downstream of it, never the current round. Never turn answerable facts
-  into user quizzes.
+- **Facts** (code, tests, docs, primary sources, mature libraries): resolve
+  through explore by default, per the
+  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+  Dispatch independent lookups in parallel — mandatory under the research
+  floor below; research briefs carry output
+  contracts per the explore research mode. A running
+  exploration delays only the questions downstream of it, never the
+  current round. Never turn answerable facts into user quizzes.
 - **Decisions** (product tradeoffs, risk, gates, which option wins): put to
   the user in frontier rounds, each with a recommended answer. Never write
   contested choices into `.rope/` as settled.
 
 ## Domain discipline
 
-1. Glossary clash with `.rope/CONTEXT.md` → force a choice immediately.
+1. Glossary clash with `.rope/GLOSSARY.md` → force a choice immediately.
 2. Fuzzy language → propose canonical term + `_Avoid_`.
 3. User claim vs code → surface evidence before continuing.
 4. Abstract boundaries → concrete scenario (prefer this issue’s world).
@@ -65,11 +67,42 @@ the user can choose without learning Rope vocabulary.
 - Done when the frontier is empty: every branch visited, nothing silently
   assumed. The Ready-for-shape checklist below still gates shape.
 
-## External libraries
+## Research floor
 
-When the capability has mature open-source options, search popular packages and
-official guidance **before** inventing. Write facts to `.rope/research/` and cite
-from the PRD. If network is blocked, retry via `http://127.0.0.1:8118`.
+Before inventing, walk the prior-art ladder: question the need →
+repo precedent → standard library / platform-native → installed deps →
+minimal implementation — full behavior understood first, without
+sacrificing boundary checks, error handling, security, accessibility.
+
+**Floor:** a request involving a new mechanism, an external
+platform/service integration, or a "how do mature products do this"
+design judgment requires **parallel research dispatch before the decision
+rounds** — typically two briefs: repo precedent + external product survey
+(brief shape per
+[explore-research-mode.md](../../rope-harness-presets/references/explore-research-mode.md):
+question+why / primary sources / output path+sections / return shape).
+Purely internal small changes record `research: not-needed` + one-line
+reason on the issue/PRD.
+
+**Evidence rule:** an industry-practice claim with no research artifact
+behind it ("X and Y both do it this way") is an unverified memory claim —
+never a decision basis; dispatch a leaf or drop the claim.
+
+When the capability has mature open-source options, search popular
+packages and official guidance **before** inventing. Write facts to
+`.rope/research/` and cite from the PRD. If network is blocked, retry via
+the host's proxy (e.g. `HTTP(S)_PROXY`) before degrading to offline
+heuristics.
+
+**Use the findings before recommending a new mechanism/tool surface.** Ask
+the research leaf how mature implementations solve the same user task and
+which route can be reused or adapted. Verify the project's additional
+constraints from effective contracts and implementation evidence; an existing
+custom mechanism is not proof that it is necessary. Compare reuse, adopting
+the mature approach, and custom work with reasons and the smallest residual
+build scope. Persist that conclusion in the existing decision/research record,
+not just a list of sources. Independent questions determine dispatch count;
+there is no fixed fan-out quota.
 
 ## Behavior Contract fields
 
@@ -91,7 +124,7 @@ from the PRD. If network is blocked, retry via `http://127.0.0.1:8118`.
 
 | Decision | File |
 | --- | --- |
-| Term | `.rope/CONTEXT.md` |
+| Term | `.rope/GLOSSARY.md` |
 | Hard-to-reverse tradeoff (all three ADR tests) | `.rope/adr/` |
 | External fact | `.rope/research/` |
 | Stable contract/gotcha | `.rope/specs/` |
@@ -102,7 +135,9 @@ ADR only when hard to reverse **and** surprising **and** real tradeoff — see
 ## Ready for shape checklist
 
 - [ ] Behavior Contract six fields user-confirmed
-- [ ] Key terms in CONTEXT or explicitly deferred
+- [ ] Key terms in the glossary or explicitly deferred
+- [ ] Prior-art ladder walked, or `research: not-needed` recorded with reason
+- [ ] No unverified "industry practice" claims in decisions — each cites research or is dropped
 - [ ] External facts in research or “not needed”
 - [ ] Human gates listed
 - [ ] Primary / failure / forbidden-shortcut scenarios discussed

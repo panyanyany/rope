@@ -1,6 +1,6 @@
 ---
 name: rope-shape
-description: Shapes clarified requirements into a .rope issue package with PRD, slices, matrix, E2E, Architecture Impact, and a Constraint Bundle. Use after rope-grill or when the user wants shape / 出 PRD / 拆切片 under .rope/issues.
+description: Shapes clarified requirements into a .rope issue package with PRD, slices, matrix, and E2E. Use after rope-grill, or when the user wants shape / 出 PRD / 拆切片 under .rope/issues.
 ---
 
 # Rope Shape
@@ -12,166 +12,81 @@ doc — keep **issue / PRD / slice** vocabulary.
 Templates: [references/issue-package.md](references/issue-package.md).
 Seam placement vocabulary: [references/seam-design.md](references/seam-design.md).
 Architecture impact and Constraint Bundle: [references/architecture-continuity.md](references/architecture-continuity.md).
-E2E classes, gates, vocab, wide-refactor: [references/gates-and-vocab.md](references/gates-and-vocab.md).
+E2E classes, gates, graph vocabulary: [references/gates-and-vocab.md](references/gates-and-vocab.md).
 
 Default handoff: same-session `rope-go`.
 
 ## Workflow
 
-1. Before shaping, read **Startup** in the installed
-   [dynamic workflow reference](../rope-go/references/dynamic-workflow.md);
-   reuse the session's resolution or resolve it on direct entry. Under
-   `dynamic`, read **Grill / shape** there before research and slicing.
-   Read CONTEXT, routes, architecture continuity, and relevant adr/research/specs.
-2. Inspect only enough for public interfaces and verification **seams** (explore leaf if wide).
-   Seed `<issue>/map.md` from what exploration learned — one fact per line, each
-   with a file path and a date. Later leaves read the map for orientation and
-   update the lines they falsify.
-   **Worktree-setup check (incremental):** if `routes.md` has no
-   `Worktree setup:` line, ask the user how a fresh worktree becomes
-   testable — prefer a **check-first idempotent script** (cheap no-op when
-   already testable; read-only symlinks / shared caches over reinstalling),
-   or `host-managed` — and record the answer in `routes.md`. Existing
-   repos join the worktree mode here without re-running `rope-init`.
-   **Test-tiers check (ADR 0013):** if `routes.md` has no `Test tiers:`
-   line, derive one now per the go execution-rules contract (fixed
-   criteria, timed budget) and write it back with the derivation
-   note — zero-human; existing repos join here like worktree-setup. Beside
-   it, record the repo's **broader-suite policy** (`Test policy: fast-iteration`
-   = impact-selected only, or `full-at-freeze` = the repo requires its full
-   suite at the freeze point). It is the repository's declaration, not a
-   judgement call at go; missing is legal and means the ladder decides.
-   **Execution-mode probe (ADR 0012):** verify whether this harness can
-   spawn an isolated (worktree) subagent, and record the result in the
-   `tasks.md` header as `Execution mode: worktree` | `shared` (one line on
-   how verified). Go consumes it; a capability mismatch at go degrades to
-   shared with a recorded reason. This isolation probe is separate from
-   step 1's execution-form resolution. Apply the dynamic reference's
-   coverage and width checks at step 9.
-3. Run the conditional Architecture Impact trigger check. Record `required`, or
-   `not-applicable` with the lightweight check. For `required`, list each source,
-   status, disposition, invariant, forbidden shortcut, evidence, scope, and conflict.
-   If no source is found, record a risk-reviewed New decision candidate.
-4. **Confirm seams and architecture dispositions** with the user when a high-risk
-   candidate, supersede, exception, or unresolved conflict needs a decision.
-5. **Slice outline quiz:** title, user-visible delivery, `Blocked by`, matrix
-   rows, constraint IDs, evidence → iterate until approved → then
+1. Read `.rope/GLOSSARY.md` (legacy lookup per
+   [current documents](../rope-clear/references/current-docs.md#project-language)),
+   routes, architecture continuity, and relevant adr/research/specs.
+2. Inspect only enough for public interfaces and verification **seams**
+   using explore per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
+   Request source locations, consumers, existing test seams, file ownership,
+   and dependency facts. The parent decides the contract, dispositions,
+   slices/edges, and writes the complete PRD/tasks/E2E package; facts are
+   delegated, not design judgment or package drafting.
+   Seed `<issue>/map.md` from what exploration
+   learned — one fact per line, each with a file path and a date; later
+   leaves orient by it and update the lines they falsify.
+3. Fill missing `routes.md` repo contracts (existing repos join here without
+   re-running rope-init):
+   - `Worktree setup:` — ask the user how a fresh worktree becomes testable;
+     prefer a check-first idempotent script, or `host-managed`.
+   - `Test tiers:` — derive per go's execution-rules criteria (zero-human;
+     timing budget and derivation note there, never duplicated here).
+   - `Test policy:` — `fast-iteration` | `full-at-freeze`; missing is legal
+     and means the ladder decides.
+4. Probe whether this harness can spawn an isolated (worktree) subagent;
+   record `Execution mode: worktree | shared` in the tasks.md header (one
+   line on how verified). Go consumes it; a capability mismatch at go
+   degrades to shared with a recorded reason.
+5. Architecture Impact trigger check (architecture-continuity.md): record
+   `required`, or `not-applicable` with the lightweight check. For
+   `required`, read effective source sections **before slicing** and record
+   every source status, disposition, invariant, forbidden shortcut, evidence,
+   scope, and conflict; no source found ⇒ risk-reviewed New decision candidate.
+   Confirm high-risk candidates, supersedes, exceptions, and conflicts with user.
+6. **Slice outline quiz:** title, user-visible delivery, `Blocked by`,
+   matrix rows, constraint IDs, evidence → iterate until approved → then
    write full files.
-6. Write `prd.md` (problem/solution, goals/non-goals, **Contract Note**, Behavior Contract, public
-   behavior, **Testing Decisions**, Architecture Impact, full Constraint Bundle,
-   refs, gates).
-7. Behavior Matrix = the **issue's behavior spec** (BDD): one row per
-   observable behavior (Given/When/Then phrasing where it helps); rows do
-   not point at slices — ticket TDD proves units, the end-of-issue review
-   walks these behaviors at the real entrypoint. N/A rows need a reason.
-8. `tasks.md` **tracer-bullet slices** (to-ticket style): each cuts a complete
-   path when it can, but the hard rules are only — declare `Blocked by` edges
-   **with an Edge Classification label** (file-overlap | seam-required |
-   methodology-order; only seam-required blocks in worktree mode;
-   shared mode also blocks file-overlap — ADR 0012), fit a
-   **fresh context window** (default ~400 diff lines / ~4 owned files;
-   exceeded ⇒ re-cut on the spot), and no two same-wave slices sharing core
-   files in shared mode. **Lower bound:** a change that fits one fresh context
-   window does not become a multi-slice issue — recommend `rope-quick`
-   (ADR 0006) instead. **Two-stage contract slices:** a `Kind: contract` slice
-   carrying deep durability/concurrency/protocol semantics is cut as
-   thin-interface + hardening (ADR 0011) — consumers block only on the
-   thin-interface slice; migration/schema files have exactly one owning
-   slice. **Evidence projection:** every slice's Required evidence entries
-   cite the matrix rows they prove; a matrix row with no slice evidence is a
-   shape defect — fix it here, not at go. Every slice carries a **Demo path**
-   field: the behavior you can demo when it lands — never a layer name.
-   Component slices (parts of one user story) are legal: briefs cite the story
-   row + their own completion criteria. Look for a **prefactor** opportunity
-   first — "make the change easy, then make the easy change" — a
-   structural-enabling slice that unblocks wide parallel work.
-   Wide refactor → expand–contract (gates-and-vocab.md). Anti-pattern catalog:
-   gates-and-vocab.md.
-   **Seam-migration sweep (ADR 0014):** a slice that moves/renames a shared
-   seam (owned files touch a contract other modules consume) carries a
-   mandatory **consumer-sweep** Required-evidence entry: old symbol
-   `grep`/import-graph assertion over the whole repo (zero hits, or every
-   hit accounted for). Blast radius crosses file boundaries — owning the
-   seam never owns the consumers, so nobody else will sweep (agent-workbench
-   dingtalk v1.6.2: two broken assembly files were in no slice's owned
-   files; `reply_queue` residue shipped for 6 days).
-   **Shared ledgers (ADR 0014):** appender-style files multiple slices would
-   write (`map.md`, registries, `CODING_STANDARDS.md`-style ledgers) are
-   excluded from concurrent leaf writes. Leaves **return evidence rows** in
-   their final report; the wave integrator appends once. Declaring such a
-   file in two same-wave `Owned files` is a shape defect.
-   **Composition roots (ADR 0014):** enumerate the repo's assembly points
-   the issue touches (channel/CLI/service wiring, DI/route tables, panel
-   mounts, local stack bring-up — usually 2–6 per repo). Touched ≥1 ⇒ add a
-   `## Composition roots` block to `tasks.md`: one L3 acceptance line per
-   root (real assembly, one event in, one observable behavior out; mock
-   only at the outer boundary). Harness missing ⇒ a harness slice is cut
-   first (Wave 1); harness exists ⇒ the line cites it. E4-style user walks
-   demote to final spot-check once L3 rows exist.
-9. **Read the graph, then quiz granularity, then ask one question.** Derive
-**waves** (topological levels) and **rivers** (clusters with no edge, direct or
-transitive, between them) from the `Blocked by` edges
-([vocabulary](references/gates-and-vocab.md#frontier-waves-rivers)) — then get the
-numbers from the executor instead of by hand: under dynamic
-execution the shipped go kernel compiles a plan without spawning anything
-(`explain`), so the same code that will schedule the run reports **initial
-ready count, level widths, the longest gating chain, and the cross-level
-preference edges**. Under agent dispatch, derive them from the edges and say
-which numbers are estimates. Show those numbers with
-the serial total: a chain of *n* levels is *n* sequential rounds whatever the
-window is, and a window wider than the chain buys nothing. Then the
-**granularity quiz** (same message, not a new round): any slice too coarse
-(won't fit a window) or too fine (trivial grouping lost)? Are the blocking
-edges real per their Edge Classification? A `seam-required` edge that does not
-carry a consumed contract is a shape defect, not caution — cutting a thin
-interface slice or narrowing the consumer's dependency is the fix. Merge or
-split? **Then** exactly one execution question:
-    - two or more rivers ⇒ offer the **split** — each river its own issue, its
-      own pipeline, deliverable alone — or one issue with the rivers running in
-      parallel;
-    - one chain ⇒ confirm the wave order and go.
-    If re-cutting a slice to fit would bend the requirement, stop: take the
-    specific misalignment **back to grill** — early grill is cheaper than late
-    rework.
-10. `e2e.md` carries **real-environment behaviors only** — real external
-    systems, real entrypoints, real data the mocks cannot prove (a behavior
-    unit-tested against fakes that depends on a real API's semantics
-    belongs here). Never list ticket-level test reruns; TDD evidence
-    already covers them. L3 composition-root smokes are **not** e2e — they
-    are mechanical wave gates (fake transport at the outer boundary) and
-    live in the `tasks.md` composition-roots block. Label each item's
-    **mechanism** (`browser-walk`/`cli`/`api`/`file-inspect`/
-    `judgment`/`credentialed`/`unreachable`); classify executors against
-    it (gates-and-vocab), resolving non-agent gates at shape time — go
-    re-resolves against the live harness capability probe.
-11. **Contract Note gate:** output the `## Contract Note` from `prd.md` (3–5
-    one-sentence bullets: “when this issue is done, what can you observe?” +
-    failure visibility where relevant). The user confirms the note **instead of
-    reading the full PRD**; confirming the note confirms the Behavior Contract,
-    because the note is its direct human projection — not a separate wish list.
-    Then confirm architecture decisions + gates → commit package.
-12. **Done when** package committed, every impact entry has a disposition or
-    recorded blocker, and gates are decided. Handoff go in-session
-    (issue path + commit); cross-window only if user switches sessions.
+7. **Research record gate:** PRD cites `.rope/research/` findings or records
+   `research: not-needed` + reason — neither present ⇒ return to grill.
+   Write `prd.md`, `tasks.md`, and `e2e.md` per templates. Each slice carries
+   mandatory Constraint IDs, required source paths/sections, and Architecture
+   landing evidence; Testing Decisions declares architecture guards and
+   exception paths. Apply package readiness gate before handoff. Slicing hard
+   rules and evidence projection live in [gates-and-vocab.md](references/gates-and-vocab.md)
+   and [architecture-continuity.md](references/architecture-continuity.md).
+8. **Graph, granularity quiz, and execution choice:** derive waves (levels)
+   and rivers (clusters) from `Blocked by` edges; show ready count, level
+   widths, and longest gating chain. **Narrow is default:** window is a ceiling,
+   not sizing target; file-disjoint slices run parallel. Quiz granularity in
+   same message (coarse/fine, edge labels real). Then ask execution choice:
+   ≥2 rivers ⇒ offer split or parallel; 1 chain ⇒ confirm wave order and go.
+   Requirements-bending re-cuts return to grill.
+9. `e2e.md` carries **real-environment behaviors only** — real external
+   systems, real entrypoints, real data mocks cannot prove; never ticket-level
+   reruns. Label each item's **mechanism** (gates-and-vocab); resolve non-agent
+   gates at shape; go re-resolves against live capability probe.
+10. **Contract Note gate:** output `## Contract Note` from prd.md (3–5
+    one-sentence observable bullets + failure visibility). User confirms note
+    **instead of reading full PRD**. Then confirm architecture decisions +
+    gates → commit package.
+11. **Done when** package is committed, package readiness gate passes, every
+    applicable impact entry has resolved disposition, and gates are decided.
+    Recorded blockers are not ready for execution. Handoff go in-session
+    (issue path + commit).
 
 ## Guardrails
 
-- No feature code; no ready mark if Contract, seams, architecture dispositions,
-  conflicts, or facts are open.
-- `not-applicable` requires its trigger-check record; it is not a missing section.
-- Do not mark a high-risk New decision candidate ready without a decision.
-- Do not ask serial-or-parallel before the slice graph exists; the graph answers
-  it (step 9), with numbers.
-- Do not merge rivers into one slice to dodge the split question.
-- Fresh-context fit is an iron rule for every slice, not advice.
-- No stale file-by-file plans in PRD — public interfaces and seams only.
-- Do not call the PRD a “spec” or slices “tickets” in written artifacts.
-- Contract Note must be 3–5 bullets derived from Behavior Contract fields
-  (Observable result / Failure visibility / boundary), never a second contract
-  that can drift from the PRD.
-- Do not ask the user to read the full PRD by default; step 11 confirms the
-  Contract Note. Full-PRD review is opt-in.
-- A seam-migration slice without a consumer-sweep evidence entry is not
-  ready; a touched composition root without an L3 line is not ready.
-- Mocks at a migrated seam instead of the outer boundary are a shape defect
-  (fiction validation), not a test-style preference.
+- No feature code; no package ready while Contract, seams, dispositions,
+  conflicts, or research records are open.
+- High-risk New decision candidates block shape; not-applicable requires
+  its trigger-check record.
+- Fresh-context fit is iron: never merge rivers to dodge the split question.
+  No stale file-by-file plans — public interfaces and seams only.
+- Contract Note gate (step 10) replaces default full-PRD review.
+- Seam-migration slices require a consumer-sweep evidence entry (gates-and-vocab).

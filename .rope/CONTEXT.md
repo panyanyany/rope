@@ -1,19 +1,6 @@
 # Context
 
 ## Language
-**Workflow execution mode** — the session's execution form, resolved
-mechanically once per session (including direct phase entry) from
-`~/.rope/config.toml` `[execution] default` plus a host capability probe
-(ADR 0014): never a user question, never an issue-package field, not
-re-resolved mid-session. `dynamic` means a script-driven deterministic
-workflow for go (JS orchestrator; the model lives only in leaves and
-review agents) with impact-selected mechanical gates, and it reaches backward:
-grill fans out by independent evidence questions, shape maximizes real graph
-width rather than slice count. The operational contract ships in skill
-references; project architecture docs provide rationale, not a runtime
-dependency. Absent or `agent` means parent Agent dispatch. Issue packages
-never declare it — a ticket describes work, not how it runs.
-
 **Parent Orchestrator**:
 The main issue session that owns grill, shape, the slice loop, leaf-worker dispatch, issue-level verify, and finish handoff. It is the only agent allowed to spawn workers for an issue. Judgment-primary and context-protective: it decides, talks to the human, writes durable artifacts, and re-briefs/steers leaves — it does not bulk-load exploratory noise or run long implement/fix loops in its own context, because compaction discards earlier discussion. Course correction is done by rewriting the brief and re-spawning a leaf, not by the parent absorbing the full failure trace and fixing in-place.
 _Avoid_: main session (ambiguous), god agent, multi-agent swarm, pure router, parent self-implements everything
@@ -43,25 +30,27 @@ _Avoid_: second code review, replaying green tests, trusting verdict claims
 without identity
 
 **End-of-Issue Review**:
-The single review gate after all slices (ADR 0007, mechanics refined by
-0010): **two parallel read-only leaves with new eyes**, spawned in one
-message — under workflow execution, inside the kernel at a **freeze point**
-(every slice merged, tree clean, no leaf running), fix loop ≤2 rounds
-with delta re-review. The **Standards scanner** (explore-class preset, cheap model)
-runs lint/typecheck first, then judgement-call-scans the assembled diff
-for repo conventions, TDD anti-patterns, the smell baseline, and inline
-global invariants — never runs the product. The **Behavior reviewer**
-(`rope-reviewer`, strong model) starts the product first, reads the diff
-while it boots, then walks the Behavior Matrix at the **real entrypoint**
-the way a user would, runs e2e items, and gives high-risk boundaries the
-deepest look; it is the only leaf that may run the product. Aggregation
-is mechanical — verdict = worst of axis verdicts, no rerank. Findings are
-`blocking | note` with path:line + one-sentence fix; only blocking enters
-the one fix brief (≤2 rounds, then Human Escalation Stop); post-fix
-re-review is delta-only. Per-slice review no longer exists.
+The single code-review gate after all slices (ADR 0007, mechanics refined by
+0010, product-run scope split by 0015): **two parallel read-only leaves with
+new eyes**, spawned in one message against a frozen clean HEAD (every slice
+merged, tree clean, no leaf running), fix loop ≤2 rounds with delta
+re-review. The **Standards scanner**
+(explore-class preset, cheap model) runs lint/typecheck first, then
+judgement-call-scans the assembled diff for repo conventions, TDD
+anti-patterns, the smell baseline, and inline global invariants — never runs
+the product. The **Behavior reviewer** (`rope-reviewer`, strong model) reads
+the assembled diff against the Behavior Matrix and gives high-risk
+boundaries the deepest look. The reviewer is
+code-only: starting the product, walking the real entrypoint, and running
+e2e items belong to the **E2E acceptance stage** that follows an `approve`
+(ADR 0015). Aggregation is mechanical — verdict = worst of axis verdicts, no
+rerank. Findings are `blocking | note` with path:line + one-sentence fix;
+only blocking enters the one fix brief (≤2 rounds, then Human Escalation
+Stop); post-fix re-review is delta-only. Per-slice review no longer exists.
 _Avoid_: review (wrong level), per-slice verdict bookkeeping, silent
 self-check degradation, fixture-only acceptance, parent re-ranking axes,
-scanner running the product
+scanner running the product, the reviewer re-walking journeys the E2E
+Runner already proved
 
 **Standards Scanner**:
 The cheap read-only leaf of the end-of-issue review (ADR 0010): runs the
@@ -72,7 +61,8 @@ invariants — every hit a judgement call, never a violation, with
 repo-documented standards overriding the baseline. Spawned from the
 explore preset with the baseline pasted in the brief; returns `clean` or
 ≤200 words of `{severity, path:line, issue, fix}` findings. Never starts
-the product; ports and processes belong to the Behavior reviewer.
+the product; ports and processes belong to the E2E acceptance stage — the
+parent-owned stack + E2E Runner leaves (ADR 0015).
 _Avoid_: deep judgment in the scanner, hard-violation framing, moving
 architecture-continuity judgment out of the Behavior reviewer
 
@@ -80,9 +70,8 @@ architecture-continuity judgment out of the Behavior reviewer
 The post-0007/0008/0009 execution model. Shape slices tracer-bullet style
 (blocking edges + fresh-context fit are the hard rules; component and
 prefactor slices legal; vertical path-per-slice is a habit, not a rule). Shape reads the slice graph after
-slicing — the executor's own compile pass reports initial ready count, level
-widths and the longest gating chain — and asks one execution question
-with those numbers. Go's default intent is maximum concurrency in either mode (every ready
+slicing — initial ready count, level widths and the longest gating chain
+derived from the edges — and asks one execution question with those numbers. Go's default intent is maximum concurrency in either mode (every ready
 slice gets a background leaf; serialization needs a recorded reason;
 startup declares planned vs max parallelism). It picks a mode from host
 capability: **worktree mode**
@@ -90,7 +79,7 @@ capability: **worktree mode**
 merged (file-overlap edges are merge-order preferences under this mode), one worktree
 per leaf, serial merge queue, repo-declared `worktree-setup:` contract in
 `routes.md`, parent owns `map.md` updates) or **shared mode** (waves,
-disjoint owned files per wave, leaves maintain the map; the kernel serializes
+disjoint owned files per wave, leaves maintain the map; the parent serializes
 to one leaf at a time because there is one index and one checkout). No `mode:` or
 `review:` frontmatter; legacy packages that carry them are ignored.
 Re-cutting that bends the requirement goes back to grill.
@@ -98,61 +87,38 @@ _Avoid_: wave barriers in worktree mode, asking serial-or-parallel before
 the graph exists, merging in parallel, per-merge test rituals, leaves
 writing the shared map concurrently
 
-**Execution Kernel**:
-The shipped orchestration asset for dynamic go
-(`skills/rope-go/workflows/go-execute.js`, ADR 0014 addendum 2026-09-11):
-one fixed, offline-tested JavaScript file that owns readiness dispatch,
-frontier refill, the in-flight window, serial merges, staged preconditions,
-bounded repair rounds and the in-run review. The parent session compiles
-**task data** into it and reads a **run record** back; it writes no
-orchestration code and never restates the delivery contract. Invoked by
-absolute `scriptPath` resolved from the skill's installed directory, because
-a non-absolute path resolves against the repository. Schema authority:
-[`execution-template.md`](../skills/rope-go/references/execution-template.md).
-_Avoid_: per-issue script authorship, orchestrating from the parent between
-runs, mistaking a shipped kernel for example code to edit
-
 **Delivery Branch**:
-The predeclared, plan-derived branch (`branchPrefix + task id`) a worktree leaf
-points at its own final commit as the last write before returning. It is the
-only routing input the executor reads: `scripts/verify-delivery.sh` runs as the
-spawn's gate inside the worktree before cleanup and asserts the branch exists,
-resolves to the tree's HEAD, and that the tree is clean — creating or moving the
-branch and committing leftovers when needed, and reporting `moved`/`recovered`.
-The merge agent establishes the SHA from git, so a leaf's claimed SHA is never
-trusted. This replaces parsing branch names out of agent text.
+The predeclared branch a worktree leaf points at its own final commit as
+the last write before returning — commit everything, leave
+`git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`.
+Stated in the brief because the host's own `pi-agent-<id>` cleanup branch is
+not a name the merge queue can route on. The parent establishes the SHA
+from git, so a leaf's claimed SHA is never trusted. This replaces parsing
+branch names out of agent text.
 _Avoid_: reading a branch name from a leaf's prose, trusting a claimed SHA,
 routing on the host's `pi-agent-*` cleanup branch
 
-**Check Timetable**:
-The declared schedule that decides when each repository check runs: `merge`
-(cheap post-merge warning, never gating), `l2` (integration gate, asserted
-before L3/review/e2e may start), `l3` (composition-root smokes), `freeze`
-(repo policy). Checks run serially, one batch per stage, through
-`scripts/run-check.sh` as the host's gate, so the verdict is an exit code and
-the detail is an evidence file keyed by `<scope>@<integrated commit set>` — an
-unchanged state reuses its evidence instead of spending the command again. It
-lives in the tree at `.rope/issues/<slug>/evidence/`, ignored by the repository
-and excluded from the delivery gate by `--evidence`, because a bookkeeping file
-must never read as unfinished work.
-The repo declares `Test policy: fast-iteration | full-at-freeze` in `routes.md`.
-_Avoid_: per-slice full suites, periodic reruns without a changed key, gate
-detail relayed through agent prose
-
-**Real-Environment Walk**:
-The e2e stage of dynamic go, and it runs **after** the End-of-Issue Review, not
-before it: the read-only review is cheap and the real-environment walk is not, so
-reviewing first means the walk runs once, on the commit that will actually be
-delivered. Each item carries the `executor` Shape resolved (`agent`,
-`agent-with-gate`, `user`, `not-run`) and is recorded with the terminal status
-verify/finish read. A failed item enters the same bounded repair loop as a review
-failure — fix, land through the merge queue, re-walk every declared item, delta
-re-review — because a fix moves the HEAD and the previous green is gone. Only an
-item the agent actually ran gates; a kept-out item is an honest terminal outcome a
-delivered run may carry.
-_Avoid_: walking the real environment before the code review, reusing a green
-from a superseded HEAD, a leaf declaring its own failed item human-only, a kept-out
-item that vanishes instead of appearing in the record
+**E2E Runner**:
+The read-only product-driving leaf of the E2E acceptance stage
+(ADR 0015), dispatched only after the two-axis code review returns
+`approve`. One runner drives **one journey** through the project-declared
+real entrypoint (browser, real message channel, CLI, API — the project
+declares, Rope prescribes no tool); internal seams (submitter injection,
+fixtures) are integration evidence and never substitute. The **parent owns
+one shared test stack** — project-declared start command, readiness probe,
+teardown; runners never build their own. Resource-disjoint journeys run as
+parallel leaves with isolated browser sessions; journeys sharing an account
+or mutable state serialize. A runner never edits code, never spawns, and
+returns structured evidence (steps, tool/command, artifacts, per-item
+pass/fail). Every required `e2e.md` item carries success evidence —
+`agent_passed` (runner) or `user_confirmed` (user ran it) — or an explicit
+per-item user waiver recorded as a waiver, never as a pass; otherwise the
+issue stays blocked. After an E2E fix merges:
+delta code re-review, stack re-deploys on the new HEAD, affected journeys +
+shared-entry smoke re-run, reused evidence annotated with its commit.
+_Avoid_: implementer signing acceptance, reviewer re-walking proved
+journeys, per-runner stacks, headless injection recorded as entrypoint
+truth, waivers absorbed silently
 
 **Self-Fix Loop**:
 A check/verify pattern (from Trellis) where the verifying model finds a problem and fixes it directly, then reruns checks, looping until green. Not used at issue-level verify in Rope, because verify must not edit code (cross-role separation of implement vs accept).
@@ -179,16 +145,20 @@ The per-decision statement of how an issue handles a relevant existing architect
 _Avoid_: one issue-level disposition for several decisions, silently choosing a disposition during implementation, treating exception as an undocumented shortcut
 
 **Constraint Bundle**:
-The portable architecture constraint set derived during shaping: decision sources and statuses, scope, invariants, public seams, forbidden shortcuts, acceptance evidence, and unresolved conflicts. The parent keeps the issue-level bundle; each leaf receives the global constraints plus the subset relevant to its slice.
-_Avoid_: a bare instruction to “follow the ADR”, leaf-local reinterpretation, or a second canonical architecture document
+The portable architecture constraint set derived from effective sources before slicing: decision sources/statuses, scope, invariants, public seams, forbidden shortcuts, evidence, and conflicts. The parent keeps the full bundle; each slice/brief requires applicable global + slice IDs and source sections to read. A justified `none` is explicit. Effective sources take precedence over slice-local convenience; conflicts return to the parent.
+_Avoid_: a bare instruction to “follow the ADR”, IDs without source reading, leaf-local reinterpretation, or a second canonical architecture document
+
+**Architecture Landing**:
+The implementer's pre-edit statement after reading mapped source sections: at most three lines naming the existing responsibility reused, public seam used, and ownership/dependency direction preserved. Returned with source sections read and the pre-edit record reference; checked mechanically, judged by the end-of-issue reviewer. No separate approval round.
+_Avoid_: a copy of the spec, a file-by-file plan, retrospective evidence claimed as pre-edit reading
 
 **Contract Note**:
 A shape-time, user-facing projection of the issue's Behavior Contract: 3–5 one-sentence bullets answering “when this issue is done, what can you observe?”, plus failure visibility where relevant. Written into `prd.md` as `## Contract Note`; step 11 of `rope-shape` asks the user to confirm the note instead of reading the full PRD. Confirming the note confirms the Behavior Contract because the note is a direct projection of it — not a separate wish list. Verify still accepts against the Behavior Contract, matrix, and E2E.
 _Avoid_: a second contract that can drift from the PRD, asking the user to read the full PRD by default, treating the note as an acceptance artifact
 
 **Minimal Leaf Brief**:
-The hard budget for implementer/reviewer briefs: a content allowlist (slice Public behavior one sentence; Behavior Contract 6 fields at their thinnest; Constraint Bundle path + slice Constraint IDs + short global invariant list; test seam + one prior-art path) plus a required operational contract (relevant artifact paths for by-reference — including the investigation map path
-reads, TDD red/green commands + red signal, expected return shape, no-nested-spawn
+The hard budget for implementer/reviewer briefs: a content allowlist (slice Public behavior one sentence; Behavior Contract 6 fields at their thinnest; mandatory Constraint Bundle path + global/slice Constraint IDs + short global invariants; test seam + one prior-art path) plus a required operational contract (source files/sections to read before editing and Architecture landing evidence; relevant artifact paths including the investigation map;
+TDD red/green commands + red signal, expected return shape, no-nested-spawn
 and commit rules). Everything else loads by reference; brief body ≤ 60 lines (paths and command blocks excluded). More enforceable than “be concise” because it can be checked before dispatch.
 _Avoid_: full inline PRD paragraphs, inline bundle detail, speculative file-by-file plans, dropping TDD commands or return shape to save tokens
 
@@ -238,8 +208,10 @@ migration file
 
 **Mechanical Return Gate**:
 The join-time reconciliation between a leaf's return summary and its slice's
-Required evidence: every evidence item must map to pasted command output or an
-artifact path; a missing item bounces the leaf back to exactly those items. It
+Required evidence, including mapped source reading/Architecture landing,
+affected guards, and exception deltas: every item maps to recorded output or
+an artifact/message reference; missing items bounce exactly those IDs, reported
+architecture conflicts hold the affected landing for resolution. It
 is **evidence reconciliation, not code review** (ADR 0007 boundary): no
 implementation re-read, no test reruns, no second review point — the
 end-of-issue review stays the only review gate.
@@ -248,7 +220,8 @@ using the gate to inject new acceptance requirements
 
 **Defense Budget**:
 The rule that a correction brief may not introduce acceptance requirements
-absent from the issue's Behavior Matrix — new acceptance lines = 0. A genuine
+absent from the shaped Behavior Matrix/Constraint Bundle — new acceptance
+lines = 0; architecture obligations are declared at shape, not invented in fixes. A genuine
 gap found during execution goes back to shape (re-cut as a new slice) or is
 demoted to a recorded non-blocking note. Acceptance scope is fixed at shape;
 fix rounds converge instead of escalating.
@@ -273,3 +246,28 @@ authorization requested, and the blast radius — instead of one-at-a-time
 blocking. Non-gated lanes' continue-or-hold status is stated explicitly.
 _Avoid_: sequential gate blocking idle lanes, vague gate descriptions that
 require a follow-up question to understand
+
+**Research Floor**:
+The grill-stage dispatch floor (ADR 0017): a request involving a new
+mechanism, an external platform/service integration, or a "how do mature
+products solve this" design judgment requires parallel research dispatch
+before the decision rounds — typically two briefs (repo precedent +
+external product survey). Purely internal small changes record
+`research: not-needed` + one-line reason instead. Shape backstops it: a
+PRD citing neither research nor a waiver is refused. Backs the prior-art
+ladder (need → repo precedent → stdlib/platform → installed deps → minimal
+build) and bans unverified industry-practice claims as decision bases.
+_Avoid_: "prefer to research when wide" as a license to skip, treating
+model memory as prior art, floor turned into an excuse to skip quick-path
+work that needs no research
+
+**Dispatch Contract**:
+The ADR 0017 contract family: the dispatch brief is executable (question,
+sources, output path, return shape; leaf honors exactly what it declares;
+unmet requirements return under `unknowns` with attempts); dispatch is the
+mandated path wherever rules name a leaf (E2E journeys, research, fixes);
+and the parent writes no product/test code during go/E2E — correction is
+always rewrite-brief + re-dispatch, never parent self-editing or parent
+takeover of a failed leaf's job.
+_Avoid_: parent takeover framed as "brief correction", empty leaf returns
+accepted as passes, silent shrinking of a brief's scope in the return

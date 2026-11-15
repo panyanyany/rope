@@ -8,7 +8,7 @@ check its status, scope, and replacement. A grep hit alone is not a constraint.
 
 ## Trigger check
 
-Shape performs a targeted lookup through `.rope/CONTEXT.md`, routes, the confirmed seams, task references, and relevant ADR/spec paths. It does not scan every architecture document.
+Shape performs a targeted lookup through `.rope/GLOSSARY.md`, routes, the confirmed seams, task references, and relevant ADR/spec paths. It does not scan every architecture document.
 
 Set `Impact: required` when any trigger applies:
 
@@ -66,7 +66,7 @@ When triggers apply but targeted lookup finds no source, write:
 
 High-risk candidates (hard to reverse, public-contract changing, or involving a real tradeoff) block shape. A low-risk candidate may proceed only with an explicit parent conclusion.
 
-For an older package without Architecture Impact, record `legacy package — architecture continuity not assessed`. Verify revisits that assessment when the final work touches a trigger; new packages always include the section.
+For an older package without Architecture Impact, perform the targeted check and fill the applicable mappings before go dispatches affected slices. Record `legacy package` and the assessment; missing history is not permission to execute without constraints. Do not bulk-migrate unrelated packages.
 
 ## Constraint Bundle
 
@@ -82,11 +82,28 @@ For an older package without Architecture Impact, record `legacy package — arc
 
 Map every decision and invariant to `issue`, one or more slices, `e2e`, or `verify`, and name the evidence that proves it. `tasks.md` references these IDs and records slice applicability; it does not copy the full bundle.
 
-The parent keeps the full bundle. A leaf receives the global constraints plus its slice subset, source paths, disposition, invariant, forbidden shortcut, required evidence, and open conflict status.
+The parent keeps the full bundle. Every slice has a nonempty `Constraint IDs:` field and `Required reading:` paths with section headings. Include issue-wide invariants as well as slice-specific IDs. Select the smallest source sections sufficient to establish responsibility ownership, the public seam, and forbidden shortcuts; include their status/scope/replacement context. A bundle summary does not replace reading the effective source.
+
+For checked non-applicability, use `Constraint IDs: none — <trigger-check reason>` and `Required reading: none — <reason>`. Docs-only work is not automatically non-applicable: changing a specification can affect an architecture decision.
+
+The parent reads the applicable sources **before slicing**, then derives these mappings. Leaves read only their mapped sections, not the entire `.rope/` tree. An implementer records an **Architecture landing** before writing code: at most three lines naming the existing responsibility reused, the public seam used, and the ownership/dependency direction that must remain unchanged. Return the actual source-reading record references and this statement as evidence, not merely a list of paths claimed read. This is not a new approval round or a speculative file-by-file plan.
+
+Effective specifications take precedence over slice-local implementation convenience. A source/bundle mismatch or a need to change a disposition stops the affected slice and returns to the parent for source-status resolution, re-shaping, and user confirmation of changes/exceptions where required. Independent slices may continue.
+
+## Package readiness gate
+
+Shape checks these conditions before declaring the package ready; go checks them again before dispatch. Missing or placeholder-only fields return to shape, not to an implementer to invent:
+
+- Every issue has an Impact result and trigger-check reason. `required` has a nonempty bundle, decision records with concrete source file paths and applicable sections, resolved dispositions, and no applicable open conflict.
+- If targeted lookup found no existing source, retain `Relevant decisions: none found`; assign the resolved new candidate an ID, rationale, invariant, public seam, evidence, and scope in the bundle. Its issue-local path/section is the reading source until a canonical document exists. An unresolved candidate is not a substitute for a bundle; never fabricate a spec reference.
+- Every slice maps its Constraint IDs to actual bundle records, carries required source reading and architecture evidence, and includes global applicable IDs. A justified `none` must agree with the trigger check, not merely with the slice's label.
+- Testing Decisions identifies architecture guard commands/coverage and exception-list paths (or explicitly records their absence and the manual invariant review needed). Slices carry affected guard evidence; full architecture guard coverage is issue-level evidence. Execution and integration mechanics: [architecture gates](../../rope-go/references/architecture-gates.md).
+
+Package completeness is a dispatch gate, not proof that the constraints were obeyed.
 
 ## Continuity checks
 
-Review and verify judge behavior, invariants, dependency direction, responsibility ownership, public compatibility, and evidence. They do not require a particular function, class, or internal implementation shape.
+The end-of-issue reviewer judges behavior, invariants, dependency direction, responsibility ownership, public compatibility, and exception bounds against the effective sources. Verify checks the recorded mappings, evidence, review, and documentation outcomes only; it never re-judges code. Neither requires an internal implementation shape absent from the source contract.
 
 For `not-applicable`, record the lightweight trigger check. For `inherit`, every invariant needs evidence. For `extend`, `supersede`, or `exception`, evidence must cover the changed boundary and the documentation outcome. Confirmed documentation that is still unwritten is `pending-finish`, not a code finding.
 

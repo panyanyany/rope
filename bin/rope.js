@@ -31,6 +31,15 @@ function copyDir(src, dest) {
       fs.copyFileSync(srcPath, destPath);
     }
   }
+  // mirror: a reinstall must retire files the bundle no longer ships,
+  // or deleted kernels/templates linger in the target forever.
+  for (const entry of fs.readdirSync(dest, { withFileTypes: true })) {
+    const destPath = path.join(dest, entry.name);
+    if (entry.name === "settings.json") continue;
+    if (!fs.existsSync(path.join(src, entry.name))) {
+      fs.rmSync(destPath, { recursive: true, force: true });
+    }
+  }
 }
 
 function installSkills(args) {
@@ -40,10 +49,23 @@ function installSkills(args) {
       ? args[targetIndex + 1]
       : path.join(homeDir(), ".agents", "skills");
   const skillsDir = path.resolve(__dirname, "..", "skills");
+  const shipped = fs
+    .readdirSync(skillsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 
-  for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    copyDir(path.join(skillsDir, entry.name), path.join(target, entry.name));
+  for (const name of shipped) {
+    copyDir(path.join(skillsDir, name), path.join(target, name));
+  }
+  // mirror at the top level too: a skill dropped from the bundle must not
+  // survive in the target. Only rope-* dirs are ever touched.
+  if (fs.existsSync(target)) {
+    for (const entry of fs.readdirSync(target, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !entry.name.startsWith("rope-")) continue;
+      if (!shipped.includes(entry.name)) {
+        fs.rmSync(path.join(target, entry.name), { recursive: true, force: true });
+      }
+    }
   }
 
   console.log(`Installed rope skills to ${target}`);

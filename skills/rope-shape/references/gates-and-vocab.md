@@ -19,11 +19,10 @@ file inspection), never frozen at shape:
   `unreachable` ⇒ **user** — the durable human classes.
 - out of scope ⇒ `not-run` with reason + user-accepted waiver.
 
-The four executor values and the gate decision are what go compiles into the
-plan as `executor` + `decision` (execution-template.md, `E2eItem`). Write both,
-and a `reason` for anything that will not run — the kernel rejects an
-`agent-with-gate` item with no recorded approval rather than running it, and
-records a kept-out item by its decision instead of dropping it.
+Write each item's `executor` and `decision` into `e2e.md`, and a `reason`
+for anything that will not run: an `agent-with-gate` item never starts
+without a recorded approval, and a kept-out item is recorded by its
+decision instead of dropped.
 
 E2E items carry **real-environment behaviors only** (real APIs, real entrypoints, real data). Ticket-level unit validation lives in TDD evidence and never appears as an E2E item — no `covered_by_slice` bookkeeping: if it would be `covered_by_slice`, it does not belong in e2e.md at all.
 
@@ -49,33 +48,43 @@ E2E items carry **real-environment behaviors only** (real APIs, real entrypoints
 | **Component slice** | A slice serving part of one user story; brief cites the story row + its own completion criteria; legal under tracer-bullet slicing |
 | **Prefactor** | A structural-enabling slice that makes later slices easy ("make the change easy, then make the easy change"); often the first source of wide parallelism |
 
-Upstream “spec/ticket” is kernel only; keep Rope names in artifacts we write.
+Upstream “spec/ticket” is upstream vocabulary only; keep Rope names in artifacts we write.
 
-## Edge Classification (ADR 0011, refined by 0012)
+## Edge Classification
 
 Every `Blocked by` edge gets exactly one label at shape; `seam-required`
 always blocks dispatch, `file-overlap` is mode-dependent:
 
 | Label | Test | Effect |
 | --- | --- | --- |
-| **file-overlap** | the downstream slice reads/writes files the upstream owns (verify against owned-files, not intuition) | shared mode: blocks dispatch. Recorded worktree mode (ADR 0012): **merge-order preference** — both dispatch concurrently, merge queue orders landing, conflict = one re-dispatch |
+| **file-overlap** | the downstream slice reads/writes files the upstream owns (verify against owned-files, not intuition) | shared mode: blocks dispatch. Recorded worktree mode: **merge-order preference** — both dispatch concurrently, merge queue orders landing, conflict = one re-dispatch |
 | **seam-required** | the downstream consumes a public seam the upstream must first create | blocks dispatch in both modes |
 | **methodology-order** | no overlap, no seam — only "reads better if done first" (e.g. instrumentation before refactor) | merge-order preference only; go dispatches across it |
 
 A missing label is a shape defect. "Feels safer sequential" is not a label —
 it is a merge-order preference at best.
 
-## Slice granularity hard rules & anti-patterns (ADR 0011)
+## Slice granularity hard rules & anti-patterns
 
 - **Demo path (mandatory per slice):** the answer to "what can I demo when
   this slice lands?" — a behavior, never a layer name ("schema done" fails).
 - **Lower bound:** the whole change fits one fresh context window ⇒ do not
-  make a multi-slice issue; recommend `rope-quick` (ADR 0006).
-- **Upper bound:** one slice ≈ one fresh context window; exceeded ⇒ re-cut on
-  the spot (existing rule).
+  make a multi-slice issue; recommend `rope-quick` — a one-window change pays more in orchestration than it earns.
+- **Upper bound:** one slice ≈ one fresh context window (default ~400 diff
+  lines / ~4 owned files); exceeded ⇒ re-cut on the spot.
+- **Narrow-first default:** the fresh-window upper bound is a
+  re-cut ceiling, not a sizing target — cut the smallest independently
+  verifiable behavior with its own demo path; more, thinner slices beat
+  fewer packed ones, and file-disjoint slices parallelize.
 - **Two-stage contract slices:** deep durability/concurrency/protocol work in
   a contract slice is thin-interface + hardening; consumers block only on the
   thin-interface half.
+- **Consumer sweep (seam migration):** a slice that moves/renames a shared
+  seam carries a mandatory Required-evidence entry — old-symbol
+  `grep`/import-graph assertion over the whole repo (zero hits, or every hit
+  accounted for). Owning the seam never owns the consumers; nobody else will
+  sweep (field evidence: two broken assembly files were in no slice's owned
+  files; `reply_queue` residue shipped for 6 days).
 - **Anti-patterns** (field evidence: mattpocock/skills pin 6654f6b6 —
   horizontal slicing produced 26 tickets × ~20 agent runs each, 3/4 rework):
   horizontal (per-layer) slicing; over-decomposition (trivial grouping lost);

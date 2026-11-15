@@ -21,7 +21,7 @@ Manual invoke only.
 | [ranking.md](references/ranking.md) | Ranking procedure, offline heuristics, confidence |
 | [offline-ranking-fixture.md](references/offline-ranking-fixture.md) | Research-fail → confidence low still ranks |
 | [discovery-fixtures.md](references/discovery-fixtures.md) | Dry checks |
-| [explore-research-mode.md](references/explore-research-mode.md) | Explore research mode (ADR 0011) |
+| [explore-research-mode.md](references/explore-research-mode.md) | Explore research mode |
 | [bounce-rate-replay.md](references/bounce-rate-replay.md) | Planner model-selection replay protocol |
 
 ## Host support
@@ -77,7 +77,7 @@ Completion:
 - [ ] Model list captured (or explicit failure)
 - [ ] No mutation of any host model/provider settings
 
-### 4. Rank models into three roles
+### 4. Rank models into four roles
 
 Follow [ranking.md](references/ranking.md) (unchanged, host-neutral input):
 
@@ -85,7 +85,7 @@ Follow [ranking.md](references/ranking.md) (unchanged, host-neutral input):
    tools are available.
 2. If research fails or is unavailable, use local name/capability heuristics.
 3. Assign one model + default thinking/effort to each role:
-   `implementer`, `reviewer`, `explore`.
+   `implementer`, `reviewer`, `runner`, `explore`.
 4. Record sources and confidence (`high` | `medium` | `low`). Offline /
    research-fail always still ranks; set `confidence: low`.
 
@@ -104,6 +104,7 @@ whatever step 2 verified):
 | --- | --- |
 | implementer | `rope-implementer` |
 | reviewer | `rope-reviewer` |
+| runner | `rope-e2e-runner` |
 | explore | `rope-explore` |
 
 Rules:
@@ -119,7 +120,7 @@ Rules:
 - Re-run is idempotent: same paths, clean overwrite.
 
 Completion:
-- [ ] Three `rope-*` files exist, readable, in the verified host format
+- [ ] Four `rope-*` files exist, readable, in the verified host format
 - [ ] Each forbids nested spawn
 - [ ] No non-`rope-*` agents modified
 
@@ -131,7 +132,7 @@ needed. Overwrite a corrupt/partial prior manifest with a valid full one.
 Append `capability_gaps` when step 2 found any.
 
 Completion:
-- [ ] Manifest maps all three roles → agent name, model, thinking/effort,
+- [ ] Manifest maps all four roles → agent name, model, thinking/effort,
       sources, confidence
 - [ ] `host`, `generated_at`, and skill identity present
 
@@ -142,32 +143,29 @@ Return a short report only:
 - host (+ how identified), confidence, sources summary
 - agent paths written (host-native), manifest path
 - capability gaps / degrade notes (`research_offline`, `no_agent_mechanism`,
-  migrate hint if old `rope-verify/settings.json` is found on disk)
+  migrate hint if an old `rope-verify/settings.json` pin is found on disk)
 
-## Graph-driven concurrency (waves)
+## Concurrency
 
-`rope-go` runs the slice graph wave by wave: frontier slices with disjoint
-owned files spawn **multiple concurrent `rope-implementer` leaves**, all from
-the presets written above — through the host's own subagent mechanism.
+`rope-go` may spawn multiple concurrent `rope-implementer` leaves
+(disjoint frontier slices) through the host's own subagent mechanism. The
+manifest and agent naming already support multi-spawn: one preset per role,
+instantiated once per leaf, each still an ordinary `rope-implementer`
+leaf — no nested spawn, same tool bounds, same output format. No schema
+change; the parent may still override model/thinking per leaf at spawn time.
 
-- The manifest and agent naming already support concurrent multi-spawn: one
-  preset per role, instantiated once per spawned leaf.
-- **No schema change** to the manifest, role-schema, or rankings.
-- **No new model mechanism** — model routing reuses the same harness presets;
-  parent may still override model/thinking at spawn time per leaf.
-- Each concurrent leaf is still an ordinary `rope-implementer` leaf: no nested
-  spawn, same tool bounds, same output format.
+## Explore research mode & declared dispatch deviation
 
-## Explore research mode & declared dispatch deviation (ADR 0011)
-
-- **Research is a mode of `rope-explore`**, selected by the brief: a research
-  brief switches the leaf to research behavior — web/search + one findings
-  artifact under `.rope/research/**`; default and scanner dispatches behave
-  read-only. The generated preset carries an unrestricted tool surface, so
-  the mode needs no deviation. See
+- **Research is a mode of `rope-explore`**, declared by the brief (the
+  brief is the contract): a research brief switches the leaf to
+  research behavior — web/search + one findings artifact under
+  `.rope/research/**`; default and scanner dispatches behave read-only.
+  The generated preset carries an unrestricted tool surface, so the
+  mode needs no deviation. See
   [references/explore-research-mode.md](references/explore-research-mode.md).
-  No fourth agent name; the three core roles and the ranking flow are
-  unchanged.
+  No fifth agent name; external research stays a mode of `rope-explore`.
+  The `rope-e2e-runner` is the deliberate fourth leaf — see
+  role-schema.md; the ranking flow is otherwise unchanged.
 - **Declared deviation:** spawning with a `type` or `model` that differs from
   the preset row requires a one-line reason in the dispatch record (what host
   capability the preset lacks). Undeclared deviation is a dispatch defect.
@@ -177,7 +175,7 @@ the presets written above — through the host's own subagent mechanism.
 ## Soft-degrade contract (for consumers)
 
 If the manifest or `rope-*` agents are missing later, orchestrators
-(`rope-go`, `rope-verify`) soft-degrade: use generic host workers, record
+(`rope-go`, `rope-finish`) soft-degrade: use generic host workers, record
 `preset_missing`, continue. No hard block; no auto-refresh. A manifest
 `capability_gaps` entry (e.g. the host cannot spawn model-pinned subagents)
 is information for the same degrade path — record it, use generic workers,
@@ -191,9 +189,5 @@ do not treat it as failure.
   discovered at run time, not coded here.
 - Do not change host model scope or provider settings.
 - Do not delete non-`rope-*` agents.
-- Do not write project-level agent dirs by default.
-- Do not claim success for an undiscoverable mechanism; never write fake agent
-  paths into a manifest.
-- Probing one host must never write another host's paths.
-- Do not hard-fail solely because web research is unavailable.
-- Leaf presets must not instruct spawning other agents.
+- Do not write project-level agent dirs by default; probing one host must
+  never write another host's paths.

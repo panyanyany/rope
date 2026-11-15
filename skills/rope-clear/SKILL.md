@@ -1,27 +1,38 @@
 ---
 name: rope-clear
-description: Cleans stale or contradictory project documentation through an approved edit batch. Use when the user requests document cleanup or obsolete-rule triage.
+description: Organizes project documentation and migrates legacy .rope layouts to current conventions through an approved edit batch. Use for document cleanup, obsolete-rule triage, or knowledge-layer migration.
 ---
 
 # Rope Clear
 
-Prune stale documentation into current truth, not another summary of the mess.
-This skill changes documents, not product behavior or architecture decisions.
+Organize project knowledge into current, correctly owned documents, not another
+summary of the mess. Includes legacy `.rope/CONTEXT.md` → `.rope/GLOSSARY.md`
+migration. This skill changes documents, not product behavior or architecture
+decisions; init remains responsible for initial scaffolding.
 
 ## Workflow
 
-1. **Bound the cleanup.** Read repo instructions, `.rope/CONTEXT.md`, routes,
-   and the requested paths. Inspect git status and identify tracked, modified,
+1. **Bound the cleanup.** Read repo instructions and routes; identify the
+   glossary and requested paths using
+   [current documents](references/current-docs.md). Read relevant definitions
+   and source sections as needed, not the whole knowledge layer up front.
+   Inspect git status and identify tracked, modified,
    untracked, and external/installed files. Default scope is this repo's
-   `.rope/` knowledge layer; expand only by user agreement. Record the scope
-   in the existing work record. Done when every candidate's ownership and
-   preservation needs are known; user edits remain intact.
+   `.rope/` knowledge layer; list necessary inbound-reference repairs in the
+   batch, including root agent-doc links. Other expansion needs user agreement.
+   Record the scope in the existing work record. Done when every candidate's
+   ownership and preservation needs are known; user edits remain intact.
 2. **Establish current truth.** Read
    [current documents](references/current-docs.md) before classifying hits.
-   Check each candidate against its status, scope, explicit replacements,
-   relevant source/tests, and Git history. Classify: keep, revise, deduplicate,
-   retire reference, or unresolved. Age, repetition, and filenames are clues,
-   not proof. Done when each proposed change cites evidence or an open question.
+   Use explore for unknown source/usage lookups per the
+   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff):
+   request scoped facts, owners, inbound references, evidence and unknowns;
+   the parent decides the batch and semantic conflicts. Check each candidate
+   against its status, scope, explicit replacements, relevant source/tests,
+   and Git history. Detect legacy glossary migration below. Classify: keep,
+   revise, relocate, deduplicate, retire reference, or unresolved. Age,
+   repetition, and filenames are clues, not proof. Done when each proposed
+   change cites evidence or an open question.
 3. **Approve a batch.** Present a compact table: path/section, problem,
    evidence, proposed edit, preservation method, and reference checks.
    Ask for one approval of the listed edits; resolve semantic conflicts with
@@ -49,6 +60,28 @@ This skill changes documents, not product behavior or architecture decisions.
    `.rope/issues/<slug>/quick.md`; keep the inventory there, not a separate
    report per finding. Report a concise diff summary. Commit only when
    authorized by the user's task/workflow, including only approved changes.
+
+## Legacy glossary migration
+
+Check for `.rope/CONTEXT.md` on every run, even when it is not the named
+cleanup target. Use the currently loaded Rope conventions, not an invented
+schema-version ladder:
+
+- **Only CONTEXT exists:** propose renaming it to `.rope/GLOSSARY.md`, preserving
+  all content, with current inbound-reference repairs in the same batch.
+- **Both exist:** compare content and ownership; propose consolidation at
+  `.rope/GLOSSARY.md`. Never overwrite either file or silently choose between
+  conflicting definitions. Hold dependent edits until the conflict is resolved.
+- **Only GLOSSARY exists:** no filename migration is needed. Do not create a
+  root-level glossary, a duplicate vocabulary, or a permanent CONTEXT alias.
+
+The rename and content cleanup are separate edits. Long contracts, workflows
+and task evidence are not made glossary entries merely by renaming the file;
+propose their existing owners per current-docs. Preserve valid constraints,
+and approve any content removal/relocation through the normal batch. Update
+active instructions and links, including the repo's Rope agent-doc block;
+leave historical mentions intact when they describe history. Uneditable or
+out-of-scope active consumers are reported before removing the old entrypoint.
 
 ## Examples
 

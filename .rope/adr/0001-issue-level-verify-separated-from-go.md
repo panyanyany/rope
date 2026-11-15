@@ -45,6 +45,15 @@ Two human windows (historical "Planner Window A" / "Implementer Window B") remai
 
 ## Considered Options
 
+## Amendment (2026-10: verify merged into finish)
+
+The user pipeline is now `rope-grill` → `rope-shape` → `rope-go` → `rope-finish`.
+In practice verify and finish were always run back-to-back, so the standalone
+`rope-verify` skill was deleted: `rope-finish` Stage 1 runs the same thin
+paperwork gate and appends the `verify.md` round before closing. Everything
+else in this ADR (cross-role implement/accept split, fix briefs, escalation,
+`verify.md` rounds) is unchanged; legacy `verify.md` files remain valid input.
+
 - **Trellis-style self-fix loop at verify.** Rejected: burns strong-model tokens on edits and breaks the single code-writing-surface boundary.
 - **Mechanical escalation rules** (cheap subagent coarse-pass, strong model only on flagged findings). Rejected by the user: too rigid, not the desired judgment style.
 - **Strong model reads the full diff every time.** Rejected: max cost, no budget scaling for low-risk issues.

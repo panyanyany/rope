@@ -52,7 +52,7 @@ model stops writing orchestration and starts compiling data.
 
 Because a workflow script body executes inside a `vm` context with only the
 injected globals (`agent`, `phase`, `log`, `workflow`, `parallel`, `pipeline`,
-`args`) — no `require`, no `import`, no filesystem — the template **must be a
+`budget`, `console`, plus realm-materialised `meta` and `args`) — no `require`, no `import`, no filesystem — the template **must be a
 single self-contained file**. That is a real cost, recorded here: template
 edits serialize, and the test harness cannot `import` the template (it reads
 the source and evaluates it in `node:vm`, the same technique that reproduced
@@ -89,8 +89,8 @@ the audited defects).
 ## Non-goals
 
 - **No pi extension changes.** The template works inside the current public
-  script API. `WorkflowSpawnResult` exposes no branch or base-SHA field, and
-  this issue does not add one.
+  script API. The script receives schema payloads, not `WorkflowSpawnResult`;
+  there is no host-provided git identity metadata. This issue adds no host API.
 - No cross-harness compatibility work (pi-first; other hosts are out of scope).
 - No arbitrary orchestration language and no per-issue scheduler rewriting.
 - No re-slicing, dependency removal, or acceptance-scope change during
@@ -111,35 +111,47 @@ the audited defects).
 - **`skills/rope-go/workflows/go-execute.js`** — the template. Invoked as
   `<scriptPath: "<resolved skill dir>/workflows/go-execute.js", args: <task data>>`.
   Single file; no imports; no filesystem access; deterministic (no
-  `Date.now()`, `Math.random()`, `new Date()`).
-- **Task data** — the compiled plan passed in `args`. It must carry, per task:
-  id, title, brief reference, declared delivery branch, edge list with edge
-  class, owned files, focused check commands, required-evidence items keyed to
-  Behavior-Matrix rows, and constraint ids. Issue-wide it must carry: base
-  SHA, worktree setup command, check timetable and tiers policy, exclusive
-  resources, evidence directory, gate definitions (L2/L3), E2E items, review
-  axes, and concurrency/fix budgets. Exact field names are fixed by Slice 1
-  and are the seam every other slice builds against.
-- **Structured return** — task states (integrated / bounced / blocked /
-  never-ready), merge records with commit ids, gate outcomes with commands and
-  exit codes, E2E statuses, review verdict with both axes and fix-round
-  history, check records (command, scope key, exit code, reused-or-run,
-  duration, evidence path), and explicit blockers with classification.
-  Exact field names fixed by Slice 1.
-- **Every leaf spawn carries a `schema`.** On this host `text` is
-  `structuredJson ?? result`, and a worktree child's prose `result` has the
-  branch note appended, so a schema-less spawn hands the script text it cannot
-  parse — the audited run's failure mode. The template must never depend on
-  agent prose.
+  `Date.now()`, `Math.random()`, or zero-argument `new Date()`).
+- **Task data** — the compiled JSON plan passed in `args`. Task fields are
+  `id`, `title`, `briefPath`, optional `blockedBy`, `ownedFiles`, `evidence`,
+  and `preset`; delivery branch is derived from `branchPrefix + id`. Focused
+  commands and constraint IDs belong in the brief, not invented plan fields.
+  Issue-wide checks, E2E executor decisions, review and budgets use exactly
+  [`execution-template.md`](../../../skills/rope-go/references/execution-template.md).
+  Unknown fields are rejected before spawning; the shipped reference is the
+  public schema authority, not the historical slice sketches below.
+- **Structured return** — task states (`integrated`, `blocked`, `not-started`,
+  `running`), separate `neverReady`, merge identities, stage outcomes, E2E
+  statuses, both review axes and fix history, check evidence paths and
+  classified blockers. Exit codes, commands, reuse flags and durations live in
+  evidence files, not host spawn metadata. `tokens.output` is a finite number
+  or null with a diagnostic when the host telemetry is unusable.
+- **Every leaf spawn carries a `schema`**, and what the kernel receives from
+  one is **the parsed payload object itself** — the host parses the reply in
+  the script's realm and returns it (`worker-source.ts` `agentIn`), so there is
+  no host `{ok, text}` envelope. A schema-less spawn hands the script prose
+  (a changed worktree child's prose may have the branch note appended).
+  Ordinary child/schema/gate failure is indistinguishable `null`; option/RPC
+  errors can reject, and a fatal rejection stops further dispatch. The kernel
+  records failures without claiming to know a gate's exit code from null.
+- **The return value must survive the host's JSON boundary.** Both exits omit
+  undefined optional object keys without mutating prototypes on `__proto__`.
+  Non-finite budget telemetry is isolated as null; input/reply JSON and dense
+  constructed arrays exclude sparse slots, BigInt, cycles and class instances.
+  The loader tests the real boundary rejection semantics, not JSON.stringify's
+  silent coercions.
 - **Delivery-branch contract** — a leaf's last action, after committing
   everything and leaving a clean tree, is to create its **predeclared**
   branch `rope/<taskId>` at its HEAD and report that commit's SHA. Routing
   uses the branch name from the **plan**, not from the leaf's text; the leaf's
   return is evidence checked against the plan. Missing, non-matching, or
   unreachable delivery is a blocker.
-- **`skills/rope-go/scripts/verify-delivery.sh`** — mechanical git probes
-  (branch exists, resolves to the reported SHA, reported SHA is a real object,
-  tree clean). Exit code is the verdict; JSON on stdout.
+- **`skills/rope-go/scripts/verify-delivery.sh`** — worktree gate ensures the
+  plan branch points at actual HEAD and the tree is clean (recovering leftovers
+  when requested). Shared return claims additionally require `--exact-head`:
+  the full SHA equals git HEAD, not merely an ancestor. Exit code is the verdict;
+  JSON is written to `--verdict` and stdout. A leaf's claim alone is never
+  integration identity, including review/E2E fixes.
 - **`skills/rope-go/scripts/run-check.sh`** — runs one declared check command,
   saves output and exit status to the evidence directory, asserts on the saved
   artifact rather than a piped exit code.
@@ -161,7 +173,7 @@ the audited defects).
      schema), `phase()`, `log()`, `parallel()`, `pipeline()`, `workflow()`,
      `args`. The harness evaluates the template's real source in `node:vm`
      with these stubbed, replicating the host's constraint that
-     `Date.now()`/`Math.random()`/`new Date()` throw.
+     `Date.now()`/`Math.random()`/zero-argument `new Date()` throw.
   2. **Git delivery seam** — `verify-delivery.sh` against a throwaway repo,
      asserting on exit code and JSON, including the exact audited failure
      (delivery branch absent, or present but pointing elsewhere).
@@ -172,10 +184,9 @@ the audited defects).
   branch-parser and missing-downstream defects from a saved script with
   stubbed hooks. This issue turns that ad-hoc technique into a committed
   harness.
-- Test scope: `tests/**` only. This repository has no test tree today
-  (`routes.md` records `Test roots: Unknown`); Slice 1 derives and writes the
-  tier lines per the ADR 0013 derivation rule (guards + entrypoint smoke
-  mandatory, pure units optional, ≤60s, dated and timed).
+- Test scope: `tests/**`. Slice 1 established the test tree and the tier lines
+  in `routes.md`; subsequent audits add public-entrypoint regressions without
+  weakening the original assertions.
 - Broader-suite trigger: none beyond the repo requirement — for this
   repository `node --test` is both the quick and the full tier.
 - Excluded: live `SubagentWorkflow` runs (real leaves, real tokens) are E2E
@@ -191,21 +202,24 @@ the audited defects).
   agents via presets, `git` in the main checkout, `scripts/*.sh`,
   `routes.md`'s declared check policy, the issue package's `evidence/` dir.
 - Observable result: a structured return whose every planned task is either
-  `integrated` (with a git-verified commit) or reported as a blocker; gates
-  and review recorded with commands, exit codes and identities; check records
-  showing what ran, what was reused, and how long it took.
+  `integrated` (with a git-verified commit) or explicitly unfinished; gates
+  and review carry outcomes and identities, and evidence files carry commands,
+  exit codes, reuse flags and durations.
 - Failure visibility: a plan with a task that never becomes ready, a leaf
   that fails to deliver its branch, a merge conflict that cannot be resolved,
   a failed gate, an exhausted fix budget, or a missing repository
   configuration are all **explicit blockers** with a classification
-  (product / stale contract / environment / host-or-template) — never silence
+  (`product` / `stale-contract` / `environment` / `host-template` / `plan`) — never silence
   and never inferred success.
-- Forbidden shortcuts: deriving routing from agent prose; treating
+- Forbidden shortcuts: deriving routing from agent prose; reading a host return
+  envelope (`result.ok`, `result.text`) that a schema'd spawn does not produce;
+  treating
   "nothing is running" as completion; running L2/E2E/review without the
   completion assertion holding; rerunning an expensive check whose commit
   set and scope are unchanged without a recorded reason; letting the template
   invent a command the repository never declared; changing acceptance scope
-  inside a fix round; spawning a leaf from inside a leaf.
+  inside a fix round; spawning a leaf from inside a leaf; returning a record
+  containing an `undefined` optional field instead of omitting the key.
 
 ## Architecture Impact
 
