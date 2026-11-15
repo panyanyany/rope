@@ -1,87 +1,35 @@
-# 0003 Dynamic Workflow Mode
+<a id="0003-dynamic-workflow-mode"></a>
+# 0003 Dynamic 工作流模式
 
-> **Status: superseded by [0007](0007-graph-driven-go-single-review.md)** (graph and gates) and mechanism half by [0014](0014-workflow-execution-mode.md) (script-driven execution; the `mode:` field is retired) —
-> graph-driven execution replaced the opt-in mode; disjoint-ownership and
-> no-nested-spawn invariants carry over.
+> **状态：由 [0007](0007-graph-driven-go-single-review.md)替代图与检查规则，机制部分由 [0014](0014-workflow-execution-mode.md)替代。**mode 字段退役，文件不相交、禁嵌套不变量延续。以下保留原决策。
 
-Rope adds an **opt-in, per-issue dynamic workflow mode** decided at `rope-shape`
-time. When enabled it produces a **contract-first, disjoint file-ownership**
-slice set and, at `rope-go`, concurrently spawns cheap implementer leaves for the
-**non-overlapping** slices, while keeping per-slice review gates and issue-level
-verify. Serial behavior is unchanged when the mode is off or absent.
+原设计为 shape 手动选择的每 issue dynamic 模式：契约优先、不相交文件归属，go 对无重叠片派廉价实现叶子并发，保片审及 issue 验证，关闭 / 缺省时串行不变。
 
-## Context
+<a id="context"></a>
+## 背景
 
-Empirical evidence (issue `code-change-session-repo-management`) showed long
-wall-clock times: ~6h across 7 serial slices, where `code_change_session_service.py`
-was touched by 5/8 slices and one slice was ~7000 lines. The existing
-`optional parallel frontier` in `rope-go` (Scope-disjoint slices may parallelize)
-is rarely exercised because slices are usually shaped by function logic, so
-multiple slices append to the same core file and physical parallelism is
-impossible (or conflict-prone).
+code-change-session-repo-management 的七串行片约六小时，核心服务被 5/8 片触碰，其中一片约 7000 行。原可选并行前沿少用，因为按功能逻辑切会向同核心文件追加，物理并行不可行或冲突多。用户希望手动模式将工作切成小而独占文件的片，廉价模型并行再组装，参考契约优先、文件不相交、worktree、子代理先例，见 dynamic-workflow-mode 调研。
 
-The user's goal is a manually toggled mode that plans a feature into
-small file-owning slices, builds them in parallel with cheap models, and wires
-them together — matching the now-mainstream external pattern (contract-first +
-disjoint file ownership + worktree isolation + parallel subagents). See
-`.rope/research/dynamic-workflow-mode.md`.
+<a id="decision"></a>
+## 决策
 
-## Decision
+- shape 询问，选择后强制三段切片并写 mode: dynamic；不选不变。
+- prd 的 mode: serial | dynamic，缺省 / serial 保串行。
+- 三段：先串行 contract，只定接口 / 数据 / 调用边界；再按不相交文件实现，共享核心归属是 shape 缺陷；每片默认约 400 diff 行 / 4 文件，尾部 integration 组装并验证契约。
+- dynamic 前沿为无未解阻塞片，不相交并发廉价实现，重叠串行，片审、提交、父只读 verify 均保留。
+- 模型复用 harness-presets，父可按风险覆盖，不加模型机制。
 
-- **Opt-in, decided at shape time.** `rope-shape` asks the user whether dynamic
-  mode is wanted. If yes, shape enforces a three-piece slice discipline and
-  writes `mode: dynamic` into the issue package. If no, behavior is unchanged.
-- **`mode` field.** `mode: serial | dynamic` in `prd.md`. Absent or `serial` ⇒
-  current serial behavior.
-- **Three-piece slice discipline (shape, when dynamic):**
-  1. a **contract slice** (`kind: contract`) that only defines interfaces / data
-     structures / call boundaries; serial and must be first;
-  2. **implementation slices** cut by **disjoint file ownership** — one core
-     file owned by multiple slices is a shape defect, not a go problem;
-  3. a **per-slice size cap** (default ~400 diff lines / ~4 owned files) and a
-     trailing **integration slice** that wires the module slices and verifies
-     contract alignment.
-- **go fan-out.** When `mode: dynamic`, the frontier is the set of slices with no
-  unresolved blockers. Disjoint-scope frontier slices are spawned to **concurrent
-  cheap implementer leaves**; overlapping slices serialize. Per-slice **review
-  gates** and **commit rules** still apply. **Issue-level verify** stays
-  parent-owned and read-only.
-- **Model routing reuses harness presets.** No new model mechanism. Workers are
-  spawned via existing `rope-harness-presets` role templates; the parent may
-  override per spawn when risk warrants.
+<a id="why-this-split"></a>
+## 理由
 
-## Why this split
+代理并行能力较弱，所以只在不相交、独立可验证时安全。契约和归属是关键护栏。实现 / 验收分离不变；父是唯一编排者，叶子不派生。冻结公共边界让前后端并行。
 
-- **Parallelism is the weak case for coding agents** (Cognition / Anthropic): so
-  the mode is safe only where slices are **disjoint + independently verifiable**.
-  The contract slice and disjoint ownership are the load-bearing guard rails;
-  slices sharing a core file stay serial.
-- **Implement/accept separation preserved** (ADR 0001): review gates and
-  issue-level verify are not weakened by parallelism.
-- **Parent is the only orchestrator** (research direction 3): parallel implementer
-  leaves must not spawn leaves; the parent owns all dispatch.
-- **Interface is the contract**: the contract slice governs any shared boundary,
-  so backend and frontend slices can build in parallel against a frozen interface.
+<a id="consequences"></a>
+## 后果
 
-## Consequences
+契约 → 并行实现 → 轻集成；重叠和头尾串行。宿主不能并发则降级串行、tasks 记理由。完全手动可选，不影响普通 issue。
 
-- A dynamic-mode issue is shaped as: contract slice → parallel disjoint
-  implementation slices → light integration slice.
-- go fans out disjoint frontier slices concurrently; overlapping slices and the
-  contract/integration slices stay serial.
-- If go cannot spawn concurrent workers, it degrades to serial and records the
-  reason in `tasks.md`.
-- Serial issues are unaffected; the mode is entirely opt-in.
+<a id="considered-options"></a>
+## 考虑过的方案
 
-## Considered Options
-
-- **Auto-detect dynamic mode.** Rejected: the user wants a manual, shape-time
-  toggle.
-- **go-time flag.** Rejected: slices wouldn't be shaped with disjoint ownership,
-  weakening the three-piece guarantee; durable `mode` field is the bus.
-- **Adopt `pi-dynamic-workflows` as the go engine.** Rejected: prototype, no
-  worktree isolation, no approval/concurrency controls, and it would fight
-  Rope's review/commit/verify gates. It may still be used manually for one-off
-  read-only fan-out.
-- **Blanket parallelization.** Rejected as forbidden shortcut: violates the
-  disjoint + independently-verifiable rule.
+自动检测违用户手动要求；go 才开关无法事先不相交切片；直接用 pi-dynamic-workflows 当时是原型、缺隔离 / 授权 / 并发控制且冲突现有检查；无差别并行违安全条件。均拒绝，工具可单独用于只读扇出。

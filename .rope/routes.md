@@ -1,26 +1,27 @@
-# Routes
+<a id="routes"></a>
+# 仓库导航
 
-Navigation map for agents working in this repository. Keep this concise and
-evidence-based.
+供代理在本仓库定位的导航图，保持精简且有证据。
 
-## Repo Shape
+<a id="repo-shape"></a>
+## 仓库形态
 
-- Source roots:
-  - `skills/` — bundled Rope skill packages (`SKILL.md` + `references/`)
-  - `bin/rope.js` — CLI that installs skills into an agent skills directory
-- Test roots:
-  - `tests/` — `node --test`, no external dependency: `tests/smoke.test.mjs`
-    (frontmatter, reference resolution, CLI install)
-- Build/test commands:
-  - `node --test tests/*.test.mjs` — the whole suite
-  - `node bin/rope.js --help` — CLI usage
-  - `node bin/rope.js add --target <dir>` — install bundled skills
-  - `python3 /path/to/skill-creator/scripts/quick_validate.py skills/<skill>` — skill validation (external tool path; not vendored here)
-- Package marker:
+- 源码根目录：
+  - `skills/` — 随包分发的 Rope 技能 (`SKILL.md` + `references/`)
+  - `bin/rope.js` — 把技能安装到代理技能目录的 CLI
+- 测试根目录：
+  - `tests/` — `node --test`, 无外部依赖： `tests/smoke.test.mjs`
+    （元数据、引用解析、CLI 安装）
+- 构建 / 测试命令：
+  - `node --test tests/*.test.mjs` — 全部测试
+  - `node bin/rope.js --help` — CLI 用法
+  - `node bin/rope.js add --target <dir>` — 安装随包技能
+  - `python3 /path/to/skill-creator/scripts/quick_validate.py skills/<skill>` — 技能验证，外部工具路径，不在本仓分发
+- 包标记：
   - `package.json` (`@wufei/rope`, bin `rope` → `./bin/rope.js`)
-- Root agent docs:
+- 根代理文档：
   - `AGENTS.md`
-- Existing durable docs:
+- 已有长期文档：
   - `README.md`
   - `.rope/CONTEXT.md`
   - `.rope/adr/`
@@ -31,97 +32,100 @@ evidence-based.
   full 未单独定义 —— 本仓无更大型套件，quick 即全部。派生于 shape 2026-09-11
   （routes Test roots 改为 `tests/`；2026-09-23 内核测试随 ADR 0016 退役删除）。
 - Test policy: fast-iteration — 本仓没有"freeze 必须全量"的要求；go 按影响选测，
-  冻结点只跑声明的 freeze 检查。本仓全部套件即 quick，故实跌上等价。
+  冻结点只跑声明的 freeze 检查。本仓全部套件即 quick，故实际上等价。
 
-## Common Work Routes
+<a id="common-work-routes"></a>
+## 常用工作路径
 
-### Change or add a skill
+<a id="change-or-add-a-skill"></a>
+### 修改或新增技能
 
-Read first:
+先读：
 - `README.md`
 - `skills/<skill-name>/SKILL.md`
-- `skills/<skill-name>/references/` (if present)
-- relevant `.rope/adr/` and `.rope/CONTEXT.md` when workflow semantics change
+- `skills/<skill-name>/references/` （如有）
+- 改变流程语义时读取相关 ADR 和 CONTEXT
 
-Verify with:
-- `node --test tests/*.test.mjs` — the offline suite: frontmatter, reference
-  resolution, CLI install (a broken cross-skill link fails here)
-- `python3 /path/to/skill-creator/scripts/quick_validate.py skills/<skill>` when skill-creator is available
-- manual read-through of `SKILL.md` workflow + guardrails
+验证：
+- `node --test tests/*.test.mjs` — 离线冒烟：元数据、引用解析、安装；跨技能断链会失败
+- `python3 /path/to/skill-creator/scripts/quick_validate.py skills/<skill>` skill-creator 可用时运行
+- 人工通读流程与护栏
 
-Notes:
-- Install target for local project use is typically `./.agents/skills`
-- `rope add` overwrites bundled skill files but preserves existing `settings.json`
+说明：
+- 项目本地安装通常为 `./.agents/skills`
+- rope add 覆盖随包技能，保留已有 settings.json
 
-### Change the installer CLI
+<a id="change-the-installer-cli"></a>
+### 修改安装 CLI
 
-Read first:
+先读：
 - `bin/rope.js`
 - `package.json`
-- `README.md` Install section
+- README 安装章节
 
-Verify with:
+验证：
 - `node bin/rope.js --help`
-- `node bin/rope.js add --target /tmp/rope-skills-smoke` (or another disposable target)
+- `node bin/rope.js add --target /tmp/rope-skills-smoke` （或其他临时目录）
 
-Notes:
-- CLI currently supports `add` / `install-skills` and `--target`
+说明：
+- CLI 目前支持 `add` / `install-skills` 及 --target
 
-### Update project language or architecture decisions
+<a id="update-project-language-or-architecture-decisions"></a>
+### 更新项目语言或架构决策
 
-Read first:
+先读：
 - `.rope/CONTEXT.md`
 - `.rope/adr/`
 - `.rope/specs/`
 - `.rope/routes.md`
 
-For issue workflow changes, also read:
+变更 issue 流程还须读取：
 - `.rope/adr/0002-architecture-decision-continuity.md`
 - `.rope/adr/0004-risk-tiered-review-mode-and-lean-briefs.md`
 - `.rope/adr/0005-plan-artifact-reader-layering.md`
 - `.rope/adr/0013-test-cost-tiering.md`
 - `.rope/specs/guides/architecture-continuity.md`
 - `skills/rope-shape/references/architecture-continuity.md`
-- `skills/rope-clear/references/current-docs.md` — current truth and document maintenance
-- `skills/rope-clear/SKILL.md` — approved cleanup workflow
+- `skills/rope-clear/references/current-docs.md` — 现行事实及文档维护
+- `skills/rope-clear/SKILL.md` — 经批准的整理流程
 
-Verify with:
-- Unknown — documentation-only; no automated doc tests discovered
+验证：
+- Unknown，纯文档；未发现独立自动文档测试
 
-### Run the agent-mode E2E acceptance stage
+<a id="run-the-agent-mode-e2e-acceptance-stage"></a>
+### 运行 E2E 验收阶段
 
-Read first:
+先读：
 - `.rope/adr/0015-agent-mode-e2e-acceptance-stage.md`
-- `skills/rope-go/references/execution-rules.md` (E2E Acceptance Stage section)
-- `skills/rope-harness-presets/references/role-schema.md` (runner role)
-- `.rope/CONTEXT.md` (terms: End-of-Issue Review, E2E Runner)
+- `skills/rope-go/references/execution-rules.md` （E2E 验收阶段章节）
+- `skills/rope-harness-presets/references/role-schema.md` （runner 角色）
+- `.rope/CONTEXT.md` （结束审查、E2E runner 术语）
 
-Verify with:
-- file-inspect: execution-rules ↔ ADR 0015 ↔ CONTEXT ↔ role-schema
-  cross-references closed
-- user confirmation before global install of the regenerated presets
-  (repo AGENTS rule)
+验证：
+- 文件检查：execution-rules、ADR 0015、CONTEXT、角色契约引用闭环
+- 再生成预设安装到全局前需用户确认（AGENTS 规则）
 
-Notes:
-- The stage is part of rope-go's final-review flow, not a standalone skill.
-- Runner preset: `rope-e2e-runner` via harness manifest
-  (`rope-harness-presets` regenerates `~/.pi/agent/agents/rope-*.md`).
+说明：
+- 本阶段属于 go 结束审查流程，不是独立技能。
+- runner 预设： `rope-e2e-runner` 由宿主清单引用
+  (`rope-harness-presets` 重新生成 `~/.pi/agent/agents/rope-*.md`).
 
-### Harvest Matt Pocock upstream inspiration (maintenance)
+<a id="harvest-matt-pocock-upstream-inspiration-maintenance"></a>
+### 采收 Matt Pocock 上游灵感（维护）
 
-Read first:
-- `.rope/CONTEXT.md` (term: Upstream Harvest)
+先读：
+- `.rope/CONTEXT.md` （上游灵感采收术语）
 - `.rope/research/upstream-inspiration-sources.md`
 - `.rope/upstream/mattpocock-skills/source.md`
 - `.rope/upstream/mattpocock-skills/correspondence.md`
-- latest file under `.rope/upstream/mattpocock-skills/reviews/` if present
-- relevant `skills/rope-*` targets named by correspondence
+- 最新文件位于 `.rope/upstream/mattpocock-skills/reviews/` 如有
+- 对应表指定的相关技能
 
-Verify with:
-- Structural: `.agents/skills/upstream-harvest/SKILL.md` present; not under `skills/`
-- Human review of the harvest brief under `.rope/upstream/mattpocock-skills/reviews/`
+验证：
+- 结构检查： `.agents/skills/upstream-harvest/SKILL.md` 存在，不在 `skills/`
+- 人工审阅采收简报，位于 `.rope/upstream/mattpocock-skills/reviews/`
 
-Notes:
-- Skill path: `.agents/skills/upstream-harvest/` (user-invoked; not product `skills/`)
-- Not shipped by `rope add`
-- Pin is machine-local clone + last-reviewed SHA (no submodule)
+说明：
+- 技能路径： `.agents/skills/upstream-harvest/` （用户调用，不是分发产品技能）
+- 不随 rope add 分发
+- 固定方式为本机克隆及上次已审 SHA，不用子模块

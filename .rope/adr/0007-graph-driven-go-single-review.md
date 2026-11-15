@@ -1,89 +1,45 @@
-# 0007 Graph-Driven Go and Single End-of-Issue Review
+<a id="0007-graph-driven-go-and-single-end-of-issue-review"></a>
+# 0007 依赖图驱动 Go 与单次结束审查
 
-**Status:** active, execution loop refined by [0008](0008-slice-ready-worktree-execution.md)
-— waves remain the shared-mode fallback; worktree mode schedules
-slice-ready. Review mechanics refined by
-[0010](0010-parallel-two-leaf-end-of-issue-review.md) (two parallel
-read-only leaves, one gate). Supersedes the opt-in gate of ADR 0003 and
-the review modes of ADR 0004; extends ADR 0005's minimal brief with a map
-pointer.
+**状态：**active。执行循环由 [0008](0008-slice-ready-worktree-execution.md)细化：波次仅共享模式回退，worktree 按切片就绪。审查机制由 [0010](0010-parallel-two-leaf-end-of-issue-review.md)细化为双并行只读叶子、一个审查点。替代 0003 可选模式和 0004 审查模式，扩展 0005 最小简报的 map 路径。
 
-Date: 2026-08-22
+日期：2026-08-22。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. Execution mode is **read from the slice graph**, not chosen before
-   slicing. `rope-shape` derives waves and rivers from `Blocked by` edges,
-   enforces a fresh-context size iron rule (re-cut until every slice fits; a
-   re-cut that would bend the requirement goes back to grill), and asks the
-   user exactly one execution question with numbers — river split or
-   parallel waves.
-2. `rope-go` runs wave by wave: frontier slices with disjoint owned files
-   spawn **background** implementer leaves; results are collected as they
-   land; overlapping slices serialize. No `mode:` frontmatter exists anymore.
-3. Review is **one end-of-issue gate**: a single reviewer leaf with new eyes
-   over the assembled diff — Standards axis, Contract axis (Contract Note
-   bullets), and a real-entrypoint probe of the primary paths (universal:
-   browser, CLI, or API, whatever the project ships). High-risk boundaries
-   get the deepest look. Findings → one fix brief; fix rounds stop for the
-   human on the first no-progress round (revised 2026-10-08 from ≤2
-   rounds — no-progress = the blocking set stops shrinking).
-4. `rope-verify` degenerates to a thin paperwork gate: review recorded, E2E
-   terminal, drift hunted, tree clean, architecture documentation outcomes
-   routed. It no longer judges code or product truth.
-5. Investigation map: `<issue>/map.md`, one fact per line (path + date),
-   seeded at shape, updated by implementers before commit.
+1. 串并行从切片图读取，不提前选。shape 从 Blocked by 推波次和河流，强制每片装入全新窗口；重切改变需求回 grill。带数字只问一次河流拆分 / 并行波次选择。
+2. go 原始规则按波次派发不相交前沿的后台实现者，落地即收集，重叠串行；不再有 mode frontmatter。worktree 后续规则见 0008/0012。
+3. 所有切片后只有一次新视角组装审查，原始审查包含规范轴、契约摘要轴和真实入口主路径（浏览器 / CLI / API，按产品）。高风险深查，发现汇一份修复简报。2026-10-08 将最多两轮改为首轮无进展停止，即阻塞集合不再缩小。后续 0010/0015 调整角色和产品运行归属。
+4. verify 变薄文书：审查记录、E2E 终态及漂移、干净树、架构文档路由，不判代码 / 产品。
+5. shape 初始化 map，每行事实、路径、日期，原始规则实现者提交前更新；worktree 归属见 0008。
 
-## Context
+<a id="context"></a>
+## 背景
 
-Session `01a01ece` (agent-workbench `webui-staff-desk`): 7.5 h serial go on a
-graph whose two rivers admitted ~3 h; 16 per-slice reviews + 7 fix rounds
-(≈2.6 h) caught zero cross-slice defects, while both fatal gaps (no real
-profiles in the real registry; admin 403 from an unreconciled cross-module
-decision) were only visible from the assembled diff and the real entrypoint —
-found by the user 19 minutes after verify PASS. Implementer leaves spent
-56–71% of tool calls re-finding the same code. Full accounting:
-`.rope/research/session-01a01ece-postmortem.md`.
+agent-workbench 的 webui-staff-desk 会话 01a01ece 串行 7.5 小时，而双河流图约可 3 小时。16 次片审和 7 轮修复约 2.6 小时，未发现跨片缺陷；真实注册无 profile、跨模块决策未协调导致 admin 403，只有组装 diff 和真实入口可见，verify PASS 后 19 分钟被用户发现。实现者 56–71% 工具调用重复找代码。详见 session-01a01ece-postmortem。
 
-External corroboration: mattpocock/skills `implement-spec` (background
-implementers, maximum concurrency, one end-of-issue code review, shared
-research notes; first-party run: 6 tickets / 1 h 20 m / 120 K orchestrator
-context); Anthropic harness write-ups (the evaluator clicks through the
-running application; generation and evaluation are separate agents because
-self-evaluation skews positive).
+上游 implement-spec 支持后台最大并发、单次结束审查、共享研究笔记；一次运行 6 票 / 1 小时 20 分 / 120K 编排上下文。Anthropic 同样强调运行产品点击验收、生成和评估分代理以减轻自评偏乐观。
 
-## Why this shape
+<a id="why-this-shape"></a>
+## 理由
 
-- Parallelism safety stays load-bearing: disjoint owned files per wave, no
-  nested spawn, parent owns dispatch (invariants carried over from ADR 0003).
-- Review economics: per-slice reviews pay per slice and see per slice; the
-  failure classes that kill issues (cross-slice conflict, spec-observable
-  gap, environment parity) are only visible at the assembled level — so the
-  budget concentrates there.
-- Real-entrypoint probing closes the fixture-versus-product gap that every
-  green test in session 01a01ece shared.
-- The back-to-grill escape keeps the size iron rule from bending
-  requirements: misalignment surfaces at shape, where it is cheapest.
+- 共享同波拥有文件不相交、禁止嵌套、父派发的安全属性保留。
+- 逐片付费只能看逐片问题，致命跨片 / 可观察缺口 / 环境一致性应集中组装层审。
+- 真实入口补齐 fixture 与产品差距。
+- 回 grill 保证窗口上限不扭曲需求，shape 消歧最便宜。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- `prd.md` loses `mode:` / `review:` frontmatter; legacy packages ignore
-  gracefully (no consumer reads them).
-- Slice `Review:` markings disappear; one issue-level verdict line replaces
-  per-slice verdict bookkeeping.
-- Verify's architecture-continuity judgment moves into the reviewer's
-  Standards axis; verify keeps documentation-outcome routing only.
-- Known cost, accepted: an ordinary slice's defect now surfaces at the end
-  with cold context, making its fix pricier — traded for catching the
-  issue-killing classes at all. Owner decision 2026-08-22: no risk-tiered
-  per-slice carve-out; risk focus lives inside the end-of-issue reviewer.
+- 删除 mode/review frontmatter，旧包兼容忽略。
+- 删除片 Review 标记，以 issue 结论替代。
+- 架构连续性判断移审查者，verify 仅文档路由。
+- 接受普通片缺陷延至结束、冷上下文修更贵的成本，换取发现致命整体问题。2026-08-22 用户拒绝按风险保留片审例外，风险焦点留结束审查。
 
-## Alternatives considered
+<a id="alternatives-considered"></a>
+## 考虑过的方案
 
-- Keep per-slice review as the default (ADR 0004 status quo): rejected on
-  the session evidence above.
-- Risk-tiered hybrid (per-slice review for gate slices only): rejected by
-  owner decision 2026-08-22 — align with the single-gate model instead.
-- Deterministic code orchestrator replacing the LLM parent (the community
-  `/workflows` direction): deferred — worth revisiting once worktree-isolated
-  spawns land in the host.
+- 默认保留逐片审查：现场证据不支持。
+- 高风险片审混合：用户拒绝，统一单点。
+- 确定性代码编排替代父模型：当时延后，等待宿主隔离能力。

@@ -1,130 +1,145 @@
-# Dynamic go: what first-party evidence says about parallel agents
+<a id="dynamic-go-what-first-party-evidence-says-about-parallel-agents"></a>
+# 动态 Go：一手证据中的并行代理
 
-Research date: 2026-09-11. Scope: primary engineering reports and first-party coding experiments; this is evidence for workflow design, not a claim that any fixed fan-out is optimal.
+研究日期：2026-09-11。范围为一手工程报告和编码实验，用于工作流设计，不证明固定派发数最佳。保留动态内核退役前的历史研究。
 
-## Parent follow-up: direct Dynamic Workflows coding evidence
+<a id="parent-follow-up-direct-dynamic-workflows-coding-evidence"></a>
+## 父后续：直接的动态工作流编码证据
 
-The primary-source coverage below predates the parent follow-up in `dynamic-go-template-and-parallelism.md`. Add the current official [Dynamic Workflows article](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code) and [large-scale code migrations](https://claude.com/blog/ai-code-migration): JS templates may live in skills and be adapted; a coding example used 12 Sonnet implementers; cheap TypeScript checks stayed in loops while expensive Cargo builds moved out; a single build daemon batches rebuilds for parallel fixers. Another case autonomously ran/fixed E2E for four nights. These are more directly relevant coding practices, but still not a controlled token-to-latency curve or proof of an ideal agent count. The companion migration kit is generalized, unmaintained reference code, not the original Bun harness or a drop-in Rope template. Its per-file reviewer multiplier must not silently replace Rope's single end-of-issue review.
+以下研究早于 `dynamic-go-template-and-parallelism.md` 的父后续。另看官方[动态工作流文章](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code)及[大规模代码迁移](https://claude.com/blog/ai-code-migration)：JS 模板可随技能分发并改造；例子用 12 个 Sonnet 实现者；便宜 TypeScript 检查留循环，贵 Cargo 构建移出；单构建守护进程为并行修复者批处理构建。另一例连续四晚自主跑 / 修 E2E。更直接相关，但仍无受控 token / 延迟曲线或最佳代理数证明。配套迁移包是通用、未维护参考代码，不是原 Bun 宿主或即插即用 Rope 模板；逐文件审查倍增不可默替 Rope 单次结束审查。
 
-## Executive answer
+<a id="executive-answer"></a>
+## 主要回答
 
-- “More tokens buy time” is operationalizable only when extra calls cover independent work, useful diversity, or independent verification. Parallelism reduces wall-clock toward the slowest branch, while token/API spend rises roughly with the number and duration of branches.
-- The strongest direct evidence for large speedups is Anthropic’s **Research** product, not coding: 3–5 parallel subagents plus parallel tool calls cut complex research time “by up to 90%.” That benchmark/task is breadth-first web research, not repository mutation.
-- Anthropic reports multi-agent Research beating single-agent Opus 4 by 90.2% on its internal research evaluation; it also reports ~15× chat token usage for multi-agent systems. These are not latency-normalized coding results and should not be projected to go.
-- Anthropic’s own Research report explicitly says most coding tasks have fewer truly parallelizable tasks than research and that shared context/dependencies are a poor fit.
-- First-party coding stress tests nevertheless show concurrency can create substantial throughput: Anthropic’s C compiler used 16 agents, nearly 2,000 sessions, ~$20,000, and produced a 100k-line compiler; this is a capability experiment, not a controlled A/B speed or quality study.
-- Cursor’s long-running browser experiment reports hundreds of concurrent workers, >1M LoC over ~one week, with minimal conflicts; it also reports an early flat-lock design making 20 agents behave like 2–3. These are operational anecdotes, not controlled measurements.
-- Therefore dynamic go should widen only the ready frontier and independent diagnosis/review, use redundant candidates selectively, keep seams explicit, and preserve serial integration/gates. No source supports a universal ideal agent count.
+- “多花 token 换时间”仅在额外调用覆盖独立工作、有用多样性或独立验证时成立。并行墙钟时间接近最慢分支，token / API 成本约随分支数量和时长增加。
+- 最强大提速证据来自 Anthropic **Research**，不是编码：3–5 并行子代理及并行工具可使复杂调研时间最多减 90%，任务是广度网络调查，不是改仓库。
+- Anthropic 内部调研评估多代理较单 Opus 4 提升 90.2%，多代理用约聊天 15 倍 token，不是延迟归一化编码结果，不能投射到 go。
+- Anthropic 明说编码通常比调研少真正可并行任务，共享上下文 / 依赖不利并行。
+- 编码压力实验仍显示吞吐潜力：C 编译器 16 代理、近 2,000 会话、约 2 万美元、10 万行；是能力实验，不是速度 / 质量 A/B。
+- Cursor 浏览器实验报告数百并行工作者、一周量级超百万行、少冲突；早期平面锁使 20 代理只相当 2–3。是运维经验，不是受控测量。
+- 因此只扩大就绪前沿和独立诊断 / 审查，选择性用冗余候选，明确边界，保留串行集成 / 检查；没有通用最佳数。
 
-## Measured or explicitly reported facts
+<a id="measured-or-explicitly-reported-facts"></a>
+## 已测量或明确报告的事实
 
-### Anthropic: Building effective agents
+<a id="anthropic-building-effective-agents"></a>
+### Anthropic：构建有效代理
 
-Source: https://www.anthropic.com/engineering/building-effective-agents (published 2024-12-19, page’s original post; current page notes tooling has changed).
+来源：https://www.anthropic.com/engineering/building-effective-agents ，原文 2024-12-19，现页提醒工具已变化。
 
-- Anthropic distinguishes workflows (predefined code paths) from agents (LLM-directed process/tool use).
-- It recommends the simplest system first because agentic systems trade latency and cost for performance.
-- Prompt chaining is recommended when subtasks are fixed and cleanly decomposable; the stated trade is higher accuracy in exchange for latency.
-- Parallelization has two forms: **sectioning** (independent subtasks) and **voting** (repeated attempts aggregated programmatically).
-- Anthropic says parallelization fits speed or confidence needs, especially when separate calls can focus on separate considerations.
-- Orchestrator-workers fit complex coding where file count and change nature cannot be predicted in advance; the orchestrator dynamically decomposes.
-- Evaluator-optimizer fits cases with clear criteria where feedback measurably improves output.
-- Coding agents are a good fit when tests provide objective feedback, but human review remains important for broader requirements.
-- The recommendation is to add complexity only when it demonstrably improves outcomes; this is a design constraint against “fan out by default” without evaluation.
+- 区分预定义代码路径的 workflow 与 LLM 决定过程 / 工具的 agent。
+- 先用最简单系统，因为代理用延迟 / 成本换表现。
+- 固定且可清晰拆的任务适合提示链，以延迟换准确。
+- 并行分为独立子任务的 **sectioning** 和多次尝试程序汇总的 **voting**。
+- 不同调用各聚焦不同考虑时，可满足速度或置信需求。
+- 文件数 / 改动类型无法预知的复杂编码适合编排器动态拆任务。
+- 标准明确、反馈确实改进结果时适合 evaluator-optimizer。
+- 测试给客观反馈，编码代理适合；广泛需求仍需人工审。
+- 只有确实改善结果才加复杂度，不能未经评估就默认增加派发。
 
-### Anthropic: Multi-agent Research system
+<a id="anthropic-multi-agent-research-system"></a>
+### Anthropic：多代理调研系统
 
-Source: https://www.anthropic.com/engineering/multi-agent-research-system (2025-06-13; verify date against page metadata if republishing).
+来源：https://www.anthropic.com/engineering/multi-agent-research-system ，2025-06-13；再发布时核日期元数据。
 
-- Internal evaluation: lead Opus 4 + Sonnet 4 subagents “outperformed single-agent Claude Opus 4 by 90.2%” on Anthropic’s internal research eval. The post does not present this as a coding benchmark.
-- On BrowseComp, Anthropic says token usage alone explained 80% of variance; token usage, tool calls, and model choice explained 95%. This is a browsing-agent evaluation, not software engineering.
-- Cost signal: agents typically use ~4× chat tokens; multi-agent systems ~15× chat tokens. The comparison baseline is chat interaction, not a matched single coding agent or equal-latency run.
-- Speed signal: introducing 3–5 subagents in parallel, and 3+ parallel tools per subagent, cut complex research time “by up to 90%.” No task count, p50/p95, or controlled baseline is supplied in the post.
-- The system’s reason for working is context multiplication: subagents explore with separate contexts and compress findings for a lead. That maps to independent investigation, not shared mutable code.
-- Early failure: vague delegation caused duplicated searches and gaps; explicit objective, output format, tool/source guidance, and boundaries were required.
-- Anthropic’s effort guidance is complexity-based: simple fact finding 1 agent/3–10 tool calls; comparisons 2–4 subagents/10–15 calls each; complex research >10 with clearly divided responsibilities. This is a heuristic for research, not an agent-count rule for coding.
-- Production coordination is synchronous: the lead waits for each set, so one slow subagent blocks progress. Anthropic names asynchronous execution as a possible speed improvement but warns of coordination, state-consistency, and error-propagation complexity.
-- Anthropic explicitly qualifies transfer: domains requiring shared context or many dependencies are poor multi-agent fits; “most coding tasks involve fewer truly parallelizable tasks than research.”
-- Artifact handoff through a filesystem reduces “game of telephone,” preserves fidelity, and avoids copying large outputs through coordinator context. This supports thin, structured seams.
-- Agents are stateful and errors compound; checkpoints, retries, resumability, tracing, and end-state evaluation are described as reliability requirements.
+- 内部评估主 Opus 4 + Sonnet 4 子代理较单 Opus 4 提升 90.2%，不称编码基准。
+- BrowseComp 上 token 单独解释 80% 表现差异，与工具调用 / 模型合计解释 95%，属于浏览代理评估。
+- 代理约聊天 4 倍 token，多代理约 15 倍；不是匹配单编码代理或同延迟基线。
+- 3–5 并行子代理、每人 3 个以上并行工具，使复杂调研最多快 90%；未给任务数、p50/p95、受控基线。
+- 有效原因是多上下文独立调查再浓缩给主代理，不等于共享可变代码。
+- 早期模糊派发导致重复搜索 / 漏项，需要目标、输出格式、工具 / 来源指引、边界。
+- 精力按复杂度：简单事实 1 代理 / 3–10 工具调用；比较 2–4 子代理 / 每人 10–15 次；复杂调研可超 10，职责明确。是调研启发式，不是编码数量规则。
+- 生产协调同步等一批，慢代理阻塞；异步可能更快，但增加协调、状态一致性、错误传播复杂度。
+- 共享上下文 / 多依赖不适合多代理，多数编码可并行项少于调研。
+- 文件交接保真、减少传话和父上下文大输出，支持窄结构化边界。
+- 有状态代理错误累积，需要检查点、重试、恢复、追踪、终态评价。
 
-### Anthropic: long-running coding harness
+<a id="anthropic-long-running-coding-harness"></a>
+### Anthropic：长期编码宿主
 
-Source: https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents (2025-11-26; page currently links the Claude Agent SDK).
+来源：https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents ，2025-11-26，现页链接 Claude Agent SDK。
 
-- The report is an internal web-app coding experiment, not a multi-agent speed comparison. It found a single long-running agent often one-shotted too much, exhausted context mid-feature, or later declared the project complete prematurely.
-- The remedy was an initializer agent plus incremental coding sessions, a structured feature list, progress file, git history, clean-state commits, and an initialization script.
-- Agents were told to implement one feature at a time and only mark it passing after end-to-end verification.
-- Explicit browser automation and human-style end-to-end testing “dramatically improved performance” by exposing bugs not obvious from code/unit tests.
-- The report says it remains unclear whether one general coding agent or specialized testing/QA/cleanup agents perform best. This is an important unknown, not evidence for a preferred topology.
-- Operational implication: wider go must not replace incremental scope, durable progress artifacts, or real-entrypoint checks.
+- 内部 Web 应用实验，不是多代理提速比较。单长期代理常一次做太多、半途耗尽上下文、后续过早宣布完成。
+- 改为初始化代理加增量编码会话、结构化功能表、进度文件、git 历史、干净提交、初始化脚本。
+- 一次实现一个功能，端到端验证后才标通过。
+- 浏览器自动化与模拟用户 E2E 暴露代码 / 单测难见问题，显著改善表现。
+- 文中仍不确定通用编码代理还是专门测试 / QA / 清理代理更好，不能当偏好拓扑的证据。
+- 扩大 go 不替代增量范围、持久进度或真实入口检查。
 
-### Anthropic: C compiler agent-team experiment
+<a id="anthropic-c-compiler-agent-team-experiment"></a>
+### Anthropic：C 编译器代理团队实验
 
-Source: https://www.anthropic.com/engineering/building-c-compiler (2026-02-05; Nicholas Carlini; exact publication date should be rechecked if page metadata changes).
+来源：https://www.anthropic.com/engineering/building-c-compiler ，2026-02-05，Nicholas Carlini；元数据变化时重核日期。
 
-- Capability experiment: 16 agents wrote a Rust C compiler from scratch; nearly 2,000 Claude Code sessions over two weeks; reported cost just under $20,000.
-- Output: ~100,000 lines; builds Linux 6.9 on x86/ARM/RISC-V, plus several projects; reports ~99% pass rates on most compiler suites.
-- The report does **not** provide a single-agent control, wall-clock reduction, per-agent cost curve, or causal quality comparison. Do not call this proof that 16 is optimal.
-- Harness: containers/local clones, task locks, pull/merge/push cycle, and fresh sessions. Merge conflicts were frequent but agents resolved them.
-- Parallelism worked when many distinct failing tests or projects existed. It failed when all agents encountered the same kernel bug: 16 agents repeatedly attacked/overwrote the same issue.
-- A GCC oracle plus random mixed compilation partitioned failures, enabling agents to work on different bugs. Delta debugging was still needed for interacting file pairs.
-- Specialization included duplicate-code cleanup, compiler performance, generated-code efficiency, design critique, and documentation.
-- Quality ceiling remained: generated code was less efficient than GCC -O0, Rust quality below an expert, features/fixes often regressed existing behavior, and some toolchain pieces remained buggy.
-- This is direct evidence for independent failing-test lanes, oracle-based diagnosis, role specialization, and strong CI—not for unconstrained shared-file concurrency.
+- 16 代理从零写 Rust C 编译器，两周近 2,000 Claude Code 会话，成本略低于 2 万美元。
+- 约 10 万行，可在 x86/ARM/RISC-V 构建 Linux 6.9 及多个项目，多数编译器套件约 99% 通过。
+- 没单代理对照、墙钟下降、逐代理成本曲线、因果质量比较，不证明 16 最优。
+- 容器 / 本地克隆、任务锁、pull/merge/push、全新会话；冲突常见但代理能解决。
+- 不同失败测试 / 项目多时并行有效；全部遇同一内核 bug 时 16 代理反复攻击 / 覆盖同问题。
+- GCC oracle 加随机混合编译将失败分区，供各代理修不同 bug；交互文件对仍需差量调试。
+- 专门角色做重复代码清理、编译性能、生成代码效率、设计批评、文档。
+- 质量仍有限：生成代码比 GCC -O0 差，Rust 不及专家，功能 / 修复常回归，工具链部分仍有 bug。
+- 支持独立失败分区、oracle 诊断、角色专门化、强 CI，不支持无约束共享文件并发。
 
-### Cursor: scaling long-running agents
+<a id="cursor-scaling-long-running-agents"></a>
+### Cursor：扩展长期代理
 
-Source: https://cursor.com/blog/scaling-agents (2026-01-14; parent verified the page's JSON-LD `datePublished` and visible `<time>` in the raw HTTP body).
+来源：https://cursor.com/blog/scaling-agents ，2026-01-14，父已从原始 HTTP 核 JSON-LD `datePublished` 及可见 `<time>`。
 
-- Cursor reports hundreds of concurrent agents on one browser project, >1M lines across 1,000 files in close to a week, with minimal conflicts; this is an anecdotal production-style experiment, not a controlled trial.
-- A flat shared-file locking design failed: agents held/forgot locks, and “twenty agents would slow down to the effective throughput of two or three,” mostly waiting.
-- Optimistic concurrency was more robust, but flat peers became risk-averse and avoided hard tasks, causing churn.
-- A planner/worker separation improved coordination: planners create tasks; workers focus on assigned tasks; a judge decides whether to continue.
-- Cursor reports hundreds of workers concurrently pushing to one branch and minimal conflicts, but does not report baseline speed, tokens/agent, defect rate, or review effort.
-- An integrator role for quality/conflict control created more bottlenecks than it solved; Cursor says workers could handle conflicts themselves. This cautions against a heavyweight model-mediated integration stage. It does not establish that concurrent Git writes to Rope's single integration worktree are safe; a cheap serial mechanical merge queue is a different mechanism.
-- Cursor reports model-role differences (planner vs coding specialist) and says periodic fresh starts are still needed to combat drift/tunnel vision.
-- Their conclusion is optimistic but explicitly non-optimal: the system works, yet coordination remains hard and agents sometimes run too long.
+- 单浏览器项目数百并行代理，近一周超百万行 / 1,000 文件，冲突少；是生产式经验，不是受控试验。
+- 平面共享文件锁失败：占 / 忘锁，20 代理有效吞吐仅 2–3，多数在等。
+- 乐观并发更稳，但平级代理避险、不碰难题，引发反复空转。
+- 计划者 / 工作者分离改善协调：计划者建任务，工作者执行，裁判决定是否继续。
+- 数百工作者同分支 push、少冲突，但无基线速度、每代理 token、缺陷率、审查工时。
+- 负责质量 / 冲突的集成者产生更多瓶颈，工作者可自解冲突；警惕重型模型集成阶段，不证明 Rope 单集成树并发 git 写安全，廉价串行机械队列是不同机制。
+- 不同模型适合计划 / 编码等角色，仍需定期全新开始避免漂移 / 隧道视野。
+- 结论乐观但非最优：系统能用，协调仍难，代理有时跑太久。
 
-## Operational recommendations for dynamic go
+<a id="operational-recommendations-for-dynamic-go"></a>
+## 对动态 Go 的操作建议
 
-1. Compile the graph into a ready-frontier scheduler, not fixed broad waves. Dispatch every seam-ready slice within actual resources; refill after each merge. Under Rope worktree isolation, file overlap orders merging, not dispatch; do not reintroduce a disjoint-files-only rule.
-2. Spend extra tokens on independent lanes: implementation (isolated when files overlap), independent diagnosis hypotheses, parallel test/QA/review where product-resource ownership allows it, and selective candidate voting where a clear judge exists.
-3. Require each leaf brief to state objective, owned files/seam, allowed writes, output schema, and stopping condition. This directly addresses duplication and lock pathologies.
-4. Use thin seams: return structured evidence/artifact references rather than copying long narratives through the parent. Persist large outputs in files; integrate through mechanical gates.
-5. Treat redundant candidates as an option for high-risk, ambiguous changes—not a default multiplier. Select or merge with deterministic tests and a fresh reviewer.
-6. Parallel diagnosis should use distinct hypotheses or partitions (e.g., failing-test clusters), not several agents rerunning the same investigation.
-7. Speculative work is safe only when isolated and cheap to discard: candidate tests, probes, docs, or independent patches. Do not speculate against mutable shared files or an unknown API contract.
-8. Keep merge and integration serial where state is shared. A serial merge queue is a critical path, but parallel lanes can continue while a merge is unresolved.
-9. Gates must assert integration invariants, not merely each leaf’s green tests. Use focused leaf checks, then impact-selected integration/composition-root checks and fresh-eyes review.
-10. Budget by measured value: record wall time, total/input/output tokens, queue/wait time, retries, conflicts, gate failures, defect escapes, and reviewer effort per issue. Compare against a matched narrower run.
-11. Use stop rules for idle, duplicated, or long-running agents; synchronous “wait for every branch” behavior makes the slowest branch a bottleneck.
-12. Keep durable progress, checkpoints, clean commits, and resumability. More parallel contexts do not remove long-horizon drift or context-loss failure modes.
+1. 图编译为就绪前沿调度，不用固定宽波次。资源内派全部 seam-ready，合并后补充；隔离 worktree 的 file-overlap 只管合并顺序，不恢复文件必须不重叠规则。
+2. token 投向独立实现、不同诊断假设、产品资源允许的并行测试 / QA / 审查，以及有明确裁判的选择性候选投票。
+3. 每简报含目标、拥有文件 / 边界、允许写、输出 schema、停止条件，防重复与锁病。
+4. 用窄边界，结构化证据 / 文件引用，不经父复制长散文，机械集成检查。
+5. 冗余候选仅高风险歧义时用，不默认倍增；用确定性测试和全新审查者选择 / 合并。
+6. 并行诊断按不同假设或失败簇，不重复同调查。
+7. 推测工作仅限隔离且廉价可丢弃的测试、探针、文档、独立补丁，不碰可变共享文件或未知 API。
+8. 共享状态合并 / 集成串行，冲突未解时其他并行线仍可继续。
+9. 检查须断言集成不变量，不只每叶子绿；先聚焦，再按影响集成 / 组装检查和独立审查。
+10. 记录墙钟、总 / 输入 / 输出 token、排队等待、重试、冲突、检查失败、漏缺陷、审查精力，与匹配的窄运行比较。
+11. 对空闲、重复、超长代理设停止规则，等所有分支会被最慢者卡住。
+12. 保持持久进度、检查点、干净提交、可恢复；多上下文不消除长期漂移 / 丢失。
 
-## What is measured, recommended, and hypothesized
+<a id="what-is-measured-recommended-and-hypothesized"></a>
+## 哪些已测、哪些建议、哪些假设
 
-### Measured/reported (with qualifications)
+<a id="measuredreported-with-qualifications"></a>
+### 已测或已报告（含限制）
 
-- Research: +90.2% internal eval vs single Opus 4; up to 90% complex-research time reduction; ~15× chat token usage (Anthropic report).
-- C compiler: 16 agents, ~2,000 sessions, <$20k, 100k LoC, Linux 6.9 capability (Anthropic experiment; no control).
-- Cursor: 20-locking agents effectively 2–3; later hundreds concurrent, >1M LoC/week-scale browser experiment (Cursor report; no controlled metrics).
+- Research：内部较单 Opus 4 提升 90.2%，复杂调研最多快 90%，约聊天 15 倍 token。
+- C 编译器：16 代理、约 2,000 会话、低于 2 万美元、10 万行、Linux 6.9，无对照。
+- Cursor：20 锁代理相当 2–3；后续数百并行、周量级百万行，无受控指标。
 
-### Recommendations (engineering extrapolation)
+<a id="recommendations-engineering-extrapolation"></a>
+### 建议（工程外推）
 
-- Maximize independent ready work; partition by behavior/seams/failure clusters (not artificial file-only slices); use role specialization and independent reviewers; maintain serial shared-tree mutation and strong artifacts. Tests/analysis need not serialize merely because merging does.
+- 最大化独立就绪工作，按行为 / 边界 / 失败簇分区，不机械按文件切；专门角色与独立审查，串行共享树写入和强产物。合并串行不要求测试 / 分析也串行。
 
-### Hypotheses to validate locally
+<a id="hypotheses-to-validate-locally"></a>
+### 待本地验证的假设
 
-- Wider independent frontier will lower wall time until merge/gate/API contention dominates.
-- Two or more independent diagnosis candidates may improve defect discovery on ambiguous failures, but expected value depends on judge/gate quality.
-- Thin filesystem/artifact seams will preserve parent context and reduce coordination overhead.
-- Fresh-context review may catch defects missed by implementers, but added tokens may not repay themselves on low-risk slices.
+- 就绪前沿更宽会降墙钟，直到合并 / 检查 / API 竞争主导。
+- 两个以上独立诊断候选或能改进歧义失败发现，但收益取决于裁判 / 检查质量。
+- 窄文件 / 产物边界保护父上下文、降低协调成本。
+- 全新审查可能抓到实现者遗漏，但低风险片未必抵得上额外 token。
 
-## Unknowns and non-transferable claims
+<a id="unknowns-and-non-transferable-claims"></a>
+## 未知与不可迁移的主张
 
-- No primary source here establishes an ideal coding-agent count, universal speedup curve, or token-to-latency exchange rate.
-- Anthropic Research metrics concern browsing/research populations and must not be labeled coding evidence.
-- The coding experiments do not isolate decomposition quality from model capability, harness quality, task duration, or raw spend.
-- No source quantifies API rate-limit contention, repository I/O contention, merge-queue critical-path share, or review-hours as concurrency scales.
-- Quality claims are end-state/capability reports, not randomized quality-at-equal-cost comparisons.
-- Current host limits, Rope graph width, and issue-specific dependency structure require local measurement.
+- 无一手来源证明编码最佳代理数、通用提速曲线、token / 延迟汇率。
+- Research 指标属于浏览 / 调研，不能标编码证据。
+- 编码实验未隔离拆分质量、模型、宿主、时长、花费的影响。
+- 没量化并行扩张时 API 限流、仓库 I/O、合并关键路径占比、审查工时。
+- 质量是终态 / 能力报告，不是同成本随机比较。
+- 当前宿主限制、Rope 图宽、issue 依赖都需本地测量。

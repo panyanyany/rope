@@ -1,8 +1,10 @@
-# Offline Ranking Fixture (E3)
+<a id="offline-ranking-fixture-e3"></a>
+# 离线模型分配用例（E3）
 
-Simulates research failure: no web sources, heuristics only.
+模拟调研失败：无网络来源，只用启发式。
 
-## Input
+<a id="input"></a>
+## 输入
 
 ```text
 enabledModels:
@@ -11,9 +13,10 @@ enabledModels:
   - vendor/gamma-max
 ```
 
-Research: forced failure / unavailable.
+调研：强制失败或不可用。
 
-## Expected ranking decision record
+<a id="expected-ranking-decision-record"></a>
+## 预期分配记录
 
 ```json
 {
@@ -38,14 +41,15 @@ Research: forced failure / unavailable.
       "agent": "rope-reviewer",
       "model": "vendor/gamma-max",
       "thinking": "high"
-    },
+    }
   }
 }
 ```
 
-## Pass criteria
+<a id="pass-criteria"></a>
+## 通过标准
 
-- Complete three-role assignment still produced
-- `confidence` is `low`
-- `sources` includes offline heuristics
-- Skill does not hard-fail solely due to missing web research
+- 仍产出完整三个核心角色分配
+- confidence 为 low
+- sources 含离线启发式
+- 不因缺网络调研而硬失败

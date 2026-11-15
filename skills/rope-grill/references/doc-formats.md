@@ -1,103 +1,100 @@
-# Rope Grill Document Formats
+<a id="rope-grill-document-formats"></a>
+# Rope Grill 文档格式
 
-Before writing durable docs, read
-[current documents](../../rope-clear/references/current-docs.md).
-Apply its replace-in-place and source-status checks; the formats below
-choose the home, not a reason to create another copy.
+写入长期文档前，先读[现行文档契约](../../rope-clear/references/current-docs.md)。遵守原位替换与来源状态检查。下列格式用于选择归属，不能成为另建副本的理由。模板字段名保留英文，说明及填写内容使用中文。
 
 ## `.rope/GLOSSARY.md`
 
-Use for project-specific domain language only.
+只用于项目特有的领域语言。
 
 ```md
 # Glossary
 
 ## Language
 
-**<Canonical Term>**:
-One or two sentence definition of what it is.
-_Avoid_: <ambiguous synonym>, <wrong term>
+**<规范术语>**:
+<用一两句话定义它是什么。>
+_Avoid_: <歧义同义词>, <错误用词>
 ```
 
-Rules:
-- Add terms only after they are resolved in conversation or verified from docs/code.
-- Do not add implementation steps, file paths, tickets, or temporary facts.
-- Prefer canonical vocabulary and list avoided alternatives.
+规则：
+
+- 只有在讨论中确定，或从文档 / 代码核验后才添加术语。
+- 不加入实现步骤、文件路径、工单或临时事实。
+- 优先使用规范词汇，列出应避免的替代用词。
 
 ## `.rope/adr/NNNN-slug.md`
 
-Use only when all three are true:
-- hard to reverse
-- surprising without context
-- real tradeoff between credible options
+仅在以下三项同时成立时使用：
+
+- 难以逆转。
+- 脱离上下文会令人意外。
+- 可信方案之间存在真实取舍。
 
 ```md
-# <Decision Title>
+# <决策标题>
 
-<1-3 sentences explaining context, decision, and why.>
+<用 1–3 句话交代背景、决定和原因。>
 ```
 
-Optional sections only when useful:
-- `Status`
-- `Considered Options`
-- `Consequences`
+仅在有用时添加可选章节：`Status`（状态）、`Considered Options`（考虑过的方案）、`Consequences`（后果）。
 
 ## `.rope/research/<topic>.md`
 
-Use for external, platform, or service facts that may be reused across issues.
+用于能跨 issue 复用的外部、平台或服务事实。
 
 ```md
-# <Research Topic>
+# <调研主题>
 
 ## Question
 
-<What fact was checked?>
+<核验了什么事实？>
 
 ## Verified Facts
 
-### <stable-anchor>
+### <稳定锚点>
 
-Fact: <verified fact>
-Source: <official docs, primary source, command, or code pointer>
-Verified by: <command/search/source access>
+Fact: <已核验事实>
+Source: <官方文档、一手来源、命令或代码位置>
+Verified by: <命令 / 搜索 / 来源访问方式>
 Stability: low | medium | high
-Implication: <how this changes planning or implementation>
+Implication: <如何影响规划或实现>
 
 ## Assumptions
 
-- <temporary assumption, if any>
+- <临时假设，如有>
 
 ## Open Questions
 
-- <question requiring human decision or unavailable environment>
+- <需要人工决定，或受环境限制尚无法回答的问题>
 ```
 
 ## `.rope/specs/<area>/<topic>.md`
 
-Use for stable implementation contracts and gotchas.
+用于稳定的实现契约和易踩坑。
 
 ```md
-# <Spec Title>
+# <规范标题>
 
 ## Scope
 
-<When this spec applies.>
+<适用条件。>
 
 ## Contract
 
-- <signature, payload shape, invariant, or boundary rule>
+- <签名、载荷结构、不变量或边界规则>
 
 ## Tests Required
 
-- <observable behavior that must be tested>
+- <必须测试的可观察行为>
 
 ## Wrong vs Correct
 
 ### Wrong
 
-<bad pattern>
+<错误做法>
 
 ### Correct
 
-<safe pattern>
+<安全做法>
 ```

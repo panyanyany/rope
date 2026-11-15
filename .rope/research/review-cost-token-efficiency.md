@@ -1,125 +1,130 @@
-# Review Cost & Token Efficiency in Agent Workflow Systems
+<a id="review-cost--token-efficiency-in-agent-workflow-systems"></a>
+# 代理工作流的审查成本与 token 效率
 
-## Question
+<a id="question"></a>
+## 问题
 
-How do other agent-workflow systems (Anthropic/Claude Code, Cognition/Devin,
-Trellis, OpenAI Codex, GitHub Copilot) handle code-review cost and frequency in multi-agent coding workflows? Specifically: reviewer per work unit vs batched/exception-based review, duplicate verification passes (review vs verify overlap), and token-saving practices for orchestrator/parent contexts. Input for Rope's decision on per-slice review frequency, go overall-review vs rope-verify overlap, and reviewer model routing.
+Anthropic/Claude Code、Cognition/Devin、Trellis、OpenAI Codex、GitHub Copilot 等系统，如何处理多代理编码的审查成本和频率？重点是逐工作单元还是批量 / 例外审查、review 与 verify 重复验证、父编排器上下文节省。作为 Rope 决定逐切片审查频率、go 总审与 rope-verify 重叠、审查模型路由的输入。以下保留研究时建议，不替代现行 ADR / 技能。
 
-## Verified Facts
+<a id="verified-facts"></a>
+## 已核验事实
 
 ### anthropic-token-economics
 
-Fact: Anthropic reports agents use ~4× more tokens than chat, multi-agent systems ~15×; token usage alone explains 80% of performance variance on BrowseComp. Multi-agent fits research (parallel search) better than coding, where "most coding tasks involve fewer truly parallelizable tasks than research"; economic viability requires task value to justify the spend.
+Fact: Anthropic 报告代理比聊天约多用 4 倍 token，多代理约 15 倍；仅 token 用量可解释 BrowseComp 表现差异的 80%。多代理更适合并行搜索调研，编码通常可真正并行的任务较少；任务价值须足以支撑成本。
 Source: https://www.anthropic.com/engineering/multi-agent-research-system
-Verified by: fetch_content + passage retrieval (2026-07)
-Stability: high
-Implication: Every added agent pass (e.g. reviewer leaf per slice) multiplies token burn; upstream treats per-agent overhead as a cost to justify, not a default.
+Verified by: 内容抓取与段落检索，2026-07。
+Stability: high。
+Implication: 每多一轮代理，例如逐切片审查，都会增加 token 开销；上游将代理成本视为需论证的投入，而非默认配置。
 
 ### anthropic-end-state-evaluation
 
-Fact: Anthropic appendix on stateful agents: "focusing on end-state evaluation rather than turn-by-turn analysis … evaluate whether it achieved the correct final state. For complex workflows, break evaluation into discrete checkpoints where specific state changes should have occurred, rather than attempting to validate every intermediate step."
-Source: same post, appendix ("End-state evaluation of agents that mutate state over many turns")
-Verified by: fetch_content exact-quote extraction
-Stability: high
-Implication: Argues against LLM-validating every intermediate slice; checkpoints (deterministic gates) plus one end-state judgment.
+Fact: Anthropic 有状态代理附录建议评价最终状态，而非逐轮分析；复杂流程拆为应发生明确状态变化的检查点，不验证所有中间步骤。
+Source: 同文附录 “End-state evaluation of agents that mutate state over many turns”。
+Verified by: 抓取并提取原句。
+Stability: high。
+Implication: 不支持用 LLM 逐个验证中间切片；可用确定性检查点加一次终态判断。
 
 ### anthropic-filesystem-artifacts
 
-Fact: Anthropic appendix: subagents should "store their work in external systems, then pass lightweight references back to the coordinator … reduces token overhead from copying large outputs through conversation history"; also summarize completed phases into external memory; subagents "condense the most important tokens" for the lead agent.
-Source: same post, appendix ("Subagent output to a filesystem …", "Long-horizon conversation management"); pinned in `.rope/research/single-window-go-orchestration.md` (`anthropic-endstate-and-artifacts`)
-Verified by: fetch_content exact quotes + local pinned research
-Stability: high
-Implication: Parent reads artifacts/diffs + summaries by reference, never inline leaf traces. Rope's issue package already fits this.
+Fact: Anthropic 附录建议子代理将工作写外部系统，仅传轻引用给协调者，减少大输出穿越聊天历史的 token；完成阶段摘要进入外部记忆，子代理为主代理浓缩重要信息。
+Source: 同文 “Subagent output to a filesystem …” / “Long-horizon conversation management”；已固定在 `.rope/research/single-window-go-orchestration.md` 的 `anthropic-endstate-and-artifacts`。
+Verified by: 抓取原句与本地固定调研。
+Stability: high。
+Implication: 父按引用读产物 / diff / 摘要，不内联叶子轨迹；Rope issue 包已符合。
 
 ### claude-code-adversarial-review-step
 
-Fact: Claude Code best practices prescribe a single adversarial review at the END of unattended work, not per unit: "The longer Claude works unattended, the more an independent check matters before you count the work as done. A reviewer running in a fresh subagent context sees only the diff and the criteria you give it." Bundled `/code-review` "reviews the current diff for bugs in a fresh subagent". Also: Writer/Reviewer two-session pattern ("A fresh context improves code review since Claude won't be biased toward code it just wrote") and evidence-over-assertion ("Have Claude show evidence rather than asserting success: the test output …").
+Fact: Claude Code 最佳实践建议无人值守工作**结束**时做一次独立对抗审查；独立代理只看 diff 与给定标准。内置 `/code-review` 用全新子代理审当前 diff。另有作者 / 审查者双会话模式，全新上下文减少对刚写代码的偏见；要求展示测试等证据，而非口头声称成功。
 Source: https://code.claude.com/docs/en/best-practices
-Verified by: fetch_content + passage retrieval (2026-07)
-Stability: medium (living docs page)
-Implication: Review frequency scales with unattended duration/risk, not unit count; one fresh-context diff review + evidence display is the first-party pattern.
+Verified by: 内容抓取与段落检索，2026-07。
+Stability: medium，持续更新文档。
+Implication: 频率随无人值守时长 / 风险变化，不按单元数；一手模式是全新上下文 diff 审查加证据展示。
 
 ### claude-code-subagent-cost-control
 
-Fact: Official guidance: "Since context is your fundamental constraint, subagents are one of the most powerful tools available … Subagents run in separate context windows and report back summaries"; subagents support cheaper `model` overrides; auto mode routes per-command risk review to "a separate classifier model" that "blocks only what looks risky" (cheap-model review-by-exception). Model overrides can be silently inoperative (pinned GitHub issues).
-Source: https://code.claude.com/docs/en/best-practices; https://code.claude.com/docs/en/sub-agents (pinned in `.rope/research/single-window-go-orchestration.md` `claude-code-subagent-capabilities`, `claude-code-model-override-fragility`)
-Verified by: fetch_content + local pinned research
-Stability: medium
-Implication: Cheap model for mechanical scanning, strong model for judgment; record the *effective* model per leaf.
+Fact: 官方说明上下文是根本约束，子代理用独立窗口并返回摘要；支持较廉价 `model` 覆盖；auto 模式把逐命令风险审查交给独立分类模型，仅阻塞风险动作，是低成本例外审查。固定 GitHub issue 说明模型覆盖可能静默失效。
+Source: https://code.claude.com/docs/en/best-practices 及 https://code.claude.com/docs/en/sub-agents ；固定在 `single-window-go-orchestration.md` 的 `claude-code-subagent-capabilities`、`claude-code-model-override-fragility`。
+Verified by: 内容抓取与本地固定调研。
+Stability: medium。
+Implication: 廉价模型做机械扫描，强模型做判断；记录每叶子实际生效模型。
 
 ### cognition-context-fragmentation
 
-Fact: Cognition's "Don't Build Multi-Agents": splitting work across agents fails via context fragmentation — Principle 1: "Share context, and share full agent traces"; Principle 2: actions carry implicit decisions, so conflicting decision-makers diverge. Claude Code subagents (June 2025) only answer questions, never write code in parallel; the win is "all the subagent's investigative work does not need to remain in the history of the main agent".
+Fact: Cognition 的 “Don't Build Multi-Agents” 指出上下文碎片化导致协作失败：原则 1 要共享上下文和完整轨迹；原则 2 指动作含隐式决策，多个决策者易分歧。其文所述 2025-06 Claude Code 子代理只答问题，不并行写代码，收益是调查过程不必留在主代理历史。
 Source: https://cognition.com/blog/dont-build-multi-agents
-Verified by: fetch_content + passage retrieval (2026-07)
-Stability: medium (opinionated but widely cited)
-Implication: Read-only review agents are the safe extra agent (intelligence, not actions); each agent that must reconstruct context costs tokens and risks miscommunication.
+Verified by: 内容抓取与段落检索，2026-07。
+Stability: medium，有立场但广受引用。
+Implication: 只读审查代理贡献判断、不改状态，风险较低；每个需重建上下文的代理都付 token 并增加误沟通可能。
 
 ### cognition-clean-context-reviewer
 
-Fact: Cognition's "Multi-Agents: What's Actually Working": Devin Review "catches an average of 2 bugs per PR, of which roughly 58% are severe"; the loop works BEST when "the coding and review agents do not share any context beforehand" — the reviewer "gets to skip this extraneous context, only look at the diff, and re-discover any context it needs … With a shorter context, the improved intelligence naturally leads to increased detection of nuanced issues." A communication bridge (coder filters findings via its fuller context) prevents looping. Principle: "multi-agent systems work best today when writes stay single-threaded and the additional agents contribute intelligence rather than actions."
+Fact: Cognition 的 “Multi-Agents: What's Actually Working” 称 Devin Review 每 PR 平均发现 2 个 bug，约 58% 严重；编码与审查代理事先不共享上下文时效果最佳。审查者只看 diff、自己发现所需背景，短上下文提高细微问题检测；编码者用更完整背景过滤发现，形成沟通桥以防循环。原则是写入保持单线程，其他代理贡献判断。
 Source: https://cognition.com/blog/multi-agents-working
-Verified by: fetch_content + passage retrieval (2026-07)
-Stability: medium
-Implication: Review at the delivery unit (PR), loop-to-clean; minimal reviewer context (diff + criteria only) is BOTH cheapest AND highest-yield — the reviewer does not need the implementation transcript.
+Verified by: 内容抓取与段落检索，2026-07。
+Stability: medium。
+Implication: 对交付单位 PR 审到通过；最小干净审查上下文既便宜又有效，不需实现记录。
 
 ### trellis-single-check-self-fix
 
-Fact: Trellis runs ONE check phase per task after implementation (`trellis-check`): reads `prd.md`, optional `design.md`/`implement.md`, narrow `check.jsonl` context manifests, changed files; runs local test/lint/type-check; "is allowed to fix findings directly, then rerun checks" (self-fix loop). After checks pass, the main session performs final verification + durable-spec update. Lightweight tasks can be PRD-only; `check.jsonl` stays narrow (spec/research by reference, never modified files).
-Source: https://docs.trytrellis.app/start/how-it-works (steps 5–10); repo facts pinned in `.rope/research/upstream-inspiration-sources.md` (AGPL-3.0, idea-extraction only)
-Verified by: fetch_content (2026-07) + local pinned research
-Stability: medium
-Implication: No per-sub-unit reviewer; deterministic commands + one read-fix loop per task, then an evidence/final-state pass. Review context loads by reference from manifests.
+Fact: Trellis 每任务实现后只有一次 check 阶段（`trellis-check`）：读 `prd.md`、可选 `design.md` / `implement.md`、窄 `check.jsonl` 上下文清单、变化文件；跑本地 test/lint/type-check，可直接修发现并重查。通过后主会话最终验证及更新长期规范。小任务可只有 PRD；`check.jsonl` 仅窄范围引用规范 / 调研，不放修改文件。
+Source: https://docs.trytrellis.app/start/how-it-works 第 5–10 步；仓库事实见 `.rope/research/upstream-inspiration-sources.md`，AGPL-3.0，仅提取思路。
+Verified by: 2026-07 抓取与本地固定调研。
+Stability: medium。
+Implication: 不逐子单元派审查者；确定性命令与一次读修循环之后，做证据 / 终态检查。审查按清单引用加载。
 
 ### github-tiered-risk-based-review
 
-Fact: GitHub's first-party guidance on agent PRs: automated pass first, owning the mechanical tier — "Let Copilot run first … it handles the low-level scan. That frees you up for the judgment work"; review depth set by classification ("Scan and classify … Narrow task … or complex … That classification sets your review depth"); oversized unscoped PRs correlate with agent abandonment, so demand a breakdown rather than reviewing deeply. Copilot code review: 60M+ reviews, 10× growth in under a year.
+Fact: GitHub 对代理 PR 的一手指引是自动检查先处理机械层，人工集中判断；先将任务分为窄或复杂，再定审查深度。过大无范围 PR 与代理放弃相关，应先要求拆分而非深入审。Copilot 代码审查已超过 6000 万次，不到一年增长 10 倍。
 Source: https://github.blog/ai-and-ml/generative-ai/agent-pull-requests-are-everywhere-heres-how-to-review-them/
-Verified by: fetch_content + passage retrieval (2026-07)
-Stability: high
-Implication: Explicit tiering (mechanical/automated vs judgment) and risk-classified review depth — not uniform review frequency.
+Verified by: 内容抓取与段落检索，2026-07。
+Stability: high。
+Implication: 明确机械 / 自动与判断两层，按风险定深度，不统一审查频率。
 
 ### openai-codex-review-rules
 
-Fact: Codex Code Review runs per PR plus on-demand (`@codex review`); it is "an additional reviewer; tests, branch protections, and required approvals continue to provide hard enforcement" (deterministic gates stay authoritative). Review guidance lives in `AGENTS.md` by reference ("concise, scoped review guidance … apply the rules that matter to a change and cite them in a finding"); rule-guided review recovered 98% of required custom findings vs 58.3% baseline.
+Fact: Codex Code Review 按 PR 或按需 `@codex review` 运行，是额外审查者；测试、分支保护、必需批准仍提供硬约束。`AGENTS.md` 保存精简、限定范围的审查指引，按引用应用并在发现中引用。规则指引恢复 98% 必需自定义发现，对照基线 58.3%。
 Source: https://developers.openai.com/blog/custom-code-review-rules-for-codex
-Verified by: fetch_content answer-mode exact quotes (2026-07)
-Stability: high
-Implication: LLM review supplements rather than duplicates deterministic verification; quality gains come from durable rule docs read by reference, not bigger reviewer context.
+Verified by: 2026-07 内容抓取并提取原句。
+Stability: high。
+Implication: LLM 补充确定性验证，不重复它；质量来自引用长期规则，不是加大审查上下文。
 
 ### local-thrifty-and-pinned-sources
 
-Fact: `thrifty` (pinned in `.rope/research/single-window-go-orchestration.md` `thrifty-tiered-delegation`): strong model writes contract; cheap model executes and self-fixes against an independently re-run gate; strong model spends tokens "only on failures / assertional criteria"; ~64% cheaper at equal gate quality (small n, caveats documented). Same file pins Aider Architect/Editor (strong reasoner + cheaper editor) and Depot `/orc` (structured reviewer verdicts after build). The pinned mattpocock/skills upstream (`source.md`, `correspondence.md`) contains nothing on review frequency, batching, or token budgets; `tdd` maps to rope-go slice discipline, `handoff` (watch) to the absorbed leaf-brief pattern. Trellis is historical inspiration only (decision U1 in `upstream-inspiration-sources.md`).
-Source: `.rope/research/single-window-go-orchestration.md` (`thrifty-tiered-delegation`, `industry-supplement-clean-review`); `.rope/upstream/mattpocock-skills/source.md`; `.rope/upstream/mattpocock-skills/correspondence.md`; `.rope/research/upstream-inspiration-sources.md`; https://github.com/2389-research/thrifty
-Verified by: local pinned research (previously clone/read-verified) + direct read (2026-07)
-Stability: medium
-Implication: Gate-first, LLM-judgment-on-failure is the closest measured analog to Rope's desired cost split; no review-frequency pressure comes from the mattpocock upstream.
+Fact: `thrifty` 固定于 `single-window-go-orchestration.md` 的 `thrifty-tiered-delegation`：强模型写契约，廉价模型执行并按独立重跑检查自修；强模型只处理失败 / 需判断标准，小样本下同等检查质量约便宜 64%，保留了限制说明。同文件有 Aider Architect/Editor 与 Depot `/orc` 结构化构建后审查。已固定 mattpocock/skills 的 `source.md`、`correspondence.md` 未规定审查频率、批量或 token 预算；`tdd` 对应 rope-go 切片纪律，`handoff`（watch）对应已吸收的叶子简报。Trellis 仅历史灵感，见 U1。
+Source: `.rope/research/single-window-go-orchestration.md` 的 `thrifty-tiered-delegation`、`industry-supplement-clean-review`；`.rope/upstream/mattpocock-skills/source.md`、`correspondence.md`；`.rope/research/upstream-inspiration-sources.md`；https://github.com/2389-research/thrifty
+Verified by: 先前经克隆 / 阅读核验的本地固定研究，及 2026-07 直接阅读。
+Stability: medium。
+Implication: 检查优先，仅失败时用 LLM 判断，是接近 Rope 成本分工的实测类比；Matt 上游没有要求增加审查频率。
 
-## Answers to the Three Key Questions
+<a id="answers-to-the-three-key-questions"></a>
+## 三个关键问题的答案
 
-1. **Reviewer per unit vs batch/exception:** No surveyed first-party system runs a fresh LLM reviewer per internal work unit. Review attaches to the delivery unit or end of an unattended run: Devin Review loops per PR (`cognition-clean-context-reviewer`); Codex per PR / on demand (`openai-codex-review-rules`); Copilot per PR as mechanical first tier (`github-tiered-risk-based-review`); Claude Code does one adversarial fresh-context review before counting work done (`claude-code-adversarial-review-step`); Trellis one check+self-fix per task (`trellis-single-check-self-fix`); thrifty none while gates are green (`local-thrifty-and-pinned-sources`). Risk/diff classification sets review depth — review-by-exception.
+1. **逐单元还是批量 / 例外审查：**调查到的一手系统没有为每个内部工作单元派全新 LLM 审查者。审查附于 PR 或无人值守工作结束：Devin 按 PR 循环，Codex 按 PR / 按需，Copilot 是 PR 的机械首层，Claude Code 完成前一次独立检查，Trellis 每任务 check + 自修，thrifty 检查绿时不派。风险 / diff 分类决定深度。
+2. **重复验证：**上游保留确定性检查权威，LLM 留给终态判断。没有对同一组装 diff 连做两次同范围 LLM 阅读。Trellis 的 check 修复与 finish 最终验证顺序不同、职责不同。go 总审加同形状 rope-verify 正是应避免的重复。
+3. **父编排器 token：**文件产物加轻引用，不复制大输出；子代理返摘要，父读 diff 而非轨迹；用窄引用清单；干净最小审查上下文既省又好；廉价模型做机械扫描 / 执行，强模型只处理判断 / 失败。
 
-2. **Duplicate verification passes:** Upstream keeps deterministic gates authoritative (Codex: "tests … continue to provide hard enforcement"; thrifty: independently re-run gate) and reserves LLM passes for end-state judgment (Anthropic end-state evaluation; Claude Code evidence-not-assertion). Nobody runs two same-scope LLM read passes over one assembled diff; Trellis's check (fix loop) and finish (final verification) are sequenced with different jobs — fix vs accept — not overlapping reviews. A go overall-review plus a same-shape rope-verify is exactly the pattern upstream systems avoid.
+<a id="implications-for-rope"></a>
+## 对 Rope 的启示
 
-3. **Orchestrator/parent token practices:** (a) filesystem artifacts + lightweight references, never copying large outputs through the parent (`anthropic-filesystem-artifacts`); (b) subagents return summaries; parent reads diffs, not traces (`claude-code-subagent-cost-control`); (c) narrow by-reference context manifests for review (`trellis-single-check-self-fix`, `openai-codex-review-rules`); (d) minimal clean reviewer context is cheaper AND better, not a compromise (`cognition-clean-context-reviewer`); (e) model routing: cheap for mechanical scan/execute, strong only for judgment/failure (`claude-code-subagent-cost-control`, `local-thrifty-and-pinned-sources`).
+(a) **逐切片频率：**逐片 LLM 审查高于所有调查默认值。证据支持当时的 thin 选项：默认确定性测试 / 矩阵 / E2E，仅 shape 标 `Review: required` 的风险片或检查失败时派审查者。既保留高风险边界早发现，也省常规 token。这是决策输入；当前采用何种频率以生效 ADR 为准。
 
-## Implications for Rope
+(b) **go 总审与 rope-verify 重复：**两个强模型对全 diff 连读重复终态判断。可合并为唯一终态检查，或拆成廉价机械证据收集与判断验收；无论哪种，verify 应用已有证据，不重审发现。
 
-(a) **Per-slice review frequency.** Per-slice LLM review is more frequent than any surveyed upstream default. Evidence supports Rope's existing "thin" option (`.rope/research/single-window-go-orchestration.md`, "Per-Slice Review: Keep, Thin, or Drop?"): deterministic gates (tests/matrix/E2E) are the default per-slice check; a reviewer leaf runs only on `Review: required` (risk flagged at shape time, mirroring GitHub's classify-then-set-depth) or when a gate fails (thrifty's adaptive verification). Preserves early detection at high-risk boundaries while cutting baseline review tokens.
+(c) **模型 / 思考路由：**廉价低 / 无思考模型做机械扫描和证据汇集，强模型处理失败判断和最终验收。简报只含 diff、验收标准、引用路径，不含实现记录；记录实际模型 / 思考等级，因覆盖可能失效。
 
-(b) **go overall-review vs rope-verify overlap.** Two strong-model, read-only, whole-diff LLM passes back-to-back duplicate the one thing upstream keeps singular. Evidence-consistent options: fold go's overall-review into verify as the single end-state gate (Anthropic end-state evaluation; Claude Code single adversarial step), or split scopes — overall-review becomes evidence-assembly/mechanical (cheap model, matrix/E2E evidence collection) while rope-verify owns judgment/accept, mirroring Trellis check-vs-finish and the automated-tier/judgment-tier split. Either way, verify should consume recorded evidence rather than re-review findings.
+<a id="sources"></a>
+## 来源
 
-(c) **Reviewer model/thinking routing.** Route by tier: cheap model (low/no thinking) for mechanical scan and evidence assembly (Claude Code classifier/subagent model override; Copilot first tier); strong model reserved for judgment on gate failure and final accept (thrifty; Devin review-filter bridge). Reviewer briefs must be diff + acceptance criteria + paths by reference — never implementation transcripts (Cognition clean-context is both cheaper and higher-yield). Record effective model/thinking per leaf (pinned model-override fragility issues).
+本地固定资料：
 
-## Sources
-
-Local (pinned):
 - `.rope/upstream/mattpocock-skills/source.md`
 - `.rope/upstream/mattpocock-skills/correspondence.md`
 - `.rope/research/upstream-inspiration-sources.md`
 - `.rope/research/single-window-go-orchestration.md`
 
-Web (primary, fetched 2026-07):
+网络一手资料，2026-07 已抓取：
+
 - https://www.anthropic.com/engineering/multi-agent-research-system
 - https://code.claude.com/docs/en/best-practices
 - https://code.claude.com/docs/en/sub-agents

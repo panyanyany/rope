@@ -1,119 +1,38 @@
-# 0004 Risk-Tiered Review Mode and Lean Leaf Briefs
+<a id="0004-risk-tiered-review-mode-and-lean-leaf-briefs"></a>
+# 0004 按风险分层审查与精简叶子简报
 
-> **Status: superseded by [0007](0007-graph-driven-go-single-review.md)** —
-> the single end-of-issue review replaced per-slice/batch modes; lean-brief
-> discipline (ADR 0005) carries over.
+> **状态：已由 [0007](0007-graph-driven-go-single-review.md)替代。**单次结束审查替代逐片 / 批量模式，精简简报纪律由 0005 延续。下文保留原决策历史。
 
-Rope adds an **opt-in, per-issue review mode** decided at `rope-shape` time:
-`review: per-slice | batch` in `prd.md` frontmatter (absent or `per-slice` ⇒
-current behavior). In `batch` mode, high-risk slices keep a per-slice reviewer
-leaf while other code slices defer to **one end-of-issue batch review**; `rope-go`
-drops its parent-owned overall review pass, leaving `rope-verify` as the sole
-parent-level assembled judgment. Leaf briefs carry the Constraint Bundle **by
-path reference** (plus constraint IDs and the short global invariant list)
-instead of inline copies, and the go parent loads the issue package **lean**
-(frontmatter, Behavior Contract, slice statuses, bundle index) with deep reads
-on demand.
+原决策新增 shape 时用户选择的每 issue 审查模式 review: per-slice | batch，缺省逐片。batch 高风险片仍逐审，其余代码延到一次结束批审；go 去父整体审查，由 verify 保留父级组装判断。约束包改路径引用、ID、短全局不变量，父启动轻载元数据、契约、状态、包索引，按需深读。
 
-## Context
+<a id="context"></a>
+## 背景
 
-Empirical evidence from `agent-workbench` (101 issues; see
-`.rope/research/review-cost-token-efficiency.md`):
+agent-workbench 101 issue 的 review-cost-token-efficiency 数据：377 required、67 self-check，至少 84 结论和 46 降级。发现集中安全 / 失败路径，其他低产出。verify 在片审和整体审均通过后仍抓安全、并发、E2E 漂移，如 pi-migration-toolset、agent-turn-concurrency-scheduler、webui-channel-integration。最贵是 verify 修复，单 issue 最多 13 轮，不是派发审查；批审必须先于 verify。中位五片包每轮简报复制约 18KB。
 
-- 377 `Review: required` slices vs 67 `self-check`; ≥84 reviewer verdict lines
-  and 46 `review_degraded` markers. Most required-slice reviews were
-  low-finding; yield concentrated in genuinely high-risk slices (security,
-  failure paths).
-- Verify was the effective safety net: security vulnerabilities, concurrency
-  correctness, and E2E drift were repeatedly caught **after** per-slice review
-  and go's overall review had both passed (e.g. `pi-migration-toolset`,
-  `agent-turn-concurrency-scheduler`, `webui-channel-integration`).
-- The largest token sink was **fix-loop rounds at verify** (up to 13 rounds per
-  issue), not review spawns: late-caught integration bugs are the expensive
-  failure mode, so the batch pass must run **before** verify starts.
-- Brief-copy overhead: a median 5-slice issue copies ~18KB of prd+tasks text
-  into leaf briefs per go cycle.
+一手来源研究显示多数系统按交付 / 无人运行结束审，不逐内部单元派新审查，也不对同 diff 做两次同范围模型阅读；干净上下文和引用标准更便宜有效。
 
-External research (all first-party sources cited in the research file): no
-surveyed system runs a fresh LLM reviewer per internal work unit — review
-attaches to the delivery unit or end of an unattended run (Claude Code,
-Devin, Codex, Copilot, Trellis, thrifty); nobody runs two same-scope LLM read
-passes over one assembled diff; minimal clean reviewer context (diff +
-criteria by reference) is both cheaper and higher-yield (Cognition).
+<a id="decision"></a>
+## 决策
 
-## Decision
+1. prd frontmatter 加 review: per-slice | batch，shape 手动选择，缺省逐片，与原 dynamic 可选方式一致。
+2. batch 模式片标 required（公共接口、外部 adapter、认证 / 密钥、持久化 / schema、路由 / 组装、跨层、E2E 关键）、batch（其他代码）、self-check（文档 / fixture）。逐片模式仍二级。
+3. 有 batch 片时父派一个全新 reviewer 审这些累计 diff，契约 / ID 引用加载，tasks 各片记录结论和身份。发现进入原最多两轮修复再人工停止。
+4. 父不再 go Overall Review，组装判断进批审和 verify；go 只查提交、审查、E2E、无无关脏文件。
+5. 简报带包路径、切片 ID、短全局不变量，叶子自读细节并逐 ID 确认 / 报冲突。不允许一句遵 ADR，也不复制完整包。
+6. 父轻载 frontmatter、契约、Testing Decisions、影响、包索引、状态，派相关片时才深读条目。
 
-1. **Review mode field.** `review: per-slice | batch` in `prd.md` frontmatter.
-   `rope-shape` asks the user at shape time (same manual opt-in pattern as
-   `mode: dynamic`). Absent or `per-slice` ⇒ today's behavior.
-2. **Three-valued slice review marking (batch mode).** `required` (slice hits
-   the Review Risk Gate: public interface, external/adapter, auth/secret,
-   persistence/schema, routing/runtime wiring, multi-layer, E2E-critical
-   path) | `batch` (other code slices) | `self-check` (docs/fixture only).
-   In per-slice mode the marking stays binary `required | self-check`.
-3. **Batch review execution (parent-owned).** After all slices, if ≥1 slice is
-   marked `batch`, the parent spawns **one** `rope-reviewer` leaf over the
-   cumulative diff of all batch slices. Its brief includes the Behavior
-   Contract and constraint IDs by reference (fresh, clean context — diff +
-   criteria only, per Cognition). Verdict is recorded per covered slice in
-   `tasks.md` with run/agent identity. A `batch` finding routes to fix rounds
-   like any review finding (≤2 rounds, then Human Escalation Stop).
-4. **Go overall review removed.** The parent no longer performs the
-   "Overall Review" pass after slices. Judgment items move to the batch
-   reviewer brief (Behavior Contract assembled check) and to `rope-verify`,
-   which already owns them (ADR 0001: matrix/Contract for the integrated
-   change, dispositions, invariant evidence, E2E drift, review reality). go
-   keeps a light **handoff checklist** only: per-slice commits present, review
-   verdicts recorded (incl. batch), E2E statuses recorded, no unrelated dirty
-   files.
-5. **Briefs by reference.** Implementer/reviewer briefs carry the bundle
-   **path + slice Constraint IDs + the short global invariant list**; the leaf
-   reads bundle detail itself and returns per-ID confirmation + conflicts.
-   No bare "follow the ADR" (unchanged); no full inline bundle copy (new).
-6. **Lean parent load.** go startup reads prd frontmatter, Behavior Contract,
-   Testing Decisions, Architecture Impact, bundle index (IDs + paths), and
-   slice statuses; bundle entries and references are deep-read when
-   dispatching the slice that needs them.
+<a id="why-this-split"></a>
+## 理由
 
-## Why this split
+风险边界才有高审查收益；新视角组装审先抓集成缺陷，避免昂贵 verify 循环。go 整体与 verify 重复，保更强证据核验。实现 / 验收分离不变，批审是真只读叶子，不能实现者自审或静默降级。
 
-- **Review value is concentrated at high-risk boundaries** (workbench data +
-  GitHub risk-classified review depth); uniform per-slice frequency buys little
-  elsewhere.
-- **One clean-context reviewer over the assembled diff is the upstream
-  pattern** (Claude Code end-of-run adversarial review; Devin per-PR) and
-  catches the integration class (e.g. workbench `shutup` sync-await) that
-  individual slice reviews miss — **before** the expensive verify loop starts.
-- **Two same-scope parent passes were the waste**: go overall review and
-  verify overlapped heavily; verify is the stronger, evidence-checking pass
-  (ADR 0001) and stays the sole accept gate.
-- **Implement/accept separation preserved** (ADR 0001): batch review is a
-  real parent-spawned read-only leaf — never implementer self-review, never
-  a silent degrade; verify still audits that it actually ran.
+<a id="consequences"></a>
+## 后果
 
-## Consequences
+典型六片从约六次审查降两次，一高风险加一批审；简报 / 父增长放缓。verify 查批结论真实性。dynamic 并发、提交、禁嵌套不变；旧包无 review 保原行为。批发现同样修复 / 人工停止。
 
-- Reviewer spawns per typical 6-slice batch issue drop from ~6 to ~2 (1
-  required + 1 batch); brief copy overhead drops by the bundle detail per
-  leaf; parent go context grows slower.
-- `rope-verify` gains one check: batch-slice verdicts are real and auditable
-  (extends its existing "required reviews real" check).
-- Dynamic mode (ADR 0003) interplay: `required` slices still get per-slice
-  review; `batch` slices' reviews run once at end-of-issue; parallel
-  implementer fan-out, commit rules, and no-nested-spawn are unchanged.
-- Legacy packages (no `review` field) behave exactly as today.
-- Fix-round and Escalation Stop rules apply unchanged to batch findings.
+<a id="considered-options"></a>
+## 考虑过的方案
 
-## Considered Options
-
-- **Shrink the global Review Risk Gate list.** Rejected: global and
-  irreversible; the per-issue mode gives shape-time risk judgment instead.
-- **Keep both parent passes (overall review + verify).** Rejected: two
-  same-scope strong-model read passes over one diff is the exact duplication
-  upstream avoids; workbench evidence shows verify subsumes it.
-- **Batch review merged into verify.** Rejected: verify must stay read-only
-  accept judgment; batch review is a review gate whose findings feed fix
-  rounds *before* verify, keeping the verify loop cheap.
-- **Frequency unchanged, cheaper reviewer model only.** Rejected as sole
-  measure: spawn count and brief overhead dominate; model routing alone
-  leaves wall-clock and parent tokens untouched.
+缩全局风险清单不可逆；保两父审重复；合批审进 verify 使问题延后、修复贵；只换便宜模型不减次数、简报和父成本。均拒绝。

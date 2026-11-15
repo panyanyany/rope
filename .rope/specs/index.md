@@ -1,15 +1,17 @@
-# Rope Specs
+<a id="rope-specs"></a>
+# Rope 规范
 
-Stable implementation contracts and project coding rules.
+稳定实现契约与项目编码规则。
 
-## Areas
+<a id="areas"></a>
+## 区域
 
-- `guides/` - general thinking and verification guides, including `architecture-continuity.md` for issue decision handoff and evidence.
-- `<area>/` - area-specific implementation contracts.
-- `review-cost-optimization.md` - end-of-issue review cost contract (ADR 0010): two parallel read-only leaves, scanner/reviewer brief budgets, diff hygiene, blocking-only fix protocol with delta re-review.
-- `plan-artifact-reader-layering.md` - reader layering contract (ADR 0005): Contract Note, Minimal Leaf Brief allowlist + line cap, unresolved-question policy.
+- `guides/`：通用思考与验证指南；architecture-continuity.md 规定决策交接和证据。
+- `<area>/`：分领域实现契约。
+- `review-cost-optimization.md`：结束审查成本，双只读叶子、简报预算、diff 清理、仅阻塞修复及差量复审。
+- `plan-artifact-reader-layering.md`：读者分层，Contract Note、最小简报允许清单与行数、未决问题策略。
 
-## Usage
+<a id="usage"></a>
+## 用法
 
-Before changing code, read the specs relevant to the target area. After fixing a
-bug or discovering a reusable contract, update the smallest relevant spec.
+改代码前读相关规范。修复缺陷或发现可复用契约后，更新最小相关规范。

@@ -1,105 +1,41 @@
-# 0006 Quick Fix Path (rope-quick)
+<a id="0006-quick-fix-path-rope-quick"></a>
+# 0006 小任务快速路径（rope-quick）
 
-Rope gains a second, lightweight entry: `rope-quick`, a **solo session** for
-small tasks that fit one fresh context window — already-diagnosed fixes and
-small features. One model runs grill-lite → red→green / test-first change →
-local commit → inline `.rope/` doc-sync, start to finish. No issue package,
-no leaf dispatch, no issue-level verify.
+新增轻量入口：一个全新上下文窗口内的已诊断修复及小功能，由单模型完整执行 grill-lite → 红绿 / 测试先行 → 本地提交 → 同步知识层。不建完整包、不派叶子、不做 issue verify。
 
-> Amended 2026-09-08 (grill on quick charter): charter widened from
-> already-diagnosed fixes to any single-window small task, and the old
-> "Direction" step formalized as grill-lite. Stop lines unchanged.
+> 2026-09-08 修订：范围从已诊断修复扩至任意单窗口小任务，原方向确认正式命名 grill-lite，停止线不变。
 
-## Context
+<a id="context"></a>
+## 背景
 
-- The full pipeline (grill → shape → go → verify) is heavy for fixes where
-  the root cause is already located and the direction is resolvable with a
-  couple of questions. Motivating case: `agent-workbench` LDAP DN-mismatch —
-  briefing with verified facts (simple bind + `uid=` template fails for
-  `cn=` DN accounts), three candidate directions, tests named.
-- Post-ship usage (2026-09): one-window small **features** kept being routed
-  into quick informally or forced through shape as a single-slice package —
-  the window boundary, not the fix/feature distinction, is what quick
-  actually gates on. Matt Pocock's grilling observation ("for single-session
-  tasks, a simple Q&A can be just as good as a detailed spec") supports
-  giving quick its own compressed alignment step instead of requiring the
-  full grill gate.
-- External comparison (`.rope/research/gsd-quick-comparison.md`): GSD
-  `/gsd-quick` has no entry gate, no review by default, and a persistent
-  per-task record — but no mid-run stop rules (it has no heavier per-task
-  pipeline to fall back into).
-- Rope-internal evidence (ADR 0004): review value concentrates at high-risk
-  boundaries, and issue-level verify repeatedly caught what review missed.
-  quick is the only Rope path without verify, so the gap must be closed
-  explicitly rather than by silence.
+- 根因已定位、少数问题即可选方向的修复，完整 grill/shape/go/verify 太重。起因是 agent-workbench LDAP DN 不匹配：simple bind 的 uid= 模板不适配 cn= 账户，已有核验事实、三方向及测试名。
+- 实际小功能也被非正式送 quick，或被迫做单片包。真实边界是窗口而非修复 / 功能。Matt 的访谈经验也支持单会话以简单问答替代详细规范。
+- GSD 比较见 gsd-quick-comparison：无入口限制、默认无审查、持久任务记录，但无中途停止规则，因为没有更重任务流程可退回。
+- ADR 0004 显示审查价值集中于高风险；verify 又抓到审查遗漏。quick 唯一无 verify，需明确补偿。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. **No entry gate; boundary = one fresh context window.** The user declares
-   quick; the skill does not second-guess scope at entry. Charter covers
-   already-diagnosed fixes **and** small features that fit one fresh window;
-   anything needing parallel slices, a new architecture decision, or more
-   context than one window holds belongs to the full pipeline. Ballooning is
-   not an entry-judgment failure but mid-run discovery, handled by stop
-   lines (below).
-2. **Grill-lite front segment.** Before code: fact self-check (re-verify the
-   brief's key facts against the tree; a failed fact goes to the user), one
-   round of decision questions (recommendation + example + tradeoff), and
-   the Q&A recorded into `quick.md` as the session's requirement alignment.
-   One round only — needing a second round is a stop-line symptom. This is
-   quick's substitute for the grill gate, sized for a window-sized task.
-3. **Four stop lines** (mid-run, unchanged): ① the change now needs a **new
-   architecture decision** — amending an existing ADR is allowed but its
-   disposition must be confirmed by the user; ② the same change failed
-   twice; ③ the change sprawls beyond the agreed scope across layers;
-   ④ schema / destructive / production operation. Triggering any line:
-   stop, write what is known, recommend the full pipeline; `quick.md`
-   records `status: stopped`. This is the solo-session replacement for
-   "leaf conflict returns to the parent" — never silent absorption.
-4. **Bug fixes are red→green mandatory**: a failing test reproducing the
-   reported symptom at the nearest seam comes before the fix. Small
-   features are test-first at the same seam. Config/docs changes waive with
-   a stated reason.
-5. **The human is the second eye, with a directed prompt.** No reviewer
-   leaf. The closing report carries a **risk-focus section**: when the diff
-   touches auth/secret/schema/adapter boundaries, it lists the specific
-   spots most worth human attention. A stronger manual review can still be
-   requested ad hoc.
-6. **One-page record**: `.rope/issues/<slug>/quick.md` (~30 lines: problem,
-   root cause / feature ask, grill-lite record (confirmed facts + Q&A),
-   chosen direction + the user's decision, red/green evidence, doc updates,
-   human leftovers, status).
-7. **Inline doc-sync**: a lite version of rope-summary's four-homes check —
-   every changed file is considered against specs / adr / research / CONTEXT;
-   each is updated or explicitly skipped with a reason. Falsified research
-   conclusions are corrected in the same session.
+1. 不额外卡入口，用户声明 quick 即进入；范围一个全新窗口，涵盖修复和小功能。并行切片、新架构、更多上下文归完整流程；中途膨胀按停止线处理，不追责入口判断。
+2. 代码前 grill-lite：对树重验关键事实，失败事实先告诉用户；一轮推荐 / 例子 / 代价决策；问答入 quick.md。需第二轮就是停止症状。
+3. 四停止线：新架构决策（可修订已有 ADR，但处置需确认）、同改动两次失败、跨层超范围、schema / 破坏性 / 生产操作。触发即停，写已知，推荐全流程，status: stopped；不得默吸。
+4. 修 bug 必须先在最近边界复现 red 再修，小功能测试先行；配置 / 文档可附理由豁免。
+5. 用户是第二视角，无审查叶子。风险边界 auth/secret/schema/adapter 的收尾报告具体指明重点位置，可临时要求更强人工审阅。
+6. 一页 quick.md 约 30 行：问题、根因 / 功能、事实及问答、方向与决定、红绿、文档、人工余项、状态。
+7. 同步四归属 specs/adr/research/CONTEXT，每变更文件考虑并更新或给跳过理由；被证伪 research 当会话修。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- quick is the only Rope path without model-side accept judgment;
-  compensated by small scope, mandatory red evidence, the directed
-  risk-focus handoff, and the stop lines.
-- No preset or leaf dependency — quick runs on any host that can run skills.
-- `quick.md` makes solo work auditable and gives escalation a handoff
-  artifact; a stopped quick can seed a grill/shape session later.
-- README / routes gain a quick-path entry point alongside the full workflow.
+- 无模型验收判断，以小范围、强制 red、定向人工焦点、停止线补偿。
+- 不依赖预设 / 叶子，支持技能的宿主即可用。
+- quick.md 可审计，停止记录可用于后续 grill/shape 交接。
+- README/routes 增快道入口。
 
-## Considered Options
+<a id="considered-options"></a>
+## 考虑过的方案
 
-- **Fix-only charter retained, features keep going through shape** —
-  rejected (2026-09-08 amendment): the real boundary quick enforces is the
-  single window, not the change type; forcing window-sized features into
-  single-slice packages adds ceremony without review value, and shape's own
-  iron rule already routes one-window changes here.
-- **Risk-triggered automatic reviewer leaf** — rejected: strongest
-  assurance, but adds preset dependency and latency, contradicts the
-  one-model charter, and no surveyed upstream quick path ships one; the
-  human already reviews the diff, so the marginal value went into directing
-  that review instead.
-- **Strict entry gate (high-risk domains excluded)** — rejected: would
-  exclude the motivating LDAP case; entry friction does not prevent mid-run
-  discovery.
-- **Tests-only gate (GSD default, no risk-focus section)** — rejected for
-  Rope: leaves the human reviewer without attention anchors, and the
-  workbench evidence shows the missed-bug class lives exactly at risk
-  boundaries.
+- 只修复，功能仍 shape：2026-09-08 拒绝，窗口才是真边界，单片包增加仪式无审查收益，shape 自己也推荐此类走 quick。
+- 风险触发自动审查叶子：拒绝，增预设依赖和延迟，违背单模型定位；用户本就看 diff，应引导其注意。
+- 排除高风险领域的严格入口：拒绝，会排除起因 LDAP 案，也不能防中途发现。
+- 仅测试，无风险焦点：拒绝，用户缺注意锚点，现场漏 bug 正发生在风险边界。

@@ -1,24 +1,24 @@
 ---
 name: rope-init
-description: Initializes the .rope coding harness (glossary, routes, specs, research, ADR, issue dirs) in a repo. One-time setup; invoke by name.
+description: 在仓库初始化 .rope 编程知识层，包括术语表、导航、规范、调研、架构决策与 issue 目录。一次性设置，按名称调用。
 disable-model-invocation: true
 ---
 
-# Rope Init
+<a id="rope-init"></a>
+# Rope Init：初始化
 
-Set up `.rope/` as a repo-local agent knowledge layer.
+将 `.rope/` 建为仓库本地代理知识层。输出模板见[初始化模板](references/templates.md)。
 
-For output templates, read [references/templates.md](references/templates.md).
+<a id="workflow"></a>
+## 工作流程
 
-## Workflow
-
-1. Inspect the repo before writing:
-   - root agent docs: `AGENTS.md`, `CLAUDE.md`
-   - root docs: `README*`, existing glossaries/context docs, `docs/adr/`
-   - existing `.rope/GLOSSARY.md` and legacy `.rope/CONTEXT.md`
-   - package/build markers: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Makefile`
-   - likely source/test roots: `src/`, `app/`, `apps/`, `packages/`, `tests/`, `test/`, `spec/`
-2. Create `.rope/` if missing using the template reference:
+1. 写入前检查仓库：
+   - 根代理指令：`AGENTS.md`、`CLAUDE.md`。
+   - 根文档：`README*`、已有术语 / 上下文文档、`docs/adr/`。
+   - 已有 `.rope/GLOSSARY.md`、旧 `.rope/CONTEXT.md`。
+   - 包 / 构建标记：`package.json`、`pyproject.toml`、`go.mod`、`Cargo.toml`、`Makefile`。
+   - 可能的源码 / 测试根：`src/`、`app/`、`apps/`、`packages/`、`tests/`、`test/`、`spec/`。
+2. 缺 `.rope/` 时按模板创建：
    ```text
    .rope/
      GLOSSARY.md
@@ -32,34 +32,15 @@ For output templates, read [references/templates.md](references/templates.md).
          integration-boundary.md
      issues/
    ```
-3. For a new knowledge layer, keep `.rope/GLOSSARY.md` as an empty glossary
-   template unless the user has already resolved project-specific terms.
-   Preserve existing glossaries. If legacy `.rope/CONTEXT.md` exists, leave it
-   intact and direct migration/consolidation to `rope-clear`; do not create a
-   competing glossary. Init scaffolds; clear migrates existing content.
-4. Generate `.rope/routes.md` as conservative navigation:
-   - repo shape
-   - source roots
-   - test roots and discovered test commands
-   - common entrypoints discovered from files/scripts
-   - `Worktree setup:` — ask the user how a fresh worktree becomes
-     testable (a setup command such as a dependency-symlink script or an
-     install command; `host-managed` when the host prepares worktrees;
-     `unknown` is acceptable at init — `rope-shape` re-asks)
-   - mark unknowns as `Unknown`, not guesses
-5. Generate `.rope/specs/` as a conservative skeleton:
-   - include only stable generic guides during init
-   - do not invent code contracts from filenames
-   - draft code specs only when the user explicitly asks for deep bootstrap
-6. Update the root agent doc in place using the `## Rope` block template:
-   - prefer existing `AGENTS.md`; if only `CLAUDE.md` exists, edit that
-   - add or update a `## Rope` block
-   - tell agents to read `.rope/GLOSSARY.md` (legacy CONTEXT until migrated),
-     `.rope/routes.md`, relevant `.rope/specs/`, `.rope/adr/`, and `.rope/research/`
+3. 新知识层的 GLOSSARY 保持空模板，除非用户已确定项目术语。保留已有术语表；已有 CONTEXT 时不动内容，由 `rope-clear` 迁移 / 合并，不能创建竞争术语表。init 搭骨架，clear 迁移已有内容。
+4. 保守生成 `.rope/routes.md` 导航：仓库形态、源码根、测试根及已发现命令、从文件 / 脚本确认的常用入口。`Worktree setup:` 询问新 worktree 如何可测试，例如依赖链接脚本或安装命令；宿主准备则 `host-managed`。初始化可 `unknown`，`rope-shape` 会再问。未知写 `Unknown`，不猜测。
+5. 保守生成 `.rope/specs/` 骨架：只放稳定通用指南，不靠文件名发明代码契约；只有用户明确要求深度初始化才起草代码规范。
+6. 按 `## Rope` 模板原位更新根代理指令：优先 AGENTS，只有 CLAUDE 则编辑它；新增 / 更新 Rope 区块，要求读取 GLOSSARY（迁移前读旧 CONTEXT）、routes、相关 `.rope/specs/`、`.rope/adr/`、`.rope/research/`。
 
-## Guardrails
+<a id="guardrails"></a>
+## 护栏
 
-- Do not decide whether `.rope/` should be committed or ignored; leave that to the user.
-- Do not add GitHub/GitLab issue tracker defaults. Rope uses local markdown under `.rope/issues/` by default.
-- Do not overwrite existing `.rope/` files without reading and preserving user content.
-- Do not run destructive commands, install dependencies, push, deploy, or change root config.
+- 不替用户决定 `.rope/` 提交还是忽略。
+- 不默认配置 GitHub/GitLab issue 跟踪；默认使用 `.rope/issues/` 本地 Markdown。
+- 覆盖已有文件前必须读取并保留用户内容。
+- 不执行破坏性命令、不安装依赖、不 push、不部署、不改根配置。

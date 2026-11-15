@@ -1,40 +1,26 @@
-# Seam design (shared vocabulary)
+<a id="seam-design-shared-vocabulary"></a>
+# 接口边界设计（共享术语）
 
-Compact vocabulary for **where a seam belongs** — consulted when agreeing
-Testing Decisions at shape, and by implementer leaves when a seam's shape
-feels wrong mid-go. A reference to consult, not a workflow to run.
+用于讨论**边界应该放在哪里**的精简词汇。shape 确认 Testing Decisions 时，以及 go 期间实现叶子怀疑边界形态不合理时查阅。这是参考，不是另一套执行流程。
 
-## When to consult
+<a id="when-to-consult"></a>
+## 何时查阅
 
-- **Shape**: filling `Seams under test` in Testing Decisions and the placement
-  is contested (several plausible boundaries, reviewers disagree).
-- **Go**: a leaf notices tests keep breaking across callers, or the test mocks
-  modules you own — suspect the *shape of the seam*, not the tests.
+- **Shape：**填写 Testing Decisions 的 `Seams under test`，且选址有争议，例如多个合理边界或审查者意见不一。
+- **Go：**叶子发现跨调用者的测试频繁破坏，或测试在模拟自己拥有的模块；此时应怀疑*边界的形态*。
 
-## Vocabulary
+<a id="vocabulary"></a>
+## 术语
 
-- **Seam**: the public boundary behavior is observed at without reaching
-  inside (full loop rules live in go's tdd reference).
-- **Deep vs shallow**: a **deep** seam exposes few operations over a whole
-  capability; a **shallow** seam spreads one capability across many
-  per-caller surfaces. Prefer deep.
-- **Convergence criterion**: when several callers (UI entries, CLI commands,
-  API routes) trigger the same capability, one deep entry beats testing each
-  caller surface — tests land once, callers stay thin adapters.
-- **Existing boundary first**: an existing public boundary (service function,
-  CLI, API route, store action) usually already is the seam; adding a new
-  shallower one beside it duplicates the source of truth.
-- **Ports at system edges**: external dependencies (HTTP APIs, clock, payment)
-  get narrow SDK-style ports; tests fake the port, never the world behind it.
-- **Depth probes**: would a second consumer change which seam the tests want?
-  Which seam would the tests rather live at? Is the test mocking something
-  you own? A "yes" to the last one usually means the seam is too shallow.
+- **Seam（边界）：**不深入内部即可观察行为的公共边界；完整测试循环见 go 的 tdd 参考文档。
+- **深与浅：****深**边界用少量操作覆盖完整能力；**浅**边界把同一能力分散到多个调用者接口。优先深边界。
+- **收敛标准：**多个调用者（UI 入口、CLI 命令、API 路由）触发同一能力时，优先一个深入口，而非分别测试每个调用者界面。测试只落一次，调用者保持轻量 adapter。
+- **已有边界优先：**已有公共边界（服务函数、CLI、API 路由、store action）通常已经适合作为 seam；旁边再加更浅边界会复制事实来源。
+- **系统边缘的端口：**外部依赖（HTTP API、时钟、支付）使用狭窄的 SDK 式端口；测试替换端口，不模拟端口背后的整个世界。
+- **深度探问：**增加第二个消费者会改变测试想落的边界吗？测试更愿意落在哪里？是否在模拟自己拥有的模块？最后一问若为“是”，通常说明边界太浅。
 
-## Placement rule
+<a id="placement-rule"></a>
+## 选址规则
 
-- Seam placement is decided at **shape** and recorded in Testing Decisions;
-  shape explains the chosen seam to the user in those terms when contested.
-- Mid-go doubt about the *shape* of a seam (not which existing seam to use)
-  is a design question, not a test question: it goes back to the parent as a
-  plan adjustment (no new seam in go without confirmation) — never a silently
-  improvised second seam beside the agreed one.
+- 在 **shape** 决定位置，写入 Testing Decisions；有争议时用上述词汇向用户解释。
+- go 中怀疑边界*形态*（而非选择哪个已有边界）是设计问题，必须回到父编排器调整计划。未经确认不能新建 seam，更不能在已定边界旁默默另造一个。

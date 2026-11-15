@@ -1,45 +1,40 @@
-# Rope Finish Checklist
+<a id="rope-finish-checklist"></a>
+# Rope Finish 收尾清单
 
-## Required Checks
+<a id="required-checks"></a>
+## 必需检查
 
-- Issue directory exists.
-- `prd.md`, `tasks.md`, and `e2e.md` are present.
-- `verify.md` is present with `Verdict: PASS` (written by finish Stage 1 or a prior run), or the user explicitly waived issue-level verify.
-- All slices are completed or explicitly waived.
-- Review findings are resolved or explicitly waived.
-- E2E entries have terminal statuses:
-  - `agent_passed`
-  - `user_confirmed`
-  - `waived`
-  - `blocked_on_gate`
-  - `blocked_on_user`
-  - `not_run_with_reason`
-- Terminal statuses are about **recorded outcomes** (with evidence); finish does not re-run validation that go/verify already recorded as green.
+- issue 目录存在，`prd.md`、`tasks.md`、`e2e.md` 齐全。
+- `verify.md` 有 `Verdict: PASS`，由 finish 第一阶段或此前运行写入；或用户明确豁免 issue 级 verify。
+- 所有切片已完成或明确豁免。
+- 审查发现已解决或明确豁免。
+- E2E 均有终态：`agent_passed`、`user_confirmed`、`waived`、`blocked_on_gate`、`blocked_on_user`、`not_run_with_reason`。
+- 终态指带证据的**已记录结果**；finish 不重跑 go/verify 已记录通过的验证。
 
-## Architecture Documentation Closure
+<a id="architecture-documentation-closure"></a>
+## 架构文档闭环
 
-Read the Architecture Impact and Constraint Bundle from `prd.md`.
+读取 prd.md 的 Architecture Impact 与 Constraint Bundle。
 
-- A confirmed `pending-finish` outcome is finish work, not a verify failure.
-- Route confirmed changes using the existing homes: ADR for a hard-to-reverse,
-  surprising tradeoff; spec for a stable implementation contract/gotcha; glossary
-  for a domain term; research for an external fact.
-- Write directly when the disposition was already confirmed. Preserve source
-  status, scope, invariants, exception bounds, evidence, and invalidating condition.
-- Replace every `pending-finish` with one terminal value:
-  `updated-existing`, `added-new`, `no-new-decision`, or `exception-recorded`.
-- If final behavior reveals an unconfirmed architecture change, pause and request
-  disposition. A finish run cannot invent an exception or close with a todo.
-- Record the terminal outcome and changed paths in the final report.
+- 已确认 `pending-finish` 是收尾工作，不是 verify 失败。
+- 按已有归属安排更新：难逆转、意外且有取舍的决策进 ADR；稳定实现契约 / 易踩坑进 spec；领域术语进术语表；外部事实进 research。
+- 已确认处置直接写入，保留来源状态、范围、不变量、例外边界、证据及失效条件。
+- 每个 `pending-finish` 替换为 `updated-existing`、`added-new`、`no-new-decision`、`exception-recorded` 之一。
+- 发现未确认架构变化则暂停请求处置，不编造例外，不带待办关闭。
+- 最终报告写明文档终态与修改路径。
 
-## Reusable Lesson Routing
+<a id="reusable-lesson-routing"></a>
+## 可复用经验归属
 
-- Stable term -> `.rope/GLOSSARY.md`
-- External/platform fact -> `.rope/research/`
-- Implementation contract/gotcha -> `.rope/specs/`
-- Durable architecture tradeoff -> `.rope/adr/`
+- 稳定术语 → `.rope/GLOSSARY.md`。
+- 外部 / 平台事实 → `.rope/research/`。
+- 实现契约 / 易踩坑 → `.rope/specs/`。
+- 长期架构取舍 → `.rope/adr/`。
 
-## Final Report Shape
+<a id="final-report-shape"></a>
+## 最终报告格式
+
+保留字段名，填写内容用中文：
 
 ```md
 ## Final Status

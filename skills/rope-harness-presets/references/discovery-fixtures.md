@@ -1,11 +1,12 @@
-# Discovery Fixtures and Agent-Run Checklist
+<a id="discovery-fixtures-and-agent-run-checklist"></a>
+# 探测用例与执行清单
 
-Markdown-only skill: execute these checks when implementing or verifying the
-discovery path. No host mutation.
+纯 Markdown 技能；实现或核验探测流程时执行以下检查，不修改宿主。
 
-## Fixture A — sample model inventory parse
+<a id="fixture-a--sample-model-inventory-parse"></a>
+## 用例 A：解析模型目录示例
 
-Input file shape (pi example, `~/.pi/agent/settings.json` excerpt):
+输入格式，pi `~/.pi/agent/settings.json` 摘录：
 
 ```json
 {
@@ -17,7 +18,7 @@ Input file shape (pi example, `~/.pi/agent/settings.json` excerpt):
 }
 ```
 
-Expected discovery result:
+预期探测结果：
 
 ```text
 models = [
@@ -28,10 +29,10 @@ models = [
 error = null
 ```
 
-(Non-pi hosts: same discipline against their native inventory source —
-e.g. codex `config.toml` + catalog `models[]`.)
+非 pi 对原生模型来源采用同样纪律，如 codex config.toml 与 models[]。
 
-## Fixture B — empty list → fail
+<a id="fixture-b--empty-list--fail"></a>
+## 用例 B：空列表失败
 
 ```json
 {
@@ -39,21 +40,21 @@ e.g. codex `config.toml` + catalog `models[]`.)
 }
 ```
 
-Expected:
+预期：
 
 ```text
 error = no_models_discovered
 writes = none
 ```
 
-Same outcome when the inventory is missing or unparsable.
+目录缺失或不可解析同样处理。
 
-## Fixture C — host has no discoverable agent mechanism → capability gap
+<a id="fixture-c--host-has-no-discoverable-agent-mechanism--capability-gap"></a>
+## 用例 C：没有可发现代理机制，记录缺口
 
-Preconditions: host identified (e.g. `some-host`), but no custom-agent
-registry could be located or verified per host-discovery §2.
+前提：宿主已识别，如 some-host，但按探测 §2 无法定位或核验注册机制。
 
-Expected:
+预期：
 
 ```text
 error = no_agent_mechanism
@@ -63,28 +64,30 @@ capability_gap_recorded = yes
 manifest = absent, unless the user asked to persist the gap
 ```
 
-Must not:
+禁止：
 
-- create another host's `rope-*` agents as a stand-in
-- write `~/.config/rope/harness/<host>.json` claiming agents were written
-- guess a format from a similar host
+- 创建另一宿主 `rope-*` 代理代替
+- 写 `~/.config/rope/harness/<host>.json` 并声称代理已写入
+- 从相似宿主猜格式
 
-## Fixture D — host unidentifiable → stop
+<a id="fixture-d--host-unidentifiable--stop"></a>
+## 用例 D：无法识别宿主即停止
 
-Preconditions: no self-report, no user-named host, no config fingerprint.
+前提：无自述、用户指定宿主、配置特征。
 
-Expected:
+预期：
 
 ```text
 error = host_unidentified
-candidates = <what was probed, with evidence>
+candidates = <已探测内容和证据>
 writes = none
 ```
 
-## Agent-run checklist
+<a id="agent-run-checklist"></a>
+## 执行清单
 
-- [ ] Read the host's real model inventory when identified; list models
-- [ ] Simulate empty inventory via Fixture B; confirm hard stop
-- [ ] Simulate no-mechanism via Fixture C; confirm gap report, no writes
-- [ ] Simulate unidentified host via Fixture D; confirm stop with candidates
-- [ ] Confirm skill never instructs mutating any host's model/provider settings
+- [ ] 已识别宿主后读取真实目录并列模型
+- [ ] 用 B 模拟空目录，确认停止
+- [ ] 用 C 模拟无机制，确认报告缺口且无写入
+- [ ] 用 D 模拟未知宿主，确认带候选停止
+- [ ] 确认不要求修改任意宿主模型 / provider 设置

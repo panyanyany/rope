@@ -1,89 +1,61 @@
-# Host Discovery
+<a id="host-discovery"></a>
+# 宿主探测
 
-The core procedure that makes this skill host-neutral. The running model
-executes it **inside the target harness** — discovery is something the model
-does, not a table it looks up. Worked example for one host (pi):
-[pi-adapter.md](pi-adapter.md).
+这是保持宿主中立的核心流程。模型在**目标宿主内**执行探测，不靠固定表格决定。完整 pi 示例见 [pi-adapter.md](pi-adapter.md)。
 
-## §1 Identify the host
+<a id="1-identify-the-host"></a>
+## §1 识别宿主
 
-Evidence sources, in order of trust:
+证据信任顺序：宿主会话标识 / 环境变量 / 自述，其次用户指定，最后配置目录特征。必须探测，不能假设：
 
-1. The harness names itself (session banner, env vars, self-report).
-2. A host-named invocation ("refresh presets for codex").
-3. Config-directory fingerprints — probe, do not assume:
-
-| Fingerprint | Host |
+| 目录特征 | 宿主 |
 | --- | --- |
-| `~/.pi/agent/` exists | pi |
-| `~/.codex/` exists | codex |
-| `~/.gemini/` and/or project `.agents/agents/` | agy / Antigravity CLI |
+| `~/.pi/agent/` | pi |
+| `~/.codex/` | codex |
+| `~/.gemini/` 或项目 `.agents/agents/` | agy / Antigravity CLI |
 
-- Ambiguous (multiple fingerprints): list candidates + evidence, ask the user
-  once, record the answer.
-- No fingerprint and no self-report: report `host_unidentified`, stop, no
-  writes.
+多个候选则列证据、只问一次并记答案。无特征和自述则 `host_unidentified`，停止且不写入。
 
-## §2 Discover the host agent mechanism
+<a id="2-discover-the-host-agent-mechanism"></a>
+## §2 探测代理机制
 
-Find where custom agents/subagents are registered and in what file format.
+确认自定义代理注册位置及格式。下表是截至 2026-09-08 的**线索，不是权威**，写前必须用本地可用示例或当前官方文档核实：
 
-Known leads (dated 2026-09-08; **leads, not authority** — always verify with a
-local example or current docs before writing):
-
-| Host | Registry | Format | Verify by |
+| 宿主 | 注册位置 | 格式 | 核实方式 |
 | --- | --- | --- | --- |
-| pi | `~/.pi/agent/agents/*.md` | Markdown + YAML frontmatter (`model`, `thinking`, `tools`, …) | existing agent files |
-| codex | `~/.codex/agents/*.toml` | TOML (`name`, `description`, `model`, `model_reasoning_effort`, `developer_instructions`) | existing agent files; docs: learn.chatgpt.com subagents; watch version drift |
-| agy | `~/.gemini/config/agents/*.md` (machine-global only — CLI does **not** discover project `.agents/agents/`) | Markdown + YAML frontmatter; `model` accepts **tier aliases only** (`pro`, `flash`, `flash_lite`, `inherit`) — specific model IDs fail validation; pin at invocation via `--model` | `agy agents` listing; model catalog via `agy models` (verified live 2026-09-08, E2) |
+| pi | `~/.pi/agent/agents/*.md` | Markdown + YAML frontmatter，如 model/thinking/tools | 已有代理文件 |
+| codex | `~/.codex/agents/*.toml` | TOML，name/description/model/model_reasoning_effort/developer_instructions | 已有文件及官方 subagents 文档，注意版本差异 |
+| agy | `~/.gemini/config/agents/*.md`，仅全局，CLI 不发现项目 `.agents/agents/` | Markdown + frontmatter；model 只接受 pro/flash/flash_lite/inherit 层级别名，具体 ID 会验证失败，可调用时用 --model 固定 | `agy agents`、`agy models` |
 
-Verification discipline:
+核验纪律：优先本地可用示例，其次对齐已装版本的当前官方文档，如 `codex --version`；需要且用户提供时可用代理。记录读取路径或文档 URL 和日期，作为清单 sources。仍无法核验则报告 `no_agent_mechanism`，不写代理。只有用户要求才把缺口存 capability_gaps。不能照相似宿主猜格式。
 
-1. Prefer a **local working example** (an existing agent file) over docs.
-2. Otherwise consult current official docs; align the version actually
-   installed locally (e.g. `codex --version`). Use a user proxy when offered
-   and the network requires it.
-3. Record what verified the mechanism (path read / doc URL + date) — it
-   becomes a manifest `sources` entry.
-4. Still unverifiable → **capability gap**: report `no_agent_mechanism`,
-   write no agent files. Optionally persist the gap in the manifest's
-   `capability_gaps` (user asks). Never guess a format from a similar host.
+<a id="3-discover-the-model-inventory"></a>
+## §3 探测模型目录
 
-## §3 Discover the model inventory
+只读宿主原生来源：
 
-Read-only, host-native:
-
-| Host | Source |
+| 宿主 | 来源 |
 | --- | --- |
-| pi | `~/.pi/agent/settings.json` → `enabledModels` (enrich from `models.json`) |
-| codex | `~/.codex/config.toml` → `model`, `model_providers.*`, `review_model`; catalog JSON via `model_catalog_json` (`{models[]}`) |
-| agy | `agy models` command (catalog incl. tier variants); frontmatter `model` = tier alias only |
+| pi | `~/.pi/agent/settings.json` 的 enabledModels，可 models.json 补充 |
+| codex | `~/.codex/config.toml` 的 model、model_providers.*、review_model；model_catalog_json 指向的目录对象 `{models[]}` |
+| agy | `agy models` 含层级变体；frontmatter model 仍只接受别名 |
 
-- Empty / missing / unparsable → `no_models_discovered`; stop; no writes.
-- Never mutate any of these files. Enrichment failure is non-fatal.
+空 / 缺失 / 无法解析则 `no_models_discovered`，停止且不写入。不能改这些文件，补充信息失败不致命。
 
-## §4 Confirm the invocation surface (optional but recommended)
+<a id="4-confirm-the-invocation-surface-optional-but-recommended"></a>
+## §4 确认调用入口（可选，推荐）
 
-Check whether the host reads a skills directory and a global instructions file
-(`AGENTS.md`-class). This tells the user how rope skills themselves behave in
-this host — it does not change what this skill writes. Record as a report
-line, not a gate.
+查宿主是否读技能目录和 `AGENTS.md` 类全局指令。这用于报告 Rope 技能在该宿主的工作方式，不改变写入范围，也不是阻塞门槛。
 
-## §5 Write, §6 manifest, §7 report
+<a id="5-write-6-manifest-7-report"></a>
+## §5 写入、§6 清单、§7 报告
 
-Follow SKILL.md steps 5–7: three `rope-*` agent files in the verified native
-format at the verified native location; manifest
-`~/.config/rope/harness/<host>.json`; short report with confidence and any
-capability gaps.
+按 SKILL.md 第 5–7 步，在已核验原生位置写 rope-* 代理文件，以 `~/.config/rope/harness/<host>.json` 保存清单，短报置信度和能力缺口。
 
-## Capability-gap examples worth recording when hit
+<a id="capability-gap-examples-worth-recording-when-hit"></a>
+## 遇到时值得记录的能力缺口
 
-- Host cannot spawn subagents with per-leaf model pinning (subagents inherit
-  parent settings — codex newer-version behavior reported).
-- Agent template frontmatter rejects specific model IDs, accepting only tier
-  aliases (agy, verified 2026-09-08) — per-role pinning moves to spawn-time
-  flags.
-- Registry only reads machine-global paths; project-level agent dirs are
-  ignored by the CLI (agy, verified 2026-09-08).
-- File-based agents exist but never appear in the host's agent list (agy
-  list-refresh bug reported — not reproduced; registration did work 2026-09-08).
+- 宿主子代理继承父设置，不能逐叶子固定模型。
+- frontmatter 只接受层级别名，不接受具体模型 ID，需派生时固定。
+- 只读全局注册位置，忽略项目代理目录。
+- 文件代理可注册但列表不刷新；先记录已复现结果，不能把未复现传闻当事实。

@@ -1,50 +1,23 @@
-# 0016 Single Execution Form — Parent Agent Dispatch
+<a id="0016-single-execution-form--parent-agent-dispatch"></a>
+# 0016 唯一执行形态：父代理派发
 
-**Status:** active — supersedes [0014](0014-workflow-execution-mode.md) in
-full: the dynamic execution form, its kernel (`go-execute.js`), the
-`execution-template.md` plan/run-record contract, `~/.rope/config.toml`
-`[execution]` resolution, the tiered L1/L2/L3 gate menu, and the fan budgets
-are retired. [0008](0008-slice-ready-worktree-execution.md) and
-[0012](0012-worktree-verified-full-demotion-of-file-overlap-edges.md) are
-unaffected — worktree/shared are isolation modes of agent dispatch, not an
-execution form. [0015](0015-agent-mode-e2e-acceptance-stage.md) remains
-active and is now the only E2E acceptance path.
+**状态：**active，完整替代 [0014](0014-workflow-execution-mode.md)：dynamic、go-execute.js 内核、execution-template 计划 / 记录、全局配置 execution 解析、L1/L2/L3 菜单及并行配额全部退役。[0008](0008-slice-ready-worktree-execution.md)、[0012](0012-worktree-verified-full-demotion-of-file-overlap-edges.md)不受影响，worktree/shared 是隔离模式，不是执行形态。[0015](0015-agent-mode-e2e-acceptance-stage.md)仍生效，为唯一 E2E 路径。
 
-Date: 2026-09-23
+日期：2026-09-23。
 
-## Context
+<a id="context"></a>
+## 背景
 
-ADR 0014's kernel never reached production quality: its merge classification
-carried a known defect, the offline smoke suite was not green, and the
-machine config stayed pinned to `agent` with a "do not use until fixed"
-note. The deterministic form promised cheap parent context and mechanical
-gates, but maintaining two execution forms meant every phase skill carried
-dual-path instructions, a shared startup contract, and a 479-line plan
-schema — sediment that cost readability on every run while the shipped path
-was always agent dispatch.
+0014 内核未达生产质量：合并分类已知缺陷、离线冒烟未绿、机器配置始终 agent 并注“修好前禁用”。确定性形式承诺节约上下文、机械检查，却让每技能承担双路径、启动契约、479 行计划 schema 成本，实际使用始终派发。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-Retire the dynamic form entirely. Parent Agent dispatch is the only
-execution form: the parent LLM runs the slice loop, the merge queue, the
-end-of-issue review, and the E2E acceptance stage directly, per
-execution-rules. Integration acceptance is covered by the end-of-issue
-review (Matrix walk on the assembled diff) plus the E2E stage — the L1/L2/L3
-tier numbering and the kernel's mechanical dual assertions are not replaced
-with prose equivalents: the parent owns slice state natively, and a
-forgotten branch surfaces at review or E2E.
+彻底退役 dynamic。父模型直接按 execution-rules 管切片、队列、结束审查、E2E。整体集成由矩阵组装审查加 E2E 覆盖，不把旧 L1/L2/L3 和机械双断言另抄成文字；父原生持状态，遗漏在审查 / E2E 暴露。
 
-Skill text shrinks accordingly (grill/shape/go rewritten; startup contract,
-config resolution, and kernel references deleted). If a deterministic
-executor returns, it must re-earn its place through a new ADR with green
-tests on arrival.
+grill/shape/go 单路精简，删除启动解析与内核引用。未来确定性执行者若回归，必须新 ADR 且到来时测试全绿。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- One path to document, test, and read; issue packages no longer have an
-  execution-form dimension at all.
-- Parent context discipline (briefs by reference, summaries not traces)
-  becomes the only protection against fan-out context cost.
-- Deterministic replay/prefix-cache resume and exit-code-gated checks are
-  gone; host-native workflow runners remain usable outside Rope without
-  this harness depending on them.
+只剩一路文档、测试、阅读，包无执行形态维度。父上下文保护只靠引用简报、摘要而非轨迹。失去确定性回放 / 前缀缓存续跑及退出码 gate，但宿主原生 runner 仍可独立使用，Rope 不依赖。

@@ -1,35 +1,39 @@
-# Architecture Decision Continuity Across Issues
+<a id="architecture-decision-continuity-across-issues"></a>
+# 跨 issue 架构决策连续性
 
-Rope makes architecture decisions continuous across an issue lifecycle: shape identifies relevant effective sources before slicing and records a per-decision disposition; go requires scoped source reading and architecture evidence from implementation and review leaves; the end-of-issue reviewer judges invariants and exceptions, while verify checks the records; finish completes canonical documentation through existing `.rope/` routing rules. This preserves architecture behavior without forcing every task to create an ADR or every implementation to use one concrete internal shape.
+shape 切片前找生效来源并逐决策记录处置；go 要求实现和审查叶子阅读限定来源、返回架构证据；结束审查判断不变量和例外，verify 查记录，finish 按现有归属完成正式文档。保留架构行为，但不要求每任务新 ADR 或强制具体内部实现形态。
 
-## Status
+<a id="status"></a>
+## 状态
 
 active
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-- Every newly shaped issue records an explicit Architecture Impact result. `not-applicable` is a lightweight checked outcome, not an omitted section.
-- Shape performs targeted document lookup using CONTEXT, routes, the issue's public seams, and relevant ADR/spec references. It does not require a full scan of every architecture document.
-- Relevant source decisions are listed individually with source path, source status, scope, disposition, invariants, affected public interfaces, forbidden shortcuts, required evidence, documentation update, and unresolved conflicts. Each decision and invariant is mapped to its scope (`issue`, one or more slices, `e2e`, or `verify`) and evidence.
-- Source decision status and issue disposition remain separate. Source status is `active`, `superseded`, `deprecated`, `provisional`, or `unknown`; disposition is `inherit`, `extend`, `supersede`, `exception`, or `not-applicable`.
-- When a trigger is present but targeted lookup finds no existing decision to inherit, the record says `Relevant decisions: none found` and creates a separate `New decision candidate` entry; it must not overload `not-applicable`. The candidate is handled by risk: a hard-to-reverse change, public contract change, or real tradeoff blocks shaping for a decision; a lower-risk candidate may proceed only with an explicit parent conclusion about whether a durable document is needed.
-- An unresolved conflict that affects the issue blocks shaping until the conflicting sources and resolution are explicit. The workflow must not choose a source silently.
-- Current prose is revised at its authoritative home, not extended with contradictory addenda. Ordinary committed text uses Git history; formal ADRs retain decision history with explicit supersession scope and replacement links. Search hits require source-status checks before becoming constraints. Operational maintenance rules live in the shipped [current documents reference](../../skills/rope-clear/references/current-docs.md).
-- Explicit cleanup (`rope-clear`) proposes an evidence-backed batch for approval before editing; unresolved authority, dirty content, and missing Git history require a preservation/decision gate. Routine authorized doc sync applies the same maintenance rules without opening an unrelated cleanup sweep.
-- The issue-level Constraint Bundle is canonical in `prd.md`. The parent retains the full bundle; each leaf receives mandatory global/slice Constraint IDs and required source sections. Implementers read them before editing and record their architecture landing; a bundle summary alone is insufficient. Completeness and execution gates live in the [continuity contract](../specs/guides/architecture-continuity.md).
-- Implementers and reviewers may not silently change a disposition. A discovered conflict returns to the parent for re-briefing, shape adjustment, and human confirmation where required.
-- The end-of-issue reviewer judges inheritance of behavior and invariants, duplicated responsibility, dependency direction, public compatibility, recorded exceptions, and evidence. Issue-level verify checks the recorded results and mappings only, preserving the single review gate. Neither imposes an implementation shape absent from the source contract. Even `not-applicable` receives a lightweight trigger-check confirmation.
-- A source with missing status is recorded as `unknown`. It blocks only when the uncertainty could change the issue's applicable rule or disposition; otherwise the issue may proceed with the uncertainty explicit.
-- The full Constraint Bundle and per-decision mapping are canonical in `prd.md`; `tasks.md` references decision/constraint IDs and records slice-level applicability and evidence rather than copying the full text.
-- If the final work changes a decision, the canonical documentation outcome is completed during `rope-finish` through existing routing: ADR for a hard-to-reverse, surprising tradeoff; spec for a stable implementation contract or gotcha; CONTEXT for a domain term; research for an external fact. A missing documentation update alone is not a verify failure; finish writes confirmed changes directly without asking again.
-- If finish discovers an unconfirmed architecture change, it pauses for a human/parent disposition instead of inventing an exception or closing with a documentation todo.
-- Finish records one terminal documentation outcome: `updated-existing`, `added-new`, `no-new-decision`, or `exception-recorded` with scope, reason, and expiry/invalidating condition. Before finish, an issue may use `pending-finish`; finish must replace it with a terminal value.
-- `rope-grill` prefers a host-provided structured question tool such as `ask_user_question`; when unavailable, it falls back to plain questions with a recommendation, concrete example, and tradeoff.
+- 新包显式记录 Architecture Impact；not-applicable 是轻量核验结果，不能省章节。
+- 依据 CONTEXT、routes、公共边界和相关 ADR/spec 定向查找，不全扫描。
+- 每来源单列路径、状态、范围、处置、不变量、接口、禁止捷径、证据、文档结果、冲突；每决策 / 不变量映射 issue、切片、e2e、verify 及证据。
+- 来源状态 active/superseded/deprecated/provisional/unknown 与 issue 处置 inherit/extend/supersede/exception/not-applicable 分开。
+- 有触发无来源，写 Relevant decisions: none found 及独立 New decision candidate，不能冒充 not-applicable。难逆转、改公共契约或有真实取舍的候选阻塞 shape；低风险也需父编排器明确是否要长期文档。
+- 影响 issue 的未解冲突阻塞 shape，必须明确来源及解决方式，不能默选。
+- 当前正文原位改权威来源，不能追加矛盾条款。普通正文依赖 Git 历史，ADR 保留决策史并标替代范围 / 链接；搜索命中先查状态。运行维护规则归[现行文档契约](../../skills/rope-clear/references/current-docs.md)。
+- rope-clear 显式整理先提带证据批次再批准；来源权威不明、脏内容、无 Git 历史需保留 / 决策。常规已授权同步遵守相同规则，无需另开无关清理。
+- prd.md 唯一完整约束包，父持有完整内容，叶子必收全局 / 切片 ID 与来源章节；实现者编辑前读并记架构落点，摘要不能替代。见[连续性契约](../specs/guides/architecture-continuity.md)。
+- 实现者 / 审查者不能默改处置，冲突回父编排器重简报、调 shape，必要时人工确认。
+- 结束审查判断行为 / 不变量继承、职责重复、依赖方向、公共兼容、例外、证据；verify 只查结果和映射，保留唯一审查点。均不得要求来源未定的内部形态。not-applicable 也要检查。
+- 缺来源状态写 unknown，只有可能改变适用规则 / 处置才阻塞，否则显式带不确定性继续。
+- tasks.md 只引用 ID 并记切片适用 / 证据，不复制完整包。
+- 最终变更决策则 finish 完成文档：难逆转意外取舍进 ADR，稳定契约 / 易踩坑进 spec，领域术语进 CONTEXT，外部事实进 research。缺文档本身不算 verify 失败；确认过的直接写，不重问。
+- finish 发现未确认架构变化则暂停决定处置，不造例外、不带文档待办关闭。
+- 文档终态 updated-existing / added-new / no-new-decision / exception-recorded，附范围、理由、到期 / 失效条件。finish 前可 pending-finish，收尾必须替换。
+- grill 优先 ask_user_question 等宿主结构化工具；无工具则通俗问题加推荐、例子、代价。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- Architecture Impact and the Constraint Bundle add issue-package and leaf-brief content, but keep the decision source in the existing `.rope/` documents.
-- Small tasks can remain lightweight when the trigger check finds no architecture impact.
-- `supersede` and `exception` require an explicit explanation and corresponding evidence; they do not authorize an unrecorded shortcut.
-- Older packages are not bulk-migrated; when entering execution, applicable missing constraints/readings are resolved before dispatch. Compatibility does not permit unconstrained implementation.
-- The reviewer may challenge a `not-applicable` assessment from assembled behavior/dependency evidence. Verify checks whether that challenge was resolved; it never infers architecture or re-judges the diff.
+- 包及简报增加架构字段，但决策来源仍在已有知识层。
+- 无架构影响的小任务仍轻量。
+- supersede/exception 需明确解释及证据，不授权无记录捷径。
+- 旧包不批量迁移，进入执行时补相关约束 / 阅读；兼容不等于无约束执行。
+- 审查者可据组装行为 / 依赖证据质疑 not-applicable；verify 查是否解决，不推断架构或复审 diff。

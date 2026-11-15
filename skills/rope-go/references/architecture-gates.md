@@ -1,116 +1,38 @@
-# Architecture Execution Gates
+<a id="architecture-execution-gates"></a>
+# 架构执行检查
 
-Read for every issue at startup and dispatch; the integration section also
-applies when Rope is asked to land a long-lived or assembled feature branch.
-The [package readiness gate](../../rope-shape/references/architecture-continuity.md#package-readiness-gate)
-owns constraint completeness. These are agent-executed gates, not a harness
-interceptor: record their evidence rather than claiming automatic enforcement.
+每个 issue 启动及派发时读取；集成章节也适用于长期或组装功能分支落地。[整包就绪检查](../../rope-shape/references/architecture-continuity.md#package-readiness-gate)负责约束完整性。本文件规定由代理执行的检查，不是宿主拦截器；应记录证据，不能声称自动强制执行。
 
-## Dispatch and source reading
+<a id="dispatch-and-source-reading"></a>
+## 派发与来源阅读
 
-Before implementer/review dispatch, the parent checks package readiness and brief completeness:
-`Constraint IDs:`, `Required reading:`, bundle path, short global invariants,
-and architecture Required-evidence IDs. IDs resolve to the bundle; paths and
-sections resolve to effective sources. Missing, empty, or placeholder-only
-fields block dispatch. Use a justified `none` only as defined by package
-readiness. Reuse the slice mapping in correction briefs; new architecture
-requirements return to shape rather than appearing only in a fix brief.
+派发实现者 / 审查者前，父编排器检查包就绪及简报完整性：`Constraint IDs:`、`Required reading:`、约束包路径、短全局不变量及架构 Required evidence ID。ID 对应包记录，路径与章节对应生效来源。缺失、空白、仅占位均阻塞派发。`none` 只能按包就绪规则附理由使用。纠偏简报复用切片映射；新增架构要求回 shape，不能只在修复简报出现。
 
-The implementer reads the mapped source sections **before any product/test
-edit**, including status/scope/replacement context, then records the
-Architecture landing in its work log or first progress message. Return that
-record (path or message reference), source-reading tool/command record
-references keyed to the sections, and a one-line confirmation per applicable
-ID. A path list or `read: yes` claim alone is not reading evidence; reference
-the actual read record, not an inline transcript/source dump. Keep references
-accessible after worker cleanup (preserve a compact read-record extract if the
-host does not retain them). Read each relevant section once per fresh
-leaf context; changed sources require a reread. Do not dump source prose into
-briefs or return summaries. A source conflict or missing source stops the
-affected slice; the parent resolves it before re-dispatch, with user
-confirmation for changes/exceptions where required.
+实现者在**任何产品 / 测试编辑之前**读映射章节，包含状态 / 范围 / 替代关系，再于工作日志或第一条进度消息记录架构落点。返回该记录路径 / 消息引用、按章节对应的实际阅读工具 / 命令记录引用，以及每个适用 ID 的一句确认。路径列表或 `read: yes` 声称不算证据；引用实际阅读记录，不内联完整轨迹或来源。宿主不保留记录时，保存精简阅读记录摘录，确保清理叶子后仍可访问。每个全新叶子上下文对相关章节读一次，来源变化则重读。不把正文倾倒进简报或摘要。冲突或缺来源则停片，父编排器解决后重派，变更 / 例外按需由用户确认。
 
-If edits began without source reading, record the omission and stop; a late
-statement cannot prove a pre-edit step. Re-brief source-based rework or
-revalidation of the affected changes, with the omission/correction evidence
-passed to the end-of-issue reviewer. Never backdate or fabricate a record.
+若未读来源就开始编辑，如实记录遗漏并停止；事后声明不能证明编辑前已执行。重新简报，要求按来源返工或重验，并把遗漏 / 补救证据交结束审查者。不能倒填日期或伪造。
 
-On landing, the Return Gate checks these records and the declared affected
-guard/exception evidence mechanically. Missing evidence bounces exactly its
-IDs; a reported architecture conflict blocks landing for resolution, not
-another attempt at implementing the same conflicting brief. The parent does
-not review code or rerun tests to fill gaps. Independent ready work continues.
+落地时返回检查只机械核对这些记录和声明的受影响检查 / 例外证据。缺项只退对应 ID；架构冲突阻塞落地等待解决，不是再尝试同一冲突简报。父编排器不靠读代码或重跑测试补缺口。独立就绪工作继续。
 
-## Guards and exception deltas
+<a id="guards-and-exception-deltas"></a>
+## 架构检查与例外差异
 
-Shape declares commands and exception-list paths in Testing Decisions. Slice
-evidence includes guards the slice can affect and an exception delta against
-its declared base (explicit `none` when unchanged). Existing exception entries
-are not authorization to add another. New/widened exceptions, weakened guard
-rules, or bulk freezing of old assertions need a bounded decision disposition
-confirmed by the user **before** implementation; a failing guard is not itself
-a reason to change its whitelist. Otherwise fix the implementation or report
-the conflict to the parent.
+shape 在 Testing Decisions 声明命令与例外清单路径。切片证据包括可能受影响的检查，以及相对声明基线的例外差异；无变化显式写 `none`。已有例外不授权新增例外。新增 / 扩大例外、削弱检查规则、批量冻结旧断言，都需**实现前**由用户确认有边界的决策处置。检查失败本身不是改白名单的理由；应修实现或报告冲突。
 
-At frozen assembled HEAD, the Standards scanner runs **all declared applicable
-architecture guards over their full architecture scope**, alongside the
-impact-selected lint/typecheck/build. This is not the full product test suite
-and not a per-merge ritual. Reuse green evidence only for the same HEAD and
-relevant environment; record command, coverage, exit status, output path, and
-commit. No guard exists: record that absence and require manual invariant
-review, never label it a guard pass. A missing guard declaration returns to
-shape. A later fix affecting guard inputs invalidates that evidence.
+冻结组装 HEAD 后，规范扫描器执行**全部已声明适用架构检查，覆盖完整架构范围**，同时按影响选 lint/typecheck/build。它不等于全产品测试，也不逐次合并执行。只复用相同 HEAD 和相关环境的通过证据；记录命令、覆盖、退出码、输出路径、提交。没有检查则记录缺失并要求人工不变量审查，不能写“检查通过”。漏声明回 shape。后续修复影响检查输入则使旧证据失效。
 
-The reviewer reads the applicable bundle records and effective source sections
-upfront, then checks the assembled architecture against them: responsibility
-ownership, public seam usage, dependency direction, lifecycle/state ownership,
-and forbidden shortcuts. It also examines **every added, removed, or modified
-exception entry** against the issue base: entry/path, reason, Constraint ID,
-disposition/confirmation, and expiry or invalidating condition for retained
-exceptions. Include changes to guard rules/coverage themselves. Report an
-explicit `none` if there is no delta. A green guard with a widened whitelist
-is not architecture acceptance.
+审查者先读适用包记录与生效来源，再核查组装架构：职责归属、公共边界使用、依赖方向、生命周期 / 状态归属、禁止捷径。还要相对 issue 基线检查**每项新增、删除、修改的例外**：条目 / 路径、原因、约束 ID、处置 / 确认，以及保留例外的到期或失效条件。检查规则 / 覆盖变化也包括在内。无差异显式写 `none`。放宽白名单后的通过不等于架构验收。
 
-Review returns include source-reading references, guard output pointers (scanner),
-and exception-delta findings/coverage (reviewer) outside the short findings
-summary. Preserve the scanner's ≤200-word summary budget; evidence paths are
-not a second prose report. Neither diff exclusions nor generated-file filters
-may hide declared guard rules or exception-list changes.
+审查返回在简短发现摘要之外附来源阅读引用、扫描器检查输出引用、审查者例外差异覆盖 / 发现。保留扫描器 ≤200 词摘要预算，证据路径不是第二份长报告。diff 排除或生成文件过滤都不得隐藏声明的检查规则或例外变化。
 
-Record source-reading/landing evidence pointers, guard evidence, exception
-delta + review outcome, and resolved conflicts in `tasks.md`. Verify checks
-these records only; semantic judgment remains with the one reviewer gate.
+在 `tasks.md` 记录来源阅读 / 落点证据、检查证据、例外差异和审查结果、已解冲突。verify 只查记录；语义判断仍归唯一审查点。
 
-## Whole-line / integration merge
+<a id="whole-line--integration-merge"></a>
+## 整线与集成合并
 
-This branch applies to a long-lived feature line or integration branch, not
-ordinary slice branches covered by the issue's merge queue. Even without an
-existing issue package, create a scoped integration record under
-`.rope/issues/<slug>/`: target and incoming SHAs, current-target Architecture
-Impact/Constraint Bundle, required source sections, reconciliation decisions,
-guard commands, exception deltas, and evidence/review records. Reuse existing
-issue records by reference; do not reslice already completed work.
+适用于长期功能线或集成分支，普通切片仍走 issue 合并队列。即使无 issue 包，也在 `.rope/issues/<slug>/` 建限定范围集成记录：目标 / 来入 SHA、当前目标的架构影响 / 约束包、必读章节、协调决策、检查命令、例外差异、证据 / 审查记录。已有 issue 以引用复用，不重新切已完成工作。
 
-1. Read the **current target's** effective specifications; incoming branch
-   summaries or old constraints do not supersede them. Record each architecture
-   mismatch as `re-home to current ownership/seam` or `retain with confirmed
-   bounded exception/supersession`, with reason and evidence. Unresolved
-   mismatches block landing.
-2. Build a candidate merge in an isolated checkout or temporary branch without
-   moving the target. Conflict repair rides a brief with these current-target
-   constraints. Check the entire incoming/candidate delta against the target,
-   not just conflict-resolution hunks.
-3. Run the declared full architecture guard coverage on the clean candidate
-   and the same two-axis review over target→candidate, including per-entry
-   exception deltas. Reference the underlying issue behavior/evidence and
-   review existing-behavior compatibility; missing acceptance obligations
-   remain explicit blockers, not invented passes. Reuse matching candidate evidence; do not duplicate a
-   review that already covered this exact candidate and target. No automatic
-   full product-suite requirement is introduced.
-4. Advance the target only after guard evidence, confirmed reconciliation,
-   and review approval are recorded, and only when the user requested landing.
-   A changed target or candidate invalidates the acceptance: rebuild and check
-   the changed result. Remove disposable candidate resources after landing or
-   preserve their refs explicitly if blocked. Product acceptance/E2E obligations
-   of the underlying issues still apply; architecture approval does not replace
-   them.
+1. 读**当前目标**的生效规范；来入分支摘要或旧约束不能替代。每个不符点记录为“迁回当前归属 / 边界”或“经确认以有界例外 / 替代保留”，附原因、证据。未解不符阻塞落地。
+2. 在隔离检出或临时分支构造候选合并，不移动目标。冲突修复简报携带当前目标约束。检查目标到完整来入 / 候选的差异，不只看冲突块。
+3. 在干净候选上执行完整声明架构检查，对目标→候选做同一双轴审查，包含逐项例外差异。引用原 issue 行为 / 证据并检查已有行为兼容；缺验收义务保持阻塞，不能编造通过。复用完全相同候选和目标的证据，避免重复审查。不自动要求全产品套件。
+4. 只有检查证据、已确认协调、审查批准均记录，且用户请求落地时才推进目标。目标或候选变化使验收失效，须重建并检查变化结果。落地后清理临时候选资源；受阻则明确保留引用。原 issue 的产品验收 / E2E 义务仍适用，架构批准不能替代。

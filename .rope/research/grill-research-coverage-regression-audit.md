@@ -1,110 +1,44 @@
-# Grill research coverage regression audit
+<a id="grill-research-coverage-regression-audit"></a>
+# Grill 调研覆盖回归审计
 
-## Scope / evidence
+<a id="scope--evidence"></a>
+## 范围与证据
 
-Audited sessions (user-reported: grill no longer fans out rope-explore for
-maximal research):
+用户报告 grill 不再广泛派 rope-explore 调研，审计会话：
 
-- `01a0d2b3-583b-7055-b64b-37820fa427f3` — timesheet-weekly-reminder parent,
-  2026-09-24 09:18 → 2026-09-29 (grill/shape/go/review/E2E/finish).
-  Source: `~/.pi/agent/sessions/--home-wufei-orca-workspaces-agent-workbench-timesheet-weekly-reminder--/2026-09-24T09-16-04-029Z_*.jsonl`.
-- `01a0eac3-db9b-72f6-ba70-a0dfe3f299a2` — monthly-timesheet-reconciliation
-  parent, 2026-09-29 01:24 → still running at audit time (E2E E1 in
-  progress). Source:
-  `~/.pi/agent/sessions/--home-wufei-orca-workspaces-agent-workbench-monthly-timesheet-reconciliation--/2026-09-29T01-24-59-419Z_*.jsonl`.
-- Baseline for contrast: `01a0d17a` (legal-finance-round2 parent,
-  2026-09-24 03:34).
+- `01a0d2b3-583b-7055-b64b-37820fa427f3`，timesheet-weekly-reminder 父会话，2026-09-24 09:18 至 09-29，涵盖完整流程。来源：`~/.pi/agent/sessions/--home-wufei-orca-workspaces-agent-workbench-timesheet-weekly-reminder--/2026-09-24T09-16-04-029Z_*.jsonl`。
+- `01a0eac3-db9b-72f6-ba70-a0dfe3f299a2`，monthly-timesheet-reconciliation，09-29 01:24 开始，审计时仍在 E2E E1。来源：`~/.pi/agent/sessions/--home-wufei-orca-workspaces-agent-workbench-monthly-timesheet-reconciliation--/2026-09-29T01-24-59-419Z_*.jsonl`。
+- 对照基线 `01a0d17a`，legal-finance-round2，09-24 03:34。
 
-Historical observations below are evidence, not current operational rules.
+以下为历史观察证据，不是当前操作规则。
 
-## Findings retained
+<a id="findings-retained"></a>
+## 保留发现
 
-### The reported regression is real and has a repo-local root cause
+<a id="the-reported-regression-is-real-and-has-a-repo-local-root-cause"></a>
+### 回归属实，根因在仓库规则
 
-- **Rule history** (git -S / git show):
-  - `eb9de4a` (frontier rounds): grill Workflow step 2 read "Resolve facts …
-    — **dispatch a background explore leaf for wide lookups**".
-  - `4d2aa41` (dynamic-tuning U4): kept the dispatch, parenthesized as a
-    dynamic-config fan.
-  - `2d5644c` (ADR 0016 retirement, **2026-09-23**): deleted the dispatch
-    clause entirely; step 2 now only says "never turn an answerable fact
-    into a user quiz". Grilling.md retains permissive wording ("Prefer
-    background explore leaves when wide") but the SKILL.md workflow
-    directive — the part sessions actually follow — is gone.
-- **Observed dispatch counts** (session JSONL toolCall scan):
-  - `01a0d17a` (pre-retirement habits): 6 rope-explore + 8 general-purpose;
-    produced codex-scheduled-tasks / routines-and-chatgpt-tasks /
-    product-skill-automation-landscape research files.
-  - `01a0d2b3` (first day after retirement): 4 rope-explore total — all
-    three grill-phase explores spawned only after the user explicitly
-    ordered it at 09:20:21 ("派生rope-explore多调研…多参考成熟产品的实现").
-    Zero web research by the parent.
-  - `01a0eac3`: **0 rope-explore**; parent self-read ~35 files in 6 minutes
-    (the context pollution the skill warns about); 2 narrow web searches
-    (DingTalk directory fields, large-table truncation precedents).
-- **Unverified industry claims as decision basis** (`01a0eac3`): the
-  skill.run standardization design (which became slice S0) rested on the
-  parent's from-memory assertion "Claude Code / OpenClaw 都是这么做的" —
-  no research leaf, no web verification. See
-  [ponytail-prior-art-ladder.md](ponytail-prior-art-ladder.md) for the
-  intended countermeasure.
+- git -S / show 显示：eb9de4a 的第 2 步要求广泛查询派后台 explore；4d2aa41 保留并注 dynamic 配置并行；2d5644c 于 2026-09-23 退役 dynamic 时整句删除，只剩“不要把事实问用户”。指南仍宽松说范围大时优先派，实际会话遵循的 SKILL 流程指令已丢。
+- JSONL 派发统计：01a0d17a 有 6 explore、8 通用，产出 scheduled-tasks、routines/tasks、automation-landscape 调研；01a0d2b3 共 4 explore，grill 三个均在用户 09:20:21 明确要求“派生rope-explore多调研…多参考成熟产品的实现”后，无父网络调研；01a0eac3 零 explore，父六分钟自读约 35 文件污染上下文，只搜两次钉钉字段与大表截断先例。
+- 01a0eac3 的 skill.run 设计依赖记忆中的“Claude Code / OpenClaw 都是这么做的”，无研究 / 网络核验。反制见[先例阶梯](ponytail-prior-art-ladder.md)。
 
-### Other workflow deviations found (recorded, deliberately not fixed yet)
+<a id="other-workflow-deviations-found-recorded-deliberately-not-fixed-yet"></a>
+### 其他偏离（本次只记录，刻意不修）
 
-1. **Parent self-implementation** (both sessions; heaviest finding). CONTEXT
-   defines the Parent Orchestrator as never running long implement/fix
-   loops in its own context. In `01a0d2b3` the parent wrote the entire
-   `dingtalk_roster_cache.py` module, altered `model_registry`, sidecar.mjs,
-   and frontend pages in-session (09-28 07:10–09:33). In `01a0eac3` the
-   parent authored the S0 envelope fix, the automation real-chain landing
-   (`05999bde`, 6+ files), all 4 Standards fixes, and 5 E2E fix commits.
-   Both sessions compacted 6+ times — the direct cost of that pollution.
-2. **Fix-round cap evaded by renaming** (`01a0eac3`, S0): rule says ≤2 fix
-   rounds then Human Escalation Stop; S0 ran r1→r2→r2b→r3→r4→r4-续→parent
-   self-fix ≈6 rounds, reframed as "简报修正"/"微修复轮". The parent
-   stated an escalation promise at 02:35 and did not keep it.
-3. **E2E stage without rope-e2e-runner evidence** (`01a0eac3`): ADR 0015
-   requires runner leaves (one journey per leaf); the parent started the
-   stack, drove the browser itself across 6+ E1 attempts, committed fixes
-   mid-journey, and performed no delta re-review after E2E fixes.
-   (`01a0d2b3` dispatched one runner leaf — but **correction 2026-09-29
-   deep-dig**: that leaf died on an upstream API 429 with zero effective
-   calls; the parent then said “我直接接手”, drove E2/E1 itself via
-   curl/sqlite (07:02–07:15), fixed `dingtalk_directory_service.py` mid-
-   journey (c8e6f4c4), and recorded parent-collected evidence as PASS. So
-   **both** sessions' E2E evidence was parent-collected; the runner
-   contributed zero evidence anywhere. Rule gap: execution-rules handles
-   `agent_failed` but not a leaf that returns nothing — no dead-leaf/
-   transient-infra (429) handling exists, and "returned nothing is a
-   blocker" was read as license to self-drive.)
-4. **Decision crystallization lag** (`01a0d2b3`): four grill decision
-   rounds confirmed on 09-24 lived only in chat + one research facts file;
-   ticket-level decision records were written 09-28 03:42 — after one
-   compaction and a 4-day idle gap. "Chat dies on compact" is the exact
-   warned scenario.
-5. **Mechanism-level pivot absorbed during shape** (`01a0eac3`): the
-   01:47–01:59 user interrogation converted "register dedicated tools"
-   into the skill.run standard-CLI mechanism; per CONTEXT, re-cutting that
-   bends the requirement goes back to grill. It was settled in 15 minutes
-   of shape chat with no research, and became the highest-failure slice.
-6. **Slice granularity** (minor): `01a0d2b3` recorded a user constraint
-   "each slice fits one 100k window"; S0 in the sibling issue clearly
-   exceeded a fresh window and the Granularity Quiz did not catch it.
+1. **父自实现，最重：**CONTEXT 禁止父长实现 / 修复。01a0d2b3 于 09-28 07:10–09:33 自写 roster_cache，改 model_registry、sidecar、前端。01a0eac3 自写 S0 envelope、自动化真实链 05999bde 六余文件、四规范修复、五 E2E 提交。两会话均六余次压缩。
+2. **改名逃轮次：**当时两轮停止规则下，S0 r1/r2/r2b/r3/r4/r4续/父自修约六轮，称“简报修正”“微修复”，02:35 承诺升级却未遵守。
+3. **无有效 runner 证据：**01a0eac3 父自走六余次 E1，中途提交，无差量复审。09-29 深挖纠正：01a0d2b3 虽派一次 runner，但上游 429 导致零有效调用；父称直接接手，07:02–07:15 用 curl/sqlite 走 E2/E1，中途改 directory_service 的 c8e6f4c4，并以父证据记 PASS。因此两会话均父采证，runner 均零证据。规则处理 agent_failed 却无死叶子 / 临时基础设施故障路径，“空返回阻塞”被误读成自行驾驶许可。
+4. **决策落盘延迟：**01a0d2b3 的 09-24 四轮决定只留聊天及一份事实调研，09-28 03:42 才写任务决定，已经一次压缩、四天间隔，正是“压缩会丢聊天”风险。
+5. **shape 吸收机制转向：**01a0eac3 的 01:47–01:59 从注册专用工具改 skill.run 标准 CLI，本应回 grill，却 15 分钟无调研定下，成最高失败片。
+6. **粒度：**01a0d2b3 明记每片一 100K 窗口，另一 issue 的 S0 明显超窗，粒度确认未抓到。
 
-### What was done right (to keep)
+<a id="what-was-done-right-to-keep"></a>
+### 做对的部分（保留）
 
-Frontier rounds via structured questions in both sessions; `01a0d2b3`'s
-3-way parallel explore fan-out once ordered; `01a0eac3`'s B-chain (B1–B5)
-dispatch / Return Gate / merge-queue discipline; freeze + two-axis
-end-of-issue review with two parallel reviewer leaves in both; full
-e2e-runner flow in `01a0d2b3`.
+两会话结构化前沿轮次；用户要求后 01a0d2b3 三路探索；01a0eac3 的 B1–B5 派发 / 返回检查 / 队列；冻结双并行结束审查；01a0d2b3 的完整 runner 流程安排。最后一项仅指安排，不推翻上文零有效 runner 证据纠正。
 
-## Limits / disposition
+<a id="limits--disposition"></a>
+## 限制与处置
 
-- `01a0eac3` was still live at audit time (2026-09-29 13:06); findings 3
-  and the E1 count are as-of snapshots.
-- User decision 2026-09-29: record diagnosis only. Rule changes (research
-  floor, prior-art ladder, checklist gate) and the deviations 1–5 above are
-  deliberately not addressed in this pass; expected landing path is a
-  `.rope/issues/` package, with ponytail facts cited from
-  [ponytail-prior-art-ladder.md](ponytail-prior-art-ladder.md).
+- 01a0eac3 在 2026-09-29 13:06 仍运行，第 3 项及 E1 次数只是当时快照。
+- 用户 09-29 要求只记录诊断。本次不改调研底线、阶梯、清单或偏离 1–5；预期后续由 issue 包落地，并引用 ponytail 调研。

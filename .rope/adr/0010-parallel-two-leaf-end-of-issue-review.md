@@ -1,83 +1,38 @@
-# 0010 Parallel Two-Leaf End-of-Issue Review
+<a id="0010-parallel-two-leaf-end-of-issue-review"></a>
+# 0010 双叶子并行结束审查
 
-**Status:** active — refines [0007](0007-graph-driven-go-single-review.md)'s
-review mechanics (one gate, two parallel read-only leaves); the gate itself,
-new eyes, and the real-entrypoint probe are unchanged. Works on top of
-[0009](0009-ticket-tdd-issue-bdd-layering.md)'s Matrix-as-spec.
+**状态：**active，细化 [0007](0007-graph-driven-go-single-review.md)，一个审查点、双只读叶子、新视角、真实入口不变，基于 [0009](0009-ticket-tdd-issue-bdd-layering.md)矩阵规范。产品运行归属后由 0015 调整。
 
-Date: 2026-08-24
+日期：2026-08-24。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. The end-of-issue gate spawns **two parallel read-only leaves in one
-   message**: a **Standards scanner** (explore-class preset, cheap model,
-   checklist scan) and the **Behavior reviewer** (`rope-reviewer`, strong
-   model: Matrix walk at the real entrypoint + e2e + high-risk deepest
-   look). First response = max(leaf times), not their sum.
-2. **Only the Behavior reviewer may start the product** — ports, processes,
-   and the browser are exclusively its resource; the scanner never runs the
-   product (this is why the split stops at two).
-3. **Aggregation is mechanical**: verdict = worst of the axis verdicts;
-   blocking findings from either leaf route to one fix brief. No rerank,
-   no merge, no re-judgment by the parent — the two axes stay separate
-   (upstream `code-review` pattern).
-4. Severity is binary `blocking | note`. Notes are recorded, never enter a
-   fix brief. Every finding carries `path:line` + a one-sentence fix —
-   the fix brief is a transcription, not an exploration.
-5. Post-fix re-review is **delta-only**: scanner on the fix-commit diff;
-   reviewer re-probes only affected paths. Full re-review never repeats.
-6. Diff hygiene and probe overlap: the diff command both leaves receive
-   excludes lockfiles / generated / snapshot paths; the reviewer starts the
-   product **first** and reads the diff while it boots.
+1. 一条消息派两个并行只读叶子：廉价 explore 规范扫描器与强行为审查者。原始行为角色走真实矩阵 / E2E / 深风险；响应耗时取最大，不相加。
+2. 原始规则仅行为审查者启动产品，独占端口 / 进程 / 浏览器，扫描不运行；后续 agent 模式由 0015 将独占资源移 E2E。
+3. 机械取最差结论，任一阻塞汇一简报，父不重排 / 合并 / 重判，两轴独立，沿上游 code-review。
+4. blocking/note 二级，note 仅记录。每项 path:line 加一句修复，简报转录而非探索。
+5. 修后仅差量复审：扫描修复 diff，行为重探受影响路径，不重复全量。
+6. 两者 diff 都排锁文件 / 生成 / 快照。原始审查先启动产品、启动期间读 diff，以重叠等待。
 
-## Context
+<a id="context"></a>
+## 背景
 
-End-of-issue review measured 3–10 min / 50–150 K tokens on a medium issue:
-one leaf serialized token-dense work (Standards deep-read ≈ 30–40 % of wall
-time) with I/O-dense work (service boot + browser probe ≈ 40–50 %, model
-idle while waiting). Upstream `code-review` already runs Standards and Spec
-as parallel ≤400-word sub-agents; 80 % of its Standards axis is a fixed
-smell baseline scanned as judgement calls, with documented repo standards
-overriding and tooling-enforced categories skipped. Rope's scanner reuses
-the existing `rope-explore` preset (cheap model, thinking off, read-only +
-bash for lint/typecheck) — no new agent file; the smell baseline rides in
-the brief, pasted verbatim.
+中等 issue 结束审查 3–10 分钟 / 50–150K tokens，单叶子串行 token 密集规范深读（30–40% 时间）与 I/O 密集启动 / 浏览器（40–50%）。上游两轴并行 ≤400 词，80% 规范轴是固定异味判断，仓库规范优先、跳工具保证项。Rope 复用低价 explore、不新增代理，基线粘简报。
 
-## Why this shape
+<a id="why-this-shape"></a>
+## 理由
 
-- The three iron rules of 0007 hold: one gate (one aggregated verdict
-  line), new eyes (both leaves never watched the build), real-entrypoint
-  probe (unmoved, now the sole critical path).
-- Standards is judgement-call checklist work — the class cheap models do
-  well; Behavior + probe are fused by 0009 (Matrix walked at the real
-  entrypoint) and stay in one strong leaf.
-- Expected economics: first response 3–10 min → 2–4.5 min; strong-model
-  tokens −50–60 % (bundle deep-read demoted to on-suspicion; map dropped
-  from the reviewer brief); raw tokens +20–40 % (diff read twice) absorbed
-  by the explore-class scanner.
+0007 单点、新视角、真实入口三属性保留。规范是廉价模型擅长的清单判断；原矩阵与真实入口融合，所以强叶子负责行为。预期响应 2–4.5 分钟，强模型 token 少 50–60%，原始规则去 map、约束包改存疑读；双读 diff 的原始 token 增 20–40%，由廉价扫描承担。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- Reviewer brief loses `map.md` (orientation asset for builders; the
-  reviewer's terrain is the diff and the running product) and the upfront
-  bundle read (inline global invariants instead; bundle path read only on
-  suspected conflict).
-- The scanner's verdict is advisory-boolean (clean / findings); verdict
-  semantics stay owned by the behavior reviewer + the mechanical
-  aggregation rule.
-- Fix rounds get cheaper: blocking-only briefs with prescribed fixes,
-  delta re-review (30–90 s vs a hidden full re-review).
-- Known cost, accepted: two briefs instead of one; the parent must resist
-  re-ranking (the aggregation rule is written down precisely to prevent a
-  second review from emerging).
+原规则审查去 map 和预读完整包，仅内联不变量、存疑读包；现行架构来源义务见连续性契约。扫描返回 clean/findings，语义由行为结论及机械汇总决定。阻塞明确修复、差量复审 30–90 秒降低成本。接受两简报成本，父必须抵制重排，防第二审查者出现。
 
-## Alternatives considered
+<a id="alternatives-considered"></a>
+## 考虑过的方案
 
-- N-way static split (per-file scanner shards, separate axes per leaf):
-  rejected — the probe is the sole critical path, static leaves never move
-  it; port/process exclusivity caps runtime leaves at one.
-- Probe as its own leaf: rejected — Behavior acceptance is defined as
-  walking the Matrix at the real entrypoint (0009); splitting serializes
-  them again.
-- Keep the single leaf, protocol tweaks only: rejected — leaves the
-  token-dense/I/O-dense serialization, the largest single lever, untouched.
+- 多路静态按文件 / 轴拆：不缩短原真实探测关键路径，端口独占限制运行叶子。
+- 当时另设探测叶子：因 0009 融合而拒绝，后续 0015 根据新证据改变。
+- 仅改单叶子协议：未解决 token / I/O 串行主成本。

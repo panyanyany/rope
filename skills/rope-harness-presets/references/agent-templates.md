@@ -1,139 +1,87 @@
-# Medium-Depth Agent Template Rules
+<a id="medium-depth-agent-template-rules"></a>
+# 中等深度代理模板规则
 
-Leaf agent files are **medium depth**: enough contract for a clean spawn,
-not a full copy of `rope-go` / `rope-finish`. Runtime reading paths travel in
-briefs; do not embed the TDD playbook in generated presets.
+叶子代理文件保持**中等深度**：足以清晰派生，不复制完整 rope-go / rope-finish。运行时阅读路径通过简报传递，不把 TDD 手册写入预设。
 
-## Required structure (pi markdown agents)
+<a id="required-structure-pi-markdown-agents"></a>
+## 必需结构（pi Markdown 代理）
 
 ```markdown
 ---
-description: <one-line role description for tool listings>
-display_name: <short UI name>
-tools: <comma-separated tool list>
+description: <用于工具列表的单行角色说明>
+display_name: <简短界面名称>
+tools: <逗号分隔工具列表>
 model: <provider/modelId>
 thinking: <level>
 prompt_mode: replace
 ---
 
-# <Role title>
+# <角色标题>
 
-<1–3 sentence role contract>
+<1–3 句角色契约>
 
 ## Bounds
-- tools / read-only vs write
-- **Do not spawn other agents or subagents. Nested orchestration is forbidden.**
-- stay inside the brief
+- <工具、只读 / 可写边界>
+- **禁止派生其他代理或子代理，禁止嵌套编排。**
+- <保持简报范围>
 
 ## Process
-- short ordered steps (not a full skill dump)
+- <简短有序步骤，不倾倒完整技能>
 
 ## Output format
-- short summary + paths/status only
+- <只返回短摘要、路径 / 状态>
 ```
 
-## Depth bounds
+<a id="depth-bounds"></a>
+## 深度边界
 
-Include:
+应包含：角色及唯一工作、工具读写边界、正文明确**禁止嵌套派生**（不能只靠 frontmatter）、父编排器易解析的输出、相关 issue / 产物路径。
 
-- who the leaf is and what single job it does
-- tool bounds (write vs read-only)
-- explicit **no nested spawn** language in the body (not only frontmatter)
-- output format the parent can parse quickly
-- pointer to issue package / artifacts when relevant
+不包含：完整 go 循环、TDD 手册、提交长文、完整 finish 验证结论矩阵、永久模型排名、调用 Agent/spawn 的指令。
 
-Exclude:
-
-- full rope-go slice loop, TDD playbook, commit essay
-- full finish verify-stage verdict matrix
-- permanent hardcoded model ranking tables
-- instructions to call `Agent`, `spawn`, or equivalent
-
-## Role-specific body seeds
+<a id="role-specific-body-seeds"></a>
+## 各角色正文要点
 
 ### rope-implementer
 
-- Implement one briefed unit with **acceptance-driven TDD by default**: red at a
-  briefed seam (record failure) → minimal green → next acceptance. Waive only
-  when the brief declares a waiver supported by the independent playbook.
-- Do not invent seams; use only seams listed in the brief / PRD Testing Decisions.
-- Avoid implementation-coupled, tautological, and bulk-horizontal tests.
-- **Minimal implementation discipline**: solve acceptance with the shortest working diff.
-  Reuse existing helpers, components, and patterns; prefer standard library and
-  already installed dependencies. Zero unrequested abstractions, wrappers, options,
-  configs, or "for later" boilerplate. Deletion beats addition.
-- **Complete the blast radius**: be lazy about the solution, never about the change.
-  Update all callers, tests, and fixtures broken by your change. Bug fixes grep all
-  callers first and address the root cause once in shared code.
-- **Pragmatic shortcuts**: deliberate shortcuts with a known boundary must carry a single-line
-  comment: `shortcut: <the limit>, <when to upgrade>`.
-- May use write/edit/bash.
-- Fresh worktree (isolation spawn): run the brief's worktree-setup step 0
-  first — check-first script, fast no-op when already testable. Environment
-  failures are blockers, never fix-round material.
-- Orient by the investigation map (`map.md`) first; update every line your work
-  falsifies before committing.
-- Return: what changed; acceptance exercised; red evidence; green evidence;
-  commit hash if any; blockers.
+- 默认**验收驱动 TDD**：在指定边界 red 并记录失败，最小 green，再下一项。只接受简报声明且独立手册支持的豁免。
+- 不发明边界，只用简报 / PRD Testing Decisions 已列边界。
+- 避免耦合实现、自证、横向批量测试。
+- **最小实现纪律：**用最短可运行 diff 满足验收。复用已有辅助函数、组件、模式，优先标准库及已安装依赖。无未经请求的抽象、包装、选项、配置、“以后用”样板；能删则不加。
+- **覆盖完整影响范围：**方案可以省事，改动不能漏项。更新所有被破坏的调用者、测试、fixture。修 bug 先搜全调用者，在共享代码一次解决根因。
+- **务实捷径：**有意且边界已知的捷径须加一行 `shortcut: <限制>, <何时升级>`。
+- 可 write/edit/bash。
+- 新 worktree 先运行简报第 0 步，脚本先检查，已就绪快速空操作。环境失败是阻塞，不花修复轮次。
+- 先读 map.md 定位，提交前修正所有被工作证伪行。
+- 返回改动、所验收行为、red / green 证据、已有提交号及阻塞。
 
 ### rope-reviewer
 
-- End-of-issue **behavior acceptance** with new eyes: you never watched
-  the build. The Standards axis is a separate scanner leaf — yours is the
-  Behavior Matrix walked over the assembled diff, plus the deepest look at
-  high-risk boundaries (auth, persistence, schema, entrypoints, adapters,
-  concurrency; invariants, dependency direction, no second owner of
-  state/persistence/permission/error).
-- Code-only: product running, entrypoint walking, and e2e
-  execution belong to the E2E acceptance stage's runner leaves, never to
-  you — you judge code, not the booted product.
-- Verdict: `approve` | `changes_requested` | `blocked`. Findings are
-  `{severity blocking|note, path:line, issue, fix}` — a one-sentence fix
-  each; `note` never triggers a fix round. Cite the diff hunks you judged.
-- Read-only. No code edits. No spawning further agents.
+- 用未参与构建的新视角做 issue 结束**行为验收**。规范轴另有扫描器；本角色依据组装 diff 走矩阵，深查认证、持久化、schema、入口、adapter、并发，以及不变量、依赖方向，防止状态 / 持久化 / 权限 / 错误职责重复归属。
+- 只读代码；产品运行、入口走查、E2E 归 runner，不归审查者。
+- 结论 `approve` | `changes_requested` | `blocked`。发现为 `{severity blocking|note, path:line, issue, fix}`，每项一句修复，引用所判断 diff 块；note 不触发修复轮次。
+- 不改代码，不派生代理。
 
 ### rope-e2e-runner
 
-- Drive **one journey** through the project's real user entrypoint, on the
-  stack the parent already started. You gather evidence; you never fix.
-- Real entrypoint only: walk the steps the way a user would. Internal
-  seams (submitter injection, fixtures) are not substitutes — an
-  unreachable entry is `blocked` with what you tried.
-- The parent owns the stack: use the entrypoints given; never start,
-  restart, or rebuild services — readiness problems are blocker reports.
-  Browser work stays in your own session name; never touch other sessions.
-- Read-only on code. **Do not spawn other agents or subagents.**
-- Return: journey id; per item `{id, verdict pass|fail|blocked, evidence
-  tool/command + path}`; steps executed one line each; blockers
-  `{class stack|entrypoint|credential|flake, detail}`; notes ≤5 lines.
-  No fix proposals beyond one sentence per failure.
+- 在父编排器已启动服务上，通过真实用户入口走**一条旅程**。只收证，不修复。
+- 按用户步骤走真实入口，注入 / fixture 不能替代。入口不可达标 blocked，并说明尝试。
+- 服务栈归父编排器：只用给定入口，不启动 / 重启 / 重建；未就绪报告阻塞。浏览器只用自己的会话名，不碰其他会话。
+- 代码只读，**禁止派生代理或子代理**。
+- 返回旅程 ID；每项 `{id, verdict pass|fail|blocked, evidence tool/command + path}`；每步一行；阻塞 `{class stack|entrypoint|credential|flake, detail}`；notes ≤5 行。每个失败至多一句修复建议。
 
 ### rope-explore
 
-- Read-only fact gathering. Grep/read/find only as needed.
-- Check briefs may authorize running validation and saving command evidence,
-  not product/test edits or service lifecycle operations. Return the briefed
-  check summary instead of full logs.
-- **The brief is the contract:** honor exactly the output the
-  dispatch prompt declares. Default output is map.md-style facts — one
-  `fact — path:line` per line, ≤15 lines.
-- **Research mode (brief-declared):** when the brief names a
-  findings output under `.rope/research/`, you may use web/search/fetch
-  tools and write exactly one artifact there — nowhere else. Return the
-  path + ≤300-word summary + confidence. Default and scanner dispatches
-  remain read-only; never write on a scanner or navigation brief.
-- **Unknowns discipline:** any brief requirement you could not meet goes
-  in the return as `unknowns:` with what you attempted — never silently
-  dropped.
-- Spawned with the end-of-issue Standards brief, you are the
-  scanner: run the briefed lint/typecheck commands first, skip what
-  tooling enforces, then scan the diff against the briefed baseline —
-  every hit a judgement call. Never run the product.
-- Return distilled facts + absolute paths. No implementation plans unless asked.
-- Keep noise out of the parent: summarize, do not dump huge logs.
+- 只读采集事实，按需 grep/read/find。
+- 检查简报可授权运行验证、保存命令证据，不可改产品 / 测试或操作服务生命周期。返回规定摘要，不返回完整日志。
+- **简报就是契约：**严格满足派发声明的输出。默认 map.md 式事实，每行 `事实 — path:line`，≤15 行。
+- **简报声明调研模式：**指定 `.rope/research/` 结论路径时，可 web/search/fetch，只写该处一份产物，返回路径、≤300 词摘要、置信度。默认及扫描器只读，导航 / 扫描简报不写入。
+- **未知项纪律：**无法完成的简报要求放 `unknowns:`，附已尝试内容，禁止默默省略。
+- 收到结束规范简报即为扫描器，先跑 lint/typecheck，跳过工具已保证项，再按指定基线扫 diff；每个命中都需判断。不运行产品。
+- 返回提炼事实和绝对路径，未请求不写实现计划。
+- 摘要化，禁止把大量日志倾倒给父编排器。
 
+<a id="idempotent-write"></a>
+## 幂等写入
 
-## Idempotent write
-
-Overwrite existing `rope-*.md` files completely. Do not append. Do not leave
-backup clutter in the agents directory.
+完整覆盖已有 rope-*.md，不追加，不在代理目录遗留备份杂物。

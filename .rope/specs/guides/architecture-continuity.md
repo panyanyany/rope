@@ -1,83 +1,63 @@
-# Architecture Decision Continuity Contract
+<a id="architecture-decision-continuity-contract"></a>
+# 架构决策连续性契约
 
-## Scope
+<a id="scope"></a>
+## 范围
 
-This contract applies to newly shaped Rope issue packages, legacy packages
-entering execution, and whole-line/integration merges managed through Rope.
+适用于新 shape 的 Rope 包、进入执行的旧包，以及 Rope 管理的整线 / 集成合并。
 
-## Contract
+<a id="contract"></a>
+## 契约
 
-- Every new `prd.md` contains `Architecture Impact` with `Impact: required | not-applicable` and a trigger-check explanation.
-- A relevant source decision has a source path, source status, issue disposition, scope, invariants, public seams, forbidden shortcuts, required evidence, applicability mapping, documentation outcome, and conflict state.
-- Source status and issue disposition are separate fields. Retrieved history is not an active constraint until status, scope, and replacement are checked.
-- Document maintenance follows the shipped [current documents contract](../../../skills/rope-clear/references/current-docs.md). Cleanup approval is defined by [rope-clear](../../../skills/rope-clear/SKILL.md); this spec does not duplicate its procedure.
-- `prd.md` owns the complete Constraint Bundle. `tasks.md` references decision/constraint IDs and maps them to slice evidence.
-- Shape reads applicable effective source sections before slicing. Package
-  readiness requires actual bundle mappings, required source paths/sections,
-  architecture evidence, and resolved dispositions. No-source candidates need
-  an explicit resolved record, not a fabricated spec path.
-- Implementer/reviewer briefs require bundle path, Constraint IDs, required
-  source paths/sections, and short inline global invariants. A checked `none`
-  is explicit; missing or placeholder fields block dispatch.
-- Implementers read scoped sources before product/test edits and record an
-  Architecture landing (≤3 lines: responsibility reused, public seam used,
-  ownership/direction preserved). Return source sections read and the pre-edit
-  record reference. Missed steps need honest correction evidence, not backdating.
-- Effective specifications take precedence over slice-local convenience;
-  applicable conflicts stop the affected slice for parent resolution and user
-  confirmation of changes/exceptions where required.
-- The Return Gate reconciles architecture evidence mechanically. The reviewer
-  reads effective sources upfront and judges invariants, ownership, dependency
-  direction, compatibility, and exception bounds. Verify checks only records
-  and documentation routing, not code or product truth.
-- Full declared architecture guard coverage is issue-level evidence, not the
-  full product suite or a per-slice/per-merge ritual. Per-entry exception deltas
-  and guard weakening are reviewed; new/widened exceptions and bulk freezes
-  require a confirmed disposition before implementation.
-- Whole-line merges check current-target constraints on a candidate merge and
-  record reconciliation, guards, and review before moving the target.
-- Operational owners: [package readiness](../../../skills/rope-shape/references/architecture-continuity.md#package-readiness-gate)
-  and [execution gates](../../../skills/rope-go/references/architecture-gates.md).
-  These are agent-executed rules; no harness interceptor is introduced.
-- Confirmed documentation work may be `pending-finish` during verify. Finish changes it to `updated-existing`, `added-new`, `no-new-decision`, or `exception-recorded`.
-- Finish pauses when it discovers an unconfirmed architecture change.
+- 新 prd.md 均有 Architecture Impact、`Impact: required | not-applicable` 及触发项检查理由。
+- 每项相关来源决策均有来源路径、状态、issue 处置、范围、不变量、公共边界、禁止捷径、证据、适用映射、文档结果、冲突状态。
+- 来源状态与 issue 处置分开。未核状态、范围、替代关系的历史不是活动约束。
+- 文档维护按[现行文档契约](../../../skills/rope-clear/references/current-docs.md)，清理批准按 [rope-clear](../../../skills/rope-clear/SKILL.md)，此处不重复流程。
+- prd.md 持有唯一完整约束包；tasks.md 引用决策 / 约束 ID，并映射切片证据。
+- shape 切片前读适用生效章节。就绪需要真实映射、来源路径 / 章节、架构证据、已定处置。无来源候选要显式解决，不伪造 spec 路径。
+- 简报必有包路径、约束 ID、必读来源和短内联全局不变量。已核验 none 必须明写；缺字段 / 占位阻塞派发。
+- 实现者编辑产品 / 测试前读限定来源，记录 ≤3 行架构落点：复用职责、公共边界、保留归属 / 方向。返回阅读章节和编辑前记录引用。遗漏需真实补救证据，不能倒填。
+- 生效规范优先于切片便利。冲突停相关片，由父编排器解决，必要变更 / 例外交用户确认。
+- 返回检查机械核架构证据；审查者先读来源，再判断不变量、归属、方向、兼容、例外。verify 只查记录 / 文档路由，不判代码 / 产品。
+- 完整声明架构检查是 issue 级证据，不是全产品套件，也不逐片 / 逐合并运行。逐项审例外变化和规则削弱；新增 / 扩大例外、批量冻结实现前需已确认处置。
+- 整线合并在候选上核当前目标约束，目标推进前记录协调、检查、审查。
+- 操作归属：[整包就绪](../../../skills/rope-shape/references/architecture-continuity.md#package-readiness-gate)与[执行检查](../../../skills/rope-go/references/architecture-gates.md)。由代理执行，不引入宿主拦截器。
+- verify 时已确认文档可 pending-finish，finish 改 updated-existing / added-new / no-new-decision / exception-recorded。
+- finish 发现未确认架构变化必须暂停。
 
-## Tests Required
+<a id="tests-required"></a>
+## 必需验证
 
-- Package-template read-through confirms the Architecture Impact and Constraint Bundle fields.
-- Slice-template read-through confirms mandatory IDs, scoped source reading,
-  and architecture evidence mapping independently of matrix evidence.
-- Leaf-brief read-through confirms pre-edit source reading/landing, conflict
-  stop, mechanical evidence return, and the existing brief budget.
-- Review/integration read-through confirms current sources, guard coverage,
-  per-entry exception review, and candidate acceptance before target movement.
-- Verify format includes an architecture continuity section and distinguishes pending documentation from code findings.
-- Finish checklist includes all four terminal documentation outcomes and the unconfirmed-change pause.
-- Installer smoke confirms bundled skills and references are installed to the target without overwriting settings.
+- 通读包模板，确认架构影响与约束包字段。
+- 通读切片模板，确认必填 ID、限定来源阅读、独立于矩阵的架构证据映射。
+- 通读简报，确认编辑前阅读 / 落点、冲突停止、机械证据返回和预算。
+- 通读审查 / 集成流程，确认当前来源、完整检查、逐项例外、推进目标前验收。
+- verify 区分待写文档与代码发现；finish 包含四种文档终态及未确认变化暂停。
+- 安装冒烟确认技能和参考完整，保留 settings。
 
-## Wrong vs Correct
+<a id="wrong-vs-correct"></a>
+## 错误与正确示例
 
-### Wrong
+<a id="wrong"></a>
+### 错误
 
 ```text
-Implement Slice 2. Follow the ADR. Add tests.
+实现切片 2，遵循 ADR，补测试。
 ```
 
-The leaf must infer which decision applies, what invariant matters, and what proves it.
+这会迫使叶子猜适用决策、不变量及证明方式。
 
-### Correct
+<a id="correct"></a>
+### 正确
 
 ```text
-Slice 2 constraints:
-- Bundle path: .rope/issues/<issue>/prd.md (Constraint Bundle section)
+切片 2 约束：
+- Bundle path: .rope/issues/<issue>/prd.md 的 Constraint Bundle
 - Constraint IDs: D1
-- Required reading: .rope/specs/<area>/<topic>.md — Ownership, Public seam,
-  plus status/scope context
-- Global invariants (short, inline): <the applicable source invariants>
-
-Before editing: read D1's bundle record and effective source sections.
-Architecture landing: reuse <owner>; call <public seam>; keep <lifecycle>
-owned by <owner>, not copied into the new entrypoint.
-Return: source sections read + pre-edit record reference + D1 evidence.
-Conflict: stop the affected slice and return it to the parent.
+- Required reading: .rope/specs/<area>/<topic>.md 的 Ownership、Public seam，
+  以及状态 / 范围上下文
+- Global invariants: <适用来源不变量的短列表>
+编辑前读 D1 及生效章节，记录 Architecture landing：复用 <归属者>，
+调用 <公共边界>，生命周期仍归 <归属者>，不复制到新入口。
+返回阅读及编辑前记录引用、D1 证据。冲突停片交父编排器。
 ```

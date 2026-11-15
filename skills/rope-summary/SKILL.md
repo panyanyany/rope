@@ -1,60 +1,40 @@
 ---
 name: rope-summary
-description: Distills reusable contracts, adapter boundaries, config rules, or bug-fix learnings from just-finished work into .rope docs. Invoke by name when the user asks to summarize/沉淀 current work.
+description: 将刚完成工作中的可复用契约、adapter 边界、配置规则或修复经验沉淀进 .rope 文档。用户要求总结或沉淀当前工作时按名称调用。
 disable-model-invocation: true
 ---
 
-# Rope Summary
+<a id="rope-summary"></a>
+# Rope Summary：经验沉淀
 
-把已验证的实现经验沉淀到 `.rope/`，保持代码事实、架构契约和 agent 指令一致。
+把已验证的实现经验沉淀到 `.rope/`，保持代码事实、架构契约和代理指令一致。
 
-## Workflow
+<a id="workflow"></a>
+## 工作流程
 
-1. Inspect current repo state:
-   - `git status --short`
-   - changed files / recent commits relevant to the just-finished work
-2. Read context before writing:
-   - `.rope/GLOSSARY.md` (legacy lookup per [current documents](../rope-clear/references/current-docs.md#project-language))
-   - `.rope/routes.md`
-   - relevant `.rope/specs/`
-   - relevant `.rope/adr/`
-   - referenced `.rope/research/`
-3. Decide whether docs need updates:
-   - read the issue's Architecture Impact and Constraint Bundle when present
-   - update when work created or clarified reusable architecture rule, adapter contract, config contract, deployment constraint, validation pattern, or recurring failure mode
-   - skip when change is one-off, private implementation detail, or already covered by existing docs
-   - distinguish `pending-finish` documentation closure from a new, unconfirmed architecture change; the latter pauses for parent/user disposition
-   - **completion criterion:** every changed file since the issue's shape commit has been considered against the four doc homes (specs / adr / research / glossary); each is either updated or explicitly skipped with reason. Do not declare done while any changed file is unconsidered.
-4. Read [current documents](../rope-clear/references/current-docs.md), then
-   update the smallest durable doc in place. If the issue already confirmed a disposition,
-   preserve its source, status, scope, invariants, exception bounds, and evidence;
-   do not invent a new disposition during summary:
-   - `.rope/specs/` for stable implementation contracts and tests required
-   - `.rope/adr/` for architecture decisions with trade-offs
-   - `.rope/research/` for external/platform facts
-   - `.rope/GLOSSARY.md` only for domain language changes
-5. Keep docs evidence-based:
-   - link rule to observed code/test/log behavior when useful
-   - do not invent product facts or future workflow runtime
-   - do not paste secrets, raw prompts, base64, or large payloads
-6. Verify and commit if the target repo expects commit discipline:
-   - run lightweight doc/diff checks when available
-   - commit only the doc update unless user asked to bundle it
+1. 检查仓库状态：`git status --short`，以及刚完成工作涉及的变更文件 / 最近提交。
+2. 写前读取 `.rope/GLOSSARY.md`（旧文档查找见[现行文档契约](../rope-clear/references/current-docs.md#project-language)）、`.rope/routes.md`、相关 specs / adr，以及引用的 research。
+3. 判断是否更新：
+   - 有 issue 则读 Architecture Impact 与 Constraint Bundle。
+   - 形成或澄清可复用架构规则、adapter / 配置契约、部署约束、验证模式、反复失败模式时更新。
+   - 一次性工作、私有实现细节或已有文档覆盖时跳过。
+   - 区分 `pending-finish` 文档闭环与未确认新架构变化，后者暂停交父编排器 / 用户处置。
+   - **完成标准：**自 shape 提交以来每个变更文件均对照 specs / adr / research / 术语表四处归属考虑过，更新或明确说明跳过原因。任何文件未考虑都不能宣布完成。
+4. 读[现行文档契约](../rope-clear/references/current-docs.md)，原位更新最小长期文档。已确认处置保留其来源、状态、范围、不变量、例外边界、证据，不在总结时发明新处置：稳定实现契约和必需测试进 specs；架构取舍进 adr；外部 / 平台事实进 research；领域语言变化才进 GLOSSARY。
+5. 以证据为准：必要时链接代码 / 测试 / 日志，不编造产品事实或未来运行流程，不粘贴密钥、原始提示、base64 或大载荷。
+6. 目标仓库要求提交纪律时，做轻量文档 / diff 检查并提交；只提交文档更新，除非用户要求合并提交。
 
-## Agent Doc Rule
+<a id="agent-doc-rule"></a>
+## 代理指令规则
 
-Rope-enabled repos should include this same rule in their root agent doc:
+使用 Rope 的仓库，根代理文档应包含：
 
 ```md
 - 需要代码上下文时，先读相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/`，不要只靠文件名或 grep 结果推断架构。
-- 完成代码变更后，若沉淀出可复用架构规则、adapter contract、配置契约、部署约束或踩坑修复，更新最小相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/` 后再收尾。
+- 完成代码变更后，若沉淀出可复用架构规则、adapter 契约、配置契约、部署约束或踩坑修复，更新最小相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/` 后再收尾。
 ```
 
-## Output
+<a id="output"></a>
+## 输出
 
-Return:
-
-- Updated files
-- What rule/fact was preserved
-- Verification run or reason skipped
-- Commit hash if committed
+返回更新文件、保留的规则 / 事实、验证结果或跳过原因，以及已提交时的提交号。

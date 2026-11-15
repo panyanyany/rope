@@ -1,377 +1,205 @@
-# Session 01a01ece Post-mortem — green pipeline, broken product
+<a id="session-01a01ece-post-mortem--green-pipeline-broken-product"></a>
+# 会话 01a01ece 复盘：流程全绿，产品不可用
 
-## Question
+保留历史证据与当时提案；逐片审查、verify 职责、动态模式及降级策略后来已演进，现行规则以生效 ADR / 技能为准。
 
-Session `01a01ece-3a5f-7b43-b846-60560b71abc7` (agent-workbench, issue
-`webui-staff-desk`) ran the full rope pipeline — grill → shape → go (9 slices,
-per-slice review, TDD) → E1 smoke → verify PASS — over ~11.5 hours of agent
-time, 55 leaf dispatches, 40+ commits. Minutes after the PASS report, the user
-could not see the staff desk entrance or reach `/desk` routes as admin. What
-did the pipeline miss, and which external agent-harness patterns close the gap?
+<a id="question"></a>
+## 问题
 
-## Session Evidence
+agent-workbench 的 `webui-staff-desk` 会话 `01a01ece-3a5f-7b43-b846-60560b71abc7` 跑完 grill → shape → go（9 片、逐片审查、TDD）→ E1 冒烟 → verify PASS，约 11.5 小时、55 叶子派发、40 多提交。通过后数分钟，用户以 admin 看不到入口、不能访问 `/desk`。漏了什么，哪些外部宿主模式能补缺口？
 
-Source: session jsonl `2026-08-20T10-23-21-711Z_01a01eb2…` (internal id
-`01a01ece…`), `/tmp/pi-subagents-1000/…/tasks/` (55 leaf outputs, 18 MB),
-issue package `.rope/issues/webui-staff-desk/` in agent-workbench.
+<a id="session-evidence"></a>
+## 会话证据
+
+来源：会话 JSONL `2026-08-20T10-23-21-711Z_01a01eb2…`（内部 ID `01a01ece…`）、`/tmp/pi-subagents-1000/…/tasks/` 的 55 个叶子输出共 18 MB、agent-workbench 的 `.rope/issues/webui-staff-desk/`。
 
 ### timeline
 
-Fact: grill 01:06–02:00 → S1–S9 implement/review loops 02:00–09:00 → E1
-smoke 09:00–09:14 → verify 09:14–09:27 → PASS report 09:27 → user reports
-"admin 看不到入口、无法访问路由" 09:46 → compaction 11:38 → fix round
-11:38–12:31 (~53 min) found three root causes, fixed all, verified by real
-browser walk-through.
+Fact: grill 01:06–02:00；S1–S9 实现 / 审查 02:00–09:00；E1 09:00–09:14；verify 09:14–09:27；09:27 PASS；09:46 用户报 admin 无入口 / 路由不可达；11:38 压缩；11:38–12:31 约 53 分钟修复，发现并修正三根因，真实浏览器验证。
 
 ### root-causes-all-environment-parity
 
-Fact: the fix round's own verdict (session record [560], e2e.md Result):
-1. 真实 registry 从未有法务/财务 profile —— **S1–S9 全部用测试 fixture**，
-   no slice owned landing real config;
-2. 主题 CSS 只定义了 neutral accent —— `--desk-accent-legal-purple` /
-   `finance-gold` 在双主题中都不存在（token 映射在，值不在）;
-3. admin 建岗位会话 403 —— MR !43 grant 语义只给 admin 隐含研发面角色，
-   S6 让 admin 看到全部页签但没人验证"看到之后点得动"。
-All three are *environment/data parity* gaps, not logic bugs. Every unit,
-slice, and E1 assertion was green because every test ran against fixtures
-that supplied exactly what the code expected.
+Fact: 修复结论见会话 [560] 和 e2e.md：
+
+1. 真实 registry 从未有法务 / 财务 profile；**S1–S9 全用 fixture**，无片负责落真实配置。
+2. 主题 CSS 仅 neutral accent；双主题都无 `--desk-accent-legal-purple` / `finance-gold`，映射有、值无。
+3. admin 建岗位会话 403；MR !43 grant 只给 admin 隐含研发面角色，S6 让 admin 见全部页签，却无人验点击能否执行。
+
+三项是环境 / 数据一致性缺口，不是局部逻辑 bug。所有单元 / 切片 / E1 绿，因为 fixture 恰好供应代码期望的数据。
 
 ### e1-was-fixture-scoped-by-design
 
-Fact: e2e.md E1 says "启动本地 WebUI 栈（fixture/本地运行时，含测试岗位
-profile 授予张三）" — the smoke booted its own server with a fixture
-registry. It honestly validated the *code path* and passed. The only
-product-truth gate left was E2, classified `Executor: user / Gate Decision:
-user-run`, i.e. deferred to the human — who then found everything broken.
+Fact: E1 约定启动 fixture / 本地运行时 WebUI，含给张三测试 profile；它自启 fixture registry，诚实验代码路径并通过。唯一产品真值 E2 被标 Executor user / Gate Decision user-run，推给人，后者发现不可用。
 
 ### fix-round-is-the-proof
 
-Fact: the 53-minute fix round did what 7.5 h of fixture testing could not,
-using exactly one new ingredient: it booted the **real** stack (real
-registry, built dist, real auth), logged in as admin via browser automation,
-clicked the tabs, screenshotted, and sent a message. Root causes surfaced in
-minutes. The agent demonstrably *can* perform product-truth verification;
-the pipeline just never asked it to.
+Fact: 53 分钟修复完成此前 7.5 小时 fixture 测试未完成的验证，只多一项：启动真实 registry、构建 dist、真实认证的栈，浏览器 admin 登录、点页签、截图、发消息，几分钟显根因。代理能做产品真值验证，只是流程没要求。
 
 ### infra-overhead
 
-Fact: harness-level failures burned ~1.5 h of the session:
-- S1 dispatch ×6 failed on `maxTokens 384000 > 上游 131072` (models-store
-  entry; fix required editing config + full pi restart) — ~40 min;
-- S7 retry storm: 7 dispatches across upstream 503 / content-filter
-  misfires, degradation to general-purpose, finally parent self-implemented
-  (recorded as 降级执行) — ~36 min;
-- one leaf (720 s) truncated mid-fix, leaving uncommitted red tests the
-  parent recovered manually.
+Fact: 宿主故障耗约 1.5 小时：
 
-Verified by: session records [163–198], [352–418], [209–215].
-Stability: high (own session).
+- S1 派发 6 次因 `maxTokens 384000 > 上游 131072` 失败，改 models-store 并完整重启 pi，约 40 分钟。
+- S7 遇 503 / 内容过滤误判，7 次派发、降通用、最终父自实现并记降级，约 36 分钟。
+- 一叶子 720 秒中途截断，留下未提交红测试，父手动恢复。
 
-## Verified Facts (external patterns)
+Verified by: 会话 [163–198]、[352–418]、[209–215]。
+Stability: high，本仓会话。
+
+<a id="verified-facts-external-patterns"></a>
+## 已核验外部模式
 
 ### anthropic-evaluator-clicks-through-running-app
 
-Fact: Anthropic's long-running harness write-up: "Applications from earlier
-harnesses often looked impressive but still had real bugs when you actually
-tried to use them. To catch these, the evaluator used the Playwright MCP to
-click through the running application the way a user would, testing UI
-features, API endpoints, and database states." Also: "out of the box, Claude
-is a poor QA agent… it identify[s] legitimate issues, then talk[s] itself
-into deciding they weren't a big deal and approve the work anyway" — the fix
-is a *separate, tuned-skeptical* evaluator with hard per-criterion
-thresholds.
+Fact: Anthropic 长期应用宿主文章说，早期应用看似好却实际有 bug，评价者用 Playwright MCP 像人点击运行中应用，检 UI、API、数据库。默认 Claude QA 会发现真问题后说服自己“不严重”并批准，需要独立、针对怀疑性调校的评价者及逐标准硬门槛。
 Source: https://www.anthropic.com/engineering/harness-design-long-running-apps
-Verified by: fetch 2026-08-22
-Stability: high
-Implication: rope's reviewer/verify leaves need (a) a real-runtime probe
-step, (b) calibration language against leniency, (c) hard fail on any
-must-fix criterion.
+Verified by: 2026-08-22 抓取。
+Stability: high。
+Implication: 审查 / verify 需真实运行探测、反宽松校准、任一必修标准失败即不通过。这是当时提案输入，现行 E2E 已独立分工。
 
 ### anthropic-sprint-contract
 
-Fact: generator and evaluator negotiate what "done" looks like **before code
-is written** ("sprint contract"), bridging spec and testable implementation;
-contracts were granular (27 criteria for one sprint) and evaluator findings
-cited exact file:line causes.
-Source: same article.
-Implication: rope's Contract Note already does this at issue level; the gap
-is that contracts are negotiated without stating **against which
-environment** "done" will be observed.
+Fact: 生成者 / 评价者写代码前约定完成契约；某 sprint 有 27 标准，发现带准确 file:line。
+Source: 同文。
+Implication: Rope Contract Note 已在 issue 层做投影，缺口是未说清在哪个环境观察完成。
 
 ### pulumi-self-verifying-browser-loop
 
-Fact: "The AI verifies its own work. It builds a component, launches a
-browser, tests the interaction, confirms behavior matches expectations…
-Without browser automation, that someone is you." Compact snapshot+ref
-tooling (agent-browser) cut E2E context cost ~82.5% vs full accessibility
-trees, making in-loop browser verification affordable.
+Fact: Pulumi 描述 AI 构建组件、开浏览器、试交互、确认预期；无浏览器自动化就由人做。agent-browser 的紧凑快照 / ref 相比完整无障碍树省约 82.5% E2E 上下文，使循环内浏览器验证可负担。
 Source: https://www.pulumi.com/blog/self-verifying-ai-agents-vercels-agent-browser-in-the-ralph-wiggum-loop
-Verified by: fetch 2026-08-22
-Stability: high
-Implication: an `agent`-executable browser E2E class is practical in pi
-today (agent_browser tool); context cost is a solved concern with
-snapshot-ref discipline.
+Verified by: 2026-08-22 抓取。
+Stability: high。
+Implication: 现场 agent_browser 可做 agent 浏览器 E2E，快照引用纪律可控成本。
 
 ### osmani-harness-ratchet
 
-Fact: harness engineering core habit — "every time the agent slips, engineer
-it so it never makes that mistake again"; every rule must trace to a real
-failure; hooks enforce deterministically with "success is silent, failures
-are verbose"; preflight-style gates (typecheck/lint/test on edit) close the
-self-verification loop.
+Fact: 宿主工程主张每次失误都改机制避免再犯，规则须追溯真实失败；hook 确定性约束成功静默 / 失败详细，编辑时类型 / lint / test 预检闭环。
 Source: https://addyosmani.com/blog/agent-harness-engineering
-Verified by: fetch 2026-08-22
-Stability: high
-Implication: this post-mortem's root causes should each become a named rope
-rule, not a one-off story. Config preflight before dispatch is the same
-pattern as a typecheck hook.
+Verified by: 2026-08-22 抓取。
+Stability: high。
+Implication: 每根因应有具名规则而非孤例；派发配置预检同属此模式。
 
 ### spec-tool-landscape
 
-Fact: spec-kit (lightweight gated specify→plan→tasks→implement + constitution
-checks), BMAD (agentic planning + dev phases), OpenSpec (minimal markdown),
-Kiro (spec-driven IDE with hooks), AgentOS (multi-agent MCP orchestration
-server). None of the surveyed tools encode an explicit "verify against the
-real/deployed environment, not only fixtures" gate; the evaluator-clicks-
-through-app pattern (Anthropic) is the strongest public practice available
-to copy.
-Source: https://medium.com/@tim_wang/spec-kit-bmad-and-agent-os-e8536f6bf8a4 (+ search)
-Verified by: fetch 2026-08-22
-Stability: medium
-Implication: rope can lead here rather than port; no upstream template
-exists for environment-parity gating.
+Fact: 调查含 spec-kit（轻门槛 specify→plan→tasks→implement 与 constitution）、BMAD（计划 / 开发）、OpenSpec（最小 Markdown）、Kiro（带 hook 的规范 IDE）、AgentOS（多代理 MCP）。未在所查材料发现明确真实 / 部署环境而非仅 fixture 的门槛；Anthropic 运行应用点击是当时最明确可借实践。
+Source: https://medium.com/@tim_wang/spec-kit-bmad-and-agent-os-e8536f6bf8a4 及搜索。
+Verified by: 2026-08-22 抓取。
+Stability: medium。
+Implication: 当时未找到可直接移植的环境一致性模板，Rope 需自行设计。
 
-## Diagnosis → rope gaps
+<a id="diagnosis--rope-gaps"></a>
+## 诊断与 Rope 缺口
 
-| # | Gap | Where it lives | Session proof |
+| # | 缺口 | 位置 | 证据 |
 | --- | --- | --- | --- |
-| 1 | No **real-environment** E2E class; `user` became the only product-truth gate, and its scope mixed mechanical checks (入口可见/路由可达) with genuine taste | `rope-shape/references/gates-and-vocab.md` E2E Executor Rules | E1 fixture-only by design; E2 `user-run`; user found breakage |
-| 2 | Shape never inventories the **real runtime environment** (registry/config/dist/migrations/seeds) nor assigns ownership for landing real data | `rope-shape` workflow; issue-package slice kinds | root causes 1 & 2 (missing real profiles, missing CSS values) |
-| 3 | Verify audits **paperwork** (verdict existence, dates, evidence dirs), never product truth | `rope-verify/SKILL.md` step 3 checklist | verify Round 1 findings were 100% documentation-level |
-| 4 | No **dispatch preflight / failure budget**; retry storms and config errors burn wall-clock silently | `rope-go/references/execution-rules.md` | ~40 min maxTokens, ~36 min S7 storm |
-| 5 | Reviewer accepts fixture-only evidence when a real environment exists | reviewer brief / `tdd.md` anti-patterns | 9/9 slice PASS against fixtures |
+| 1 | 无真实环境 E2E 类型；user 成唯一产品真值，混机械检查与审美 | shape gates-and-vocab 执行者规则 | E1 fixture、E2 user-run，用户发现不可用 |
+| 2 | shape 不盘真实 registry/config/dist/migration/seed，不分配数据落地 | shape / issue-package | 根因 1、2 |
+| 3 | verify 只查结论、日期、证据目录等文书 | 当时 verify 第 3 步 | 第一轮全是文档问题 |
+| 4 | 无派发预检 / 失败预算 | go execution-rules | 40 分钟配置、36 分钟重试 |
+| 5 | 有真实环境仍接受 fixture-only | reviewer / tdd 反模式 | 9/9 片 fixture 通过 |
 
-## Proposed changes (ranked)
+<a id="proposed-changes-ranked"></a>
+## 当时提案（按优先级）
 
-### P0-1 · real-env E2E class + user-run decomposition
+<a id="p0-1--real-env-e2e-class--user-run-decomposition"></a>
+### P0-1：真实环境 E2E 与 user-run 拆分
 
-`gates-and-vocab.md`: extend E2E Executor Rules —
-- New rule: an issue touching user-visible surfaces served from real
-  config/artifacts (registry entries, built frontend dist, seeds,
-  migrations) must carry ≥1 E2E item executed against the **as-deployed**
-  environment (real config + built artifacts + real auth), executor `agent`
-  (browser walk-through allowed), before verify can pass.
-- New rule: `user` items must be decomposed first — anything mechanically
-  checkable (visibility, reachability, status codes, data presence) moves to
-  an `agent` item; only taste/2FA/private-env stays `user`.
+gates-and-vocab 执行者规则：触及依赖真实配置 / 构建产物的用户界面，至少一项在真实配置、构建、认证的部署形态下运行，agent 可浏览器操作，之后才允许 verify。user 项先拆，入口可见、路由、状态码、数据等机械项交 agent；审美、2FA、私有环境留 user。
 
-### P0-2 · verify product-truth check
+<a id="p0-2--verify-product-truth-check"></a>
+### P0-2：verify 产品真值
 
-`rope-verify/SKILL.md` step 3 + `references/verify-rules.md`: add a
-minimum check — "for issues with user-visible surfaces: one fresh
-real-environment probe (agent-run E2E or verify-inspector boot-and-click),
-or verify cannot PASS on paperwork alone". Add calibration line against
-evaluator leniency (Anthropic finding): reviewer/verifier must cite
-environment evidence, not test counts.
+当时建议 verify 第 3 步 / verify-rules：有用户界面的 issue 至少一次新鲜真实环境探测，agent E2E 或 inspector 开栈点击，不许只靠文书 PASS。反宽松校准要求环境证据，不以测试数量代替。
 
-### P1-1 · shape-stage environment inventory
+<a id="p1-1--shape-stage-environment-inventory"></a>
+### P1-1：shape 环境盘点
 
-`rope-shape` workflow + `issue-package.md`: one grill/shape question —
-"what real data/config must exist for this feature to be observable, and
-who lands it?" If missing ⇒ either a `data-config` slice (real registry
-files, CSS values, seeds) or an explicit real-env E2E item. This converts
-root causes 1–2 from "discovered at E2 by the user" to "owned at shape".
+增加问题：“功能可见需要哪些真实数据 / 配置，谁落地？”缺失则分配 data-config 片或明确真实 E2E，把用户最终发现转成 shape 时有归属。
 
-### P1-2 · dispatch preflight + failure budget
+<a id="p1-2--dispatch-preflight--failure-budget"></a>
+### P1-2：派发预检与失败预算
 
-`execution-rules.md`:
-- Before the first leaf dispatch per role preset: cheap probe spawn or
-  config sanity (model resolves, maxTokens within provider limit).
-- Dispatch failure budget: after 3 consecutive failed dispatches of the
-  same brief, stop retrying and surface to the user (Human Escalation Stop
-  extended to the dispatch layer, not just fix loops).
-- After any aborted leaf: mandatory git-status + test-state probe before
-  re-dispatch (codifies what the parent improvised at [211–215]).
+execution-rules 当时提案：每角色首次派发前廉价探针 / 配置核对，模型解析、maxTokens 在 provider 限制内；同简报连续三次失败则停并升级；叶子中止后重派前先查 git 状态与测试状态，固化 [211–215] 的现场恢复。
 
-### P2 · reviewer anti-pattern + ratchet maintenance
+<a id="p2--reviewer-anti-pattern--ratchet-maintenance"></a>
+### P2：审查反模式与持续修正
 
-`tdd.md` anti-pattern table: "acceptance proven only against fixtures while
-a real environment exists" → finding. Keep this research doc as the trace
-for each new rule (Osmani ratchet: every rule traces to a real failure).
+TDD 反模式加入“有真实环境却只用 fixture 证明验收”，本研究作为新规则的真实失败出处。
 
-## Round 2 — wall-clock accounting + upstream/community findings
+<a id="round-2--wall-clock-accounting--upstreamcommunity-findings"></a>
+## 第二轮：墙钟核算与上游 / 社区发现
 
 ### wall-clock-accounting
 
-Fact: go phase (S1 spawn 02:00 → verify PASS 09:27) = 7.45 h wall. Leaf busy
-sum = 391 min (6.5 h, 87% of wall) — the parent orchestrator was NOT the
-bottleneck; **serial foreground leaves were**. Breakdown: implement leaves
-~287 min, review leaves ~65 min, failed dispatches ~35 min. Fix rounds
-(修正轮/收尾) alone ≈ 94 min — a third of implementation time re-doing what
-per-slice review found. Only 2/55 spawns used run_in_background. Elephant
-leaves: S7 impl 31.6m/1.3M tok, S7 fix 28.9m/2.4M, S8 27.1m/1.8M, S9
-35.7m/3.0M — each far beyond "single fresh context window" sizing.
-Verified by: session `details.durationMs` per dispatch.
-Stability: high.
+Fact: S1 02:00 到 verify PASS 09:27，墙钟 7.45 小时；叶子忙时合计 391 分钟，约 6.5 小时、墙钟 87%，瓶颈为串行前台叶子，非父。实现约 287 分钟、审查 65、失败派发 35；修正 / 收尾 94 分钟，约实现三分之一。仅 2/55 用后台。大叶子 S7 实现 31.6 分钟 / 130 万 token、S7 修 28.9 / 240 万、S8 27.1 / 180 万、S9 35.7 / 300 万，远超全新窗口尺寸。
+Verified by: 逐派发 details.durationMs。
+Stability: high。
 
 ### no-drift-execution-matched-plan
 
-Fact: execution matched the shape 9/9 slices; commits clean; no scope
-wander. The two real defects were **plan blind spots**, not drift:
-(a) PRD Non-goals explicitly descoped "法务/财务 Agent Role Profile 的内容
-装配（⑤⑨ 另线）" — so no slice owned making real profiles exist, and E1
-legitimately used fixtures because fixtures were the only world the plan
-made real; (b) S6 decision "admin 看全部岗位页签" collided with MR !43
-grant semantics "admin 只隐含研发面角色" → 403 on session creation. Two
-work streams' decisions never reconciled.
-Verified by: prd.md Non-goals; e2e.md E2 fix-round record.
-Stability: high.
+Fact: 9/9 片符合 shape，提交干净、无范围游走。真实缺陷为计划盲点：PRD 明确排除法务 / 财务 Agent Role Profile 内容装配，因此无人负责真实 profile，E1 合理用计划唯一提供的 fixture；S6 admin 见全部页签与 MR !43 admin 仅隐含研发角色冲突，两线决策未协调。
+Verified by: prd Non-goals、e2e E2 修复记录。
+Stability: high。
 
 ### matt-implement-spec-concurrent
 
-Fact: upstream mattpocock/skills added `implement-spec` (skills/in-progress/,
-after baseline 9603c1c — commit 84b5ee5, last touched 2026-08-21). Design:
-tickets as task graph with frontier; **implementer subagents run in the
-background for maximum concurrency**; each in own worktree; exploration
-notes saved to a directory outside the repo shared by all future
-subagents; **one /code-review at the end on the whole PR branch**, all
-findings fixed in a single implementer subagent; sparse communication via
-context pointers, no duplication.
-Source: ~/.cache/rope-upstream/mattpocock-skills@origin/main
-Verified by: git show 2026-08-22
-Stability: high (in-progress skill, may evolve)
-Implication: rope-go's serial foreground slice loop + per-slice review is
-the wall-clock multiplier; Matt's default is the opposite on all three
-axes (concurrency, review timing, communication volume). Harvest candidate
-— correspondence row missing.
+Fact: 基线 9603c1c 后，上游 skills/in-progress/ 新增 implement-spec，提交 84b5ee5，最后变化 2026-08-21。工单图 / 前沿、后台最大并发、每人独立 worktree，仓库外共享探索笔记，最后整 PR 一次 code-review，所有发现交一个实现者修；稀疏指针沟通，不重复。
+Source: `~/.cache/rope-upstream/mattpocock-skills@origin/main`。
+Verified by: 2026-08-22 git show。
+Stability: high，但技能仍开发中。
+Implication: Rope 串行前台、逐片审、沟通量三轴都相反；对应表当时缺此行，可作采收候选。
 
 ### matt-agent-brief-durability
 
-Fact: triage AGENT-BRIEF.md principles: durability over precision (no file
-paths/line numbers — they go stale; describe types/signatures/behavioral
-contracts), behavioral not procedural, complete acceptance criteria,
-explicit scope boundaries. to-tickets sizing rule: "each slice is sized to
-fit in a single fresh context window".
-Source: same clone.
-Implication: rope minimal briefs rely on file paths — acceptable because
-rope dispatches immediately, but slice sizing should adopt the
-context-window rule (see elephant leaves above).
+Fact: triage AGENT-BRIEF 强调耐久而非精确，不写易陈旧路径 / 行号，描述类型 / 签名 / 行为；行为而非步骤、完整验收、明确范围。to-tickets 要每片装进单全新窗口。
+Source: 同克隆。
+Implication: Rope 即时派发可用路径，但应采纳窗口大小规则，避免大叶子。
 
 ### anthropic-discourages-default-subagents
 
-Fact: Claude Code 2.1.219+ ships a hardcoded prompt for Opus 5: "Do not call
-the AgentTool unless the user requested it… Do not use workflows or
-deep-research unless the user requested it". Community analysis: routine
-delegation made output worse, incl. a self-audit running non-blind because
-the auditor agent couldn't be spawned.
-Source: r/ClaudeCode 1v6y5q2 (156 comments); anthropics/claude-code#80988
-Verified by: rdt read 2026-08-22
-Stability: medium (community-reported, binary-analyzed)
-Implication: delegation must be justified per task (context protection,
-blast radius, parallelism), not habitual — the vendor itself reached this
-conclusion for its flagship model.
+Fact: 当时社区分析报告 Claude Code 2.1.219+ 的 Opus 5 硬编码提示要求仅用户请求时用 AgentTool / workflow / deep-research；日常委派可能变差，含审计无法派独立审查导致非盲。
+Source: r/ClaudeCode 1v6y5q2（156 评论）；anthropics/claude-code#80988。
+Verified by: 2026-08-22 rdt 阅读。
+Stability: medium，社区报告与二进制分析，不是官方确认。
+Implication: 按上下文保护、影响范围、并行收益论证派发，不出于习惯。
 
 ### workflows-code-not-llm-for-control-flow
 
-Fact: Claude Code /workflows (shipped 2.1.147, since pulled) replaced the
-LLM orchestrator with a JS phase graph: "use code for what code is good at
-(control flow), and models for what models are good at (judgment inside
-each step)"; sub-agent outputs flow phase-to-phase without re-entering the
-orchestrator context ("token tax"). Community alternatives: agent teams,
-agentrelay.
-Source: r/ClaudeCode 1tkjy4u (273 comments)
-Verified by: rdt read 2026-08-22
-Stability: medium (feature pulled; principle widely echoed)
-Implication: rope-go's slice loop is half-deterministic already (Blocked-by
-dispatch graph); moving spawn/review/fix sequencing into code (pi SDK
-runner) removes parent-in-loop latency entirely — bigger architectural
-direction, not a skill tweak.
+Fact: 社区称 Claude Code /workflows（2.1.147 后撤回）用 JS 阶段图管控制流，模型只管每步判断；子输出直接下一阶段，避免重新进入父的 token 税。替代有 agent teams、agentrelay。
+Source: r/ClaudeCode 1tkjy4u（273 评论）。
+Verified by: 2026-08-22 rdt 阅读。
+Stability: medium，功能撤回，原则常见。
+Implication: 当时可考虑把半确定性的 Blocked-by 循环移代码 runner 省父延迟；是较大架构方向，不是小改。
 
 ### actual-slice-graph-admits-two-streams
 
-Fact: tasks.md Blocked-by graph was NOT a chain. Frontier at t0: S1, S2,
-S3, S7. Edges: S4/S5 ← S1,S2,S3; S6 ← S2,S3; S8 ← S7; S9 ← S7,S8.
-Critical path = the attachment stream S7(31.6m)→S8(27.1m)→S9(35.7m) ≈
-94m; the entire desk-frontend family S1–S6 (~90m) had zero edge into or
-out of the attachment stream. Serial go ran them strictly one-at-a-time.
-Verified by: tasks.md; leaf durations from session details.
+Fact: 图不是链。初始 S1/S2/S3/S7 就绪；S4/S5 依赖 S1/S2/S3，S6 依赖 S2/S3，S8 依赖 S7，S9 依赖 S7/S8。附件关键路径 S7 31.6 → S8 27.1 → S9 35.7，约 94 分钟；前端 S1–S6 约 90 分钟，与附件无边。go 却全串行。
+Verified by: tasks 与叶子时长。
 
 ### mode-question-ordering-flaw
 
-Fact: rope-shape step 1 asks the dynamic-mode question BEFORE slicing
-(step 9), with no wave analysis — and guardrails forbid auto-detection by
-design. So the recommendation given was rule-consistent (serial default,
-dynamic opt-in) but information-free: the user was asked to choose
-parallelism before the graph that would justify it existed. Additionally
-this shape's cut violates dynamic's disjoint-owned-files discipline (S1
-owns types.ts/webuiApi.ts which S3 display types also touch), so going
-dynamic would have required re-cutting with a contract slice — the serial
-recommendation was consistent with the current cut, but the cut itself
-was never re-examined for parallelism.
+Fact: 当时 shape 第 1 步在第 9 步切图前问模式，没有波次分析且禁止自动判断；推荐串行符合规则，却没有信息依据。S1 与 S3 又重叠 types.ts/webuiApi.ts，不符合当时动态不相交要求，需先契约重切。串行适合现有切法，但从未反查切法是否支持并行。
 
 ### matt-code-review-two-axis
 
-Fact: implement-spec step 7's "/code-review" = Matt's engineering skill
-`code-review`: two axes (Standards = repo-documented standards + fixed
-Fowler smell baseline; Spec = faithfulness to originating issue/spec),
-both run as parallel sub-agents over `git diff <fixed>...HEAD`, aggregated
-side by side without reranking, once at the end. Notably the local skill
-`code-review` in ~/.agents/skills is this exact skill (already harvested).
-Weaknesses vs rope-reviewer: no architecture-continuity/constraint audit,
-no verdict bookkeeping/fix-round budget/escalation stop; generic smell
-baseline vs rope's ADR-grounded checks. Strength: the Spec axis runs
-against the ASSEMBLED diff — the only review that can catch cross-slice
-semantic conflicts (this session's admin-403 class) and spec-observable
-gaps (missing real profiles), which 16 per-slice reviews structurally
-could not see.
+Fact: implement-spec 结束 code-review 是 Standards（仓库规范 + Fowler 异味）与 Spec（忠实 issue/spec）两轴，同固定基线 diff 并行代理、并列汇总不重排，只结束时一次。本地 `~/.agents/skills/code-review` 已是同技能。缺架构连续性、结论记账、修复预算 / 升级；优势是组装 diff 能抓跨片语义冲突、真实 profile 缺口，16 次逐片审结构上看不到。
 
 ### matt-timeline-first-party-numbers
 
-Fact: Matt Pocock's own tweets on /implement-spec (2026-08-21):
-intro — "Takes in a spec and tickets… Implements all the tickets in
-subagents with maximum concurrency… Reviews the final code against the
-spec… Should be able to smash out huge chunks of work autonomously with
-minimal supervision" (2,252 likes); follow-up — "This just ran for 1hr 20,
-built 6 tickets, 120K context in the main orchestrator (with some
-inefficiencies I can cull). Overall, I like it." Comparable scale to our
-session: 6 tickets / 1h20 max-concurrency vs 9 slices / 7.5h serial.
-Also: 2026-08-18 "bitter lesson-ing myself… Instead of hand-rolling a
-deterministic loop… I'll just get an agent to delegate to subagents.
-Probably more expensive, less reliable, but may have emergent benefits"
-(he consciously chose LLM delegation over deterministic loop, tradeoff
-acknowledged); 2026-08-17 ratchet tweet ("every time you intervene and
-correct your agent, think about how to eliminate it entirely… 1. better
-architecture/data structures…"); 2026-08-18 "grep hygiene" (agent greps
-should return code, not sludge of specs/plans/research docs — applies to
-`.rope/` doc layering); 2026-08-14 /code-review ratchet via
-CODING_STANDARDS.md.
-Source: twitter user-posts mattpocockuk (auth: Chrome Profile 1 cookie,
-8118 proxy); search endpoint 404 — timeline mining only.
-Verified by: fetch 2026-08-22
-Stability: high (first-party)
+Fact: Matt 2026-08-21 介绍 implement-spec：最大并发执行全部工单、最终对规范审、少监督自主交付，获 2,252 赞；后续报告 1 小时 20 分钟完成 6 工单、主上下文 120K，有待削减开销。与此处 9 片 / 7.5 小时是相近规模，但非受控比较。另有 08-18 明知可能更贵 / 不稳，仍选 LLM 委派代替手写确定性循环；08-17 人每次纠偏应改架构 / 数据结构消除再犯；08-18 grep 应返回代码而非规范计划研究噪声；08-14 用 CODING_STANDARDS.md 持续改 code-review。
+Source: mattpocockuk 时间线，现场 Chrome Profile 1 cookie 与 8118 代理；搜索端点 404，只挖时间线。
+Verified by: 2026-08-22 抓取。
+Stability: high，一手内容。
 
-## Round 2 — speed/accuracy conclusions
+<a id="round-2--speedaccuracy-conclusions"></a>
+## 第二轮：速度与准确性结论
 
-1. Speed is a **pipeline-shape choice**, not a subagent tax: this issue ran
-   `mode: serial` + `review: per-slice` when its slice graph (disjoint
-   frontend/backend clusters) admitted fan-out, and rope already ships both
-   `dynamic` and `batch` modes. Estimated same-gates wall time with
-   dynamic+batch+background: ~2.5–3 h.
-2. The "single-thread 1 h" comparison is real for greenfield features —
-   but it reproduces fixture-green-broken-product faster. The fix is not
-   fewer gates; it is (a) parallel gates, (b) gates pointed at the real
-   environment (Round 1 P0).
-3. Accuracy: stop framing as "agent drifted from my plan". Execution
-   fidelity was 100%. Add the two missing shape questions (environment
-   inventory; cross-module decision conflict scan) and the failure class
-   disappears at the same cost as one grill round.
+1. 速度是流程形态选择，不必然是子代理税。该图可并行，却 serial + per-slice；当时已有 dynamic / batch。估计相同检查、后台动态批审约 2.5–3 小时，属于估计。
+2. 新功能单线程一小时可行，却也可能更快重现 fixture 绿、产品坏；应并行检查并指向真实环境，不只删检查。
+3. 执行完全忠实，问题不是漂移；shape 增环境盘点与跨模块决策冲突扫描，可用一轮 grill 成本避免此类缺陷。
 
-## Non-changes (validated by this session)
+<a id="non-changes-validated-by-this-session"></a>
+## 此会话支持保留的部分
 
-- Parent Orchestrator context protection held: after 11:38 compaction the
-  fix round operated entirely from issue-package state — the
-  brief/artifact design survived a 19-record context loss without confusion.
-- Soft degradation (S7 parent self-implement with evidence + reviewer
-  after) worked, but it violates "parent does not implement" — keep it as
-  bounded escape hatch with its existing recording rules rather than
-  formalize it further.
+- 父上下文保护有效：11:38 压缩丢 19 条记录后，修复仍只凭 issue 包完成，无混乱。
+- S7 带证据父自实现并另审的软降级现场有效，但违反父不实现；当时建议保留窄出口与记录，不扩展正式化。此为历史处置，后续 ADR 已收紧父写入边界。

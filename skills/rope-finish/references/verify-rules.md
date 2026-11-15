@@ -1,71 +1,62 @@
-# Rope Verify Rules
+<a id="rope-verify-rules"></a>
+# Rope Verify 验证规则
 
-The verify stage runs inside `rope-finish` (Stage 1). "Verify" below means
-that stage; its verdict gates finish's closeout.
+verify 在 `rope-finish` 第一阶段执行；下文的 verify 均指该阶段，其结论决定能否进入收尾。
 
-## Verdict
+<a id="verdict"></a>
+## 结论
 
-- `PASS` — paperwork complete: review recorded, E2E terminal, tree clean,
-  architecture inheritance and guard/exception records complete.
-  Says nothing about product truth — that claim lives in the end-of-issue
-  review plus the E2E acceptance stage's evidence.
-- `CHANGES_REQUESTED` — paperwork gaps for go's fix loop to close
-  (unrecorded review, drifted E2E, missing commits).
-- `BLOCKED` — a human decision is required (real-environment failure the
-  reviewer logged, ambiguous PRD conflict, missing credential). List the
-  blockers; do not fabricate a verdict.
+- `PASS`：文书完整，审查已记、E2E 终态、工作树干净、架构继承和检查 / 例外记录齐全。不宣称产品真实正确；产品判断来自结束审查及 E2E 证据。
+- `CHANGES_REQUESTED`：需 go 修复循环补齐的文书缺口，如漏记审查、E2E 漂移、缺提交。
+- `BLOCKED`：需要人工决定，如审查记录的真实环境失败、PRD 冲突不明、缺凭据。列出阻塞，不编造结论。
 
-## Finding severity
+<a id="finding-severity"></a>
+## 发现严重度
 
-- `must-fix` — blocks finish: missing review record, drifted E2E, dirty tree.
-- `nice-to-fix` — recorded, does not block.
+- `must-fix`：阻塞 finish，例如缺审查记录、E2E 漂移、脏树。
+- `nice-to-fix`：记录，但不阻塞。
 
-## Document fixes (verify may edit issue docs only)
+<a id="document-fixes-verify-may-edit-issue-docs-only"></a>
+## 文档修正（verify 只可改 issue 文档）
 
-`tasks.md` verdict/status fields left blank, `e2e.md` Result fields left
-blank, stale Open Questions — fill only from existing verified evidence,
-never from completion claims alone; record under Document Fixes
-Applied with file + change + reason. Never touch code.
+对于 tasks.md 空结论 / 状态、e2e.md 空 Result、过时 Open Questions，只依据已有核验证据补齐，不能只凭完成声称。在 Document Fixes Applied 记录文件、变化和理由。绝不改代码。
 
-## Drift
+<a id="drift"></a>
+## 漂移
 
-The failure mode verify exists to catch: an `agent_failed` or `pending` E2E
-item drifting into a completed slice with no re-verification. Hunt drift on
-every such item. `agent_passed` items are evidence-checked (recorded command), never
-re-run.
+verify 要抓的失败模式：`agent_failed` 或 `pending` E2E 未经复验，却随切片被算完成。逐项查找。`agent_passed` 只核验证据和已记录命令，不重跑。
 
-## `verify.md` format
+<a id="verifymd-format"></a>
+## `verify.md` 格式
 
-Append a round per run; never overwrite prior rounds.
+每次运行追加一轮，不覆盖旧轮次。保留模板字段名，内容用中文：
 
 ```md
-# <Issue Title> Verify
+# <issue 标题> Verify
 
-## Round N — <date>
+## Round N — <日期>
 
 ### Verdict
 PASS | CHANGES_REQUESTED | BLOCKED
 
 ### Checks
-- Review recorded: <verdict line + identity + fix rounds, or finding>
-- E2E terminal / drift: <status sweep result>
-- Commits / tree: <result>
-- Architecture inheritance: <package mapping + actual source-reading records + pre-edit landing evidence pointers; justified none where applicable>
-- Architecture guards / exceptions: <coverage + command/output/commit; per-entry delta reasons + confirmations + reviewer outcome; or recorded absence/manual review>
-- Integration reconciliation (when applicable): <target/candidate commits + decisions + pre-landing guard/review records>
-- Architecture docs: <outcome routing>
-- Matrix evidence: <spot-check pointers>
+- Review recorded: <结论行、身份、修复轮次，或发现>
+- E2E terminal / drift: <状态扫描结果>
+- Commits / tree: <结果>
+- Architecture inheritance: <包映射、实际来源阅读记录、编辑前落点证据；适用时有理由的 none>
+- Architecture guards / exceptions: <覆盖、命令 / 输出 / 提交、逐项差异理由 / 确认 / 审查结果；或缺失及人工审查>
+- Integration reconciliation (when applicable): <目标 / 候选提交、决策、落地前检查 / 审查记录>
+- Architecture docs: <结果归属>
+- Matrix evidence: <抽查引用>
 
 ### Findings
-- [must-fix|nice-to-fix] <finding> — evidence: <location>
+- [must-fix|nice-to-fix] <发现> — evidence: <位置>
 
 ### Document Fixes Applied
-- <file>: <change> — reason: <why>
+- <文件>: <变化> — reason: <原因>
 ```
 
-## Fix loop
+<a id="fix-loop"></a>
+## 修复循环
 
-`CHANGES_REQUESTED` → fix brief → parent spawns implementer leaf → re-verify
-appends Round N+1 scoped to the must-fix items. A round that leaves the
-must-fix set unchanged, or a design/requirements defect → Human Escalation
-Stop.
+`CHANGES_REQUESTED` → 修复简报 → 父编排器派实现叶子 → 仅针对 must-fix 追加 Round N+1。must-fix 集合不变，或发现设计 / 需求缺陷，触发人工升级停止。

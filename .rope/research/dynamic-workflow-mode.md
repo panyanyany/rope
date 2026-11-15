@@ -1,191 +1,103 @@
-# Dynamic Workflow Mode (Parallel multi-writer, opt-in)
+<a id="dynamic-workflow-mode-parallel-multi-writer-opt-in"></a>
+# 动态工作流模式（并行多写者，显式开启）
 
-## Question
+历史 grill 研究：本模式后续已演进并随动态内核退役；下文保留当时证据、确认选择和未决问题，不是当前操作规则。
 
-Can Rope add a **manually toggled "dynamic workflow mode"** that, when on,
-shapes an issue into a **contract-first + disjoint file-ownership** slice set
-and then concurrently spawns cheap subagents to implement the disjoint slices
-— so a feature is "planned into small file-owning slices, built in parallel,
-wired together in one light integration slice"? How does this square with the
-existing single-window / no-nested-spawn / Cognition-warning guidance?
+<a id="question"></a>
+## 问题
 
-## Verified Facts
+Rope 能否增加**手动切换的动态工作流模式**：开启后先按契约与不相交文件归属切片，再用廉价子代理并行实现，最后轻集成接线？如何与单窗口、禁止嵌套派生、Cognition 警告相容？
+
+<a id="verified-facts"></a>
+## 已核验事实
 
 ### external-harness-parallel-slices
 
-Fact: The pattern the user describes — **contract-first (freeze shared
-interface) → split into disjoint file-owner slices → per-agent isolated git
-worktree → parallel subagents → merge + review** — is now mainstream, framed
-as "table stakes" for agent CLIs in 2026. Consistent across Claude Code, Cursor
-3, Roo Code, Cline, OpenHands, Codex, and orchestrator tools.
-- Claude Code: `Workflow` tool (`parallel()`/`pipeline()`/`agent()`), Agent
-  Teams (lead + teammates sharing a task list + mailbox), `--worktree` flag.
-  Caveat: Agent Teams currently run **one model for all agents** (Opus 4.6);
-  role-based model selection is a community request, not yet shipped.
-- Cursor 3: built-in `/worktree`, up to 8 parallel agents on isolated worktrees.
-- Roo Code: Orchestrator/Boomerang mode + **per-mode "Sticky Models"** and
-  `file_access` read/write globs — closest native match to "cheap writer +
-  per-role model + file ownership at once." (Unverified rumor of mid-2026
-  shutdown; do not treat as fact.)
-- Cline: read-only parallel subagents + a web Kanban board for parallel agents
-  with isolated worktrees and auto-commits.
-- OpenHands: service-based delegation, parallel refactors.
-- OpenAI Codex: cloud-sandbox parallel tasks; concurrency without
-  orchestration (tasks do not coordinate).
-Source: web research (multiple provider summaries), Aug 2026
-Verified by: web_search synthesis
-Stability: medium (fast-moving product surface)
-Implication: The "plan into disjoint slices then run in parallel" idea is
-**validated and well-supported externally**; it is not experimental.
+Fact: 研究当时将“先冻结共享契约 → 不相交文件片 → 每代理隔离 worktree → 并行 → 合并审查”归为 2026 代理 CLI 常见模式，见 Claude Code、Cursor 3、Roo Code、Cline、OpenHands、Codex、编排工具。
+
+- Claude Code：`Workflow` 的 `parallel()` / `pipeline()` / `agent()`，共享任务表 / 邮箱的 Agent Teams，`--worktree`。限制：当时 Agent Teams 全员同模型 Opus 4.6，角色选模型只是社区需求。
+- Cursor 3：内置 `/worktree`，最多 8 隔离并行代理。
+- Roo Code：Orchestrator/Boomerang、逐模式 Sticky Models、`file_access` 读写 glob，接近廉价写者 / 角色模型 / 文件归属组合。2026 年中停服传闻未核验，不能当事实。
+- Cline：只读并行子代理及 Web 看板，隔离 worktree、自动提交。
+- OpenHands：服务式派发、并行重构。
+- Codex：云沙箱并行任务，任务间不协调，是并发而非编排。
+
+Source: 2026-08 网络研究，多个供应方摘要。
+Verified by: 网络搜索综合。
+Stability: medium，产品变化快。
+Implication: 当时研究认为不相交片并行有外部支持，不属纯实验；证据强度仍限于上述摘要。
 
 ### dedicated-slice-planner-tools
 
-Fact: Several tools exist specifically to be the "planning brain" that cuts a
-task into disjoint file boundaries before agents run:
-- **batuta-mcp** (MCP server): decomposes a brain dump into 2–5 plans whose
-  `fileBoundaries` do not overlap, auto-corrects overlap once, scaffolds a
-  `git worktree` per plan with a ready-to-paste prompt.
-- **parallel-implementation skill**: "Iron Law" — a slice plan is valid only
-  when every slice has independent inputs/outputs; two slices sharing a file,
-  a shared data structure, or shared mid-execution state are **not** parallel
-  (merge them or serialize).
-- **Claim Plane** (arXiv preprint 2607.21909): formal "pre-write admission";
-  agents declare versioned ChangeIntents; same-file parallelism only within
-  declared disjoint regions; fails closed on ambiguous overlap.
-Source: web research, Aug 2026
-Verified by: web_search synthesis
-Stability: medium
-Implication: The "disjoint file ownership" rule is the load-bearing guard rail
-for true parallel multi-writer. Rope's `rope-shape` already has the analog
-(`Blocked by` / `Scope` / frontier): the dynamic mode makes it **mandatory**
-rather than advisory.
+Fact: 有专门在执行前按不相交文件边界切任务的工具：
+
+- **batuta-mcp：**将想法拆为 2–5 个 `fileBoundaries` 不重叠计划，自动纠正一次，逐计划建 worktree 和可粘贴提示。
+- **parallel-implementation 技能：**要求各片输入 / 输出独立，共文件、数据结构或运行中共享状态则合并 / 串行。
+- **Claim Plane：**arXiv 2607.21909，正式化写前准入；声明版本化 ChangeIntents，同文件仅声明过的不相交区域可并行，歧义时拒绝。
+
+Source: 2026-08 网络研究。
+Verified by: 搜索综合。
+Stability: medium。
+Implication: 当时以文件不相交为安全护栏，类比 shape 已有 Blocked by / Scope / 前沿，并计划在动态模式强制。后续 worktree 边分类已演进，以现行规则为准。
 
 ### per-role-model-support-varies
 
-Fact: "Each parallel writer uses a different cheap model" is **unevenly
-supported**:
-- Roo Code: native per-mode model (Sticky Models) — best native fit.
-- multi-agent-orchestrator-skill: can pin a model per worker via CLI template.
-- Claude Code Agent Teams: NOT supported (all agents same model currently).
-- pi / Rope: model routing is via `rope-harness-presets` role templates
-  (`rope-implementer` / `rope-reviewer` / `rope-explore` /
-  `rope-verify-inspector`); parent may override per spawn. All roles here are
-  currently configured to `deepseek-v4-flash`.
-Source: web research + local Rope harness-presets skill, Aug 2026
-Verified by: web_search + repo read
-Stability: medium
-Implication: Rope already routes models through presets; the dynamic mode
-should **reuse existing presets** (per user decision) rather than introduce a
-new model mechanism. No new strong-model requirement.
+Fact: 各并行写者分配不同廉价模型的支持不均：Roo 原生逐模式；multi-agent-orchestrator-skill 可用 CLI 模板固定；当时 Claude Code Agent Teams 不支持。pi / Rope 由角色模板 `rope-implementer` / `rope-reviewer` / `rope-explore` / 当时的 `rope-verify-inspector` 路由，父可逐派覆盖；现场全部配 `deepseek-v4-flash`。
+Source: 2026-08 网络与本地 harness-presets。
+Verified by: 搜索与仓库阅读。
+Stability: medium。
+Implication: 用户决定复用已有预设，不加模型机制或强模型要求。
 
 ### anthropic-cognition-warning-still-holds
 
-Fact: Cognition argues parallel multi-writer coding is fragile (context not
-fully shared; actions carry implicit decisions that diverge). Anthropic notes
-multi-agent suits breadth-first research better than coding, and coding agents
-are not great at real-time multi-agent coordination. Parallel is safest when
-tasks are **independently verifiable**; team size 3–5 is optimal; >5 raises
-conflict probability. "**The interface is the contract**": any shared boundary
-must be governed by an explicit contract neither agent modifies unilaterally.
-Source: cognition "don't build multi-agents"; Anthropic engineering posts
-(see also single-window-go-orchestration.md)
-Verified by: prior research capture + web
-Stability: high
-Implication: The dynamic mode is **not** a blanket licence to parallelize
-everything. Its safety contract is exactly: contract slice first (serial),
-disjoint file ownership, independent verification per slice, review/verify
-gates retained. Slices that share a core file stay serial.
+Fact: Cognition 警告多写者上下文不完整共享、动作隐含决策而分歧；Anthropic 指广度调研更适合多代理，编码实时协调较弱。原研究将独立验证、3–5 人与显式共享接口契约作为保守指导；其中人数表述属于历史研究推断，不能替代后续关于“无通用最佳数量”的核验。
+Source: Cognition “Don't Build Multi-Agents”、Anthropic 工程文章，另见 `single-window-go-orchestration.md`。
+Verified by: 先前研究与网络。
+Stability: high。
+Implication: 不无条件并行；当时安全方案为契约先串行、不相交归属、逐片验证、保留 review/verify，共核心文件仍串行。
 
 ### relation-to-existing-single-window-research
 
-Fact: `single-window-go-orchestration.md` crystallized direction 3 (no nested
-subagent spawning as policy), direction 13 (W1 parent-orchestrator skill), and
-a "Recommended Working Shape" of **phase-separated single implementer under a
-planner/judge** — explicitly "not multi-agent free-for-all." The dynamic mode
-is a **new opt-in variant on top of W1**: it allows parallel implementer leaves
-for **disjoint-scope** slices, while keeping the parent as the only orchestrator
-and review/verify as parent-owned gates.
-Source: `.rope/research/single-window-go-orchestration.md`
-Verified by: repo read
-Stability: high
-Implication: Dynamic mode must preserve: parent is the only spawner; leaves do
-not spawn leaves; issue-level verify stays parent-owned and read-only; per-slice
-review stays a parent-dispatched gate (not owned by the implementer).
+Fact: `single-window-go-orchestration.md` 已确认方向 3 禁止嵌套派生、方向 13 W1 父编排器，以及计划 / 裁判下分阶段单实现者的推荐形态。动态模式是 W1 上显式开启的变体：不相交范围可并行实现，父仍唯一编排，拥有 review/verify。
+Source: `.rope/research/single-window-go-orchestration.md`。
+Verified by: 仓库阅读。
+Stability: high。
+Implication: 保留父唯一派生、叶子不派叶子、issue verify 父负责且只读、逐片审查由父派而非实现者自定。这是当时方案，不恢复已移除的逐片审查。
 
 ### pi-dynamic-workflows-extension
 
-Fact: `pi-dynamic-workflows` (prototype) registers a `workflow` tool that runs
-dynamic JS in a Node vm sandbox, spawning in-memory Pi subagent sessions via
-`agent()` / `parallel()` / `pipeline()`. It has **no** worktree isolation, no
-concurrency cap, no approval nodes, no retry/failure policy, no persistence, and
-is marked prototype.
-Source: web fetch of the repo, Aug 2026
-Verified by: fetch_content
-Stability: low (prototype)
-Implication: Adopting it as the engine for Rope's slice loop would fight Rope's
-review/commit/verify gates and lack worktree isolation. User decision: **do not**
-use it as the engine; keep Rope-native orchestration. It may still be used
-manually for one-off read-only fan-out (research / multi-view review / frontend
-prototype variants), which does not require any Rope change.
+Fact: 原型 `pi-dynamic-workflows` 注册 `workflow` 工具，在 Node vm 沙箱以 `agent()` / `parallel()` / `pipeline()` 派内存 Pi 会话；无 worktree 隔离、并发上限、批准节点、重试 / 失败策略、持久化，明确标原型。
+Source: 2026-08 仓库抓取。
+Verified by: 内容抓取。
+Stability: low。
+Implication: 用户决定不作切片引擎，缺隔离且不适合 Rope 审查 / 提交 / 验证；仍可手动用于只读调研、多视角审查、前端原型候选，无需改 Rope。
 
-## Crystallized Decisions (grill, current session)
+<a id="crystallized-decisions-grill-current-session"></a>
+## 当时 grill 已确认决策
 
-These are the user's product decisions, not yet shaped into an issue.
+以下为当时用户产品决策，尚未 shape：
 
-1. **This is a Rope change (scope flip).** Earlier "zero-change, use
-   pi-dynamic-workflows manually" was replaced by: **modify Rope** to add a
-   manually toggled dynamic workflow mode. Deferred / still allowed: manual
-   use of pi-dynamic-workflows for one-off read-only fan-out, no Rope change.
-2. **Manual toggle — asked at shape time.** At the start of `rope-shape`, the
-   skill asks the user whether this issue should use dynamic mode. If yes,
-   shape enforces the three-piece discipline and writes `mode: dynamic` into
-   the issue package; go reads the field and fans out disjoint slices. If no,
-   normal serial behavior with the existing optional parallel frontier.
-   `mode` is a durable issue-package field (artifacts are the bus), not a
-   chat-time remark at go.
-3. **Slice modeling — mandatory "three-piece" discipline at shape:** (a) a
-   **contract slice** that only defines interfaces / data structures / call
-   boundaries, serial and must be first; (b) implementation slices cut by
-   **disjoint file ownership** (a core file touched by multiple slices is a
-   shape defect, not a go problem); (c) a **per-slice size cap** (avoid
-   7000-line slices). Slice health becomes a rule, not a habit.
-4. **go behavior — parallelize only non-overlapping slices, keep gates.**
-   When dynamic mode is on, rope-go fans out disjoint implementation slices to
-   concurrent cheap implementer leaves; each slice still passes a review gate;
-   a light integration slice (serial) wires the module slices together and
-   verifies contract alignment; issue-level verify remains parent-owned and
-   read-only. ADR 0001 (implement/accept separation) is preserved.
-5. **Model routing — reuse existing harness presets.** No new strong-model
-   requirement and no new model mechanism. Dynamic-mode workers are spawned via
-   the existing `rope-harness-presets` role templates (currently all
-   `deepseek-v4-flash`). Parent may override per spawn when risk warrants.
-6. **Keep no-nested-spawn and parent-only-orchestration.** Parent is the only
-   spawner; a parallel implementer leaf must not spawn another leaf. This
-   matches research direction 3 and pi-subagents' hard limit.
-7. **Architecture impact: required.** Touches `rope-shape` (slice discipline),
-   `rope-go` + `execution-rules.md` (dynamic mode toggle + parallel dispatch),
-   `rope-harness-presets` (worker pool reuse, likely no schema change), and
-   `single-window-go-orchestration.md` (extend W1 direction), plus a new
-   `CONTEXT.md` term and likely an ADR for the parallel-orchestration decision.
+1. **改 Rope：**替代此前零改动、手动用原型的选择，增加手动动态模式；手动只读派发仍允许且不需 Rope 改动。
+2. **shape 开始问手动开关：**是则强制三件套、写 `mode: dynamic`，go 读字段派不相交片；否则常规串行与可选前沿并行。mode 是持久包字段，不只聊天备注。
+3. **shape 三件套：**首片串行契约，仅接口 / 数据结构 / 调用边界；实现按不相交文件归属切，共核心文件属 shape 缺陷；逐片大小上限，避免 7,000 行大包。
+4. **go 保留检查：**廉价实现者并行不相交片，每片审查；轻串行集成片接线验契约；issue verify 父负责只读，保留 ADR 0001 实现 / 验收分离。
+5. **复用模型预设：**不加模型机制 / 强模型要求，当时均 `deepseek-v4-flash`，父按风险可覆盖。
+6. **不嵌套：**父唯一派生，叶子不派叶子，符合方向 3 与 pi-subagents 限制。
+7. **架构影响 required：**触及 shape、go / execution-rules、harness-presets（可能无 schema 改动）、单窗口研究 W1，以及 CONTEXT 新术语，可能写并行编排 ADR。
 
-## Open Questions (for shape)
+<a id="open-questions-for-shape"></a>
+## 当时留给 shape 的问题
 
-- Exact per-slice size cap (lines / files) and how it is enforced (hard rule vs
-  review warning).
-- Pipeline detail: does the contract slice carry a deterministic gate (types
-  compile / schema lint) that must pass before fan-out starts?
-- Where the `mode` field lives (prd.md frontmatter vs tasks.md) and its exact
-  schema.
-- Whether the integration slice needs its own review gate or folds into
-  issue-level verify.
-- Whether per-slice review stays a strong-model gate or thins to deterministic
-  gates + cheap review (deferred; default keep review gate).
+- 逐片大小上限的行数 / 文件数，硬规则还是审查警告。
+- 契约片是否必须过类型 / schema 等确定性检查才并行。
+- mode 位于 prd frontmatter 还是 tasks，准确 schema。
+- 集成片单独审查还是合入 issue verify。
+- 逐片审查保留强模型，还是确定性检查 + 廉价审查；当时延期，默认保留。
 
-## Sources
+<a id="sources"></a>
+## 来源
 
-- External harness research (web, Aug 2026): Claude Code Workflow/Agent Teams/
-  worktrees, Cursor 3, Roo Code, Cline, OpenHands, Codex, batuta-mcp,
-  parallel-implementation skill, Claim Plane, multi-agent-orchestrator-skill.
-- Cognition "Don't Build Multi-Agents"; Anthropic engineering posts.
-- pi-dynamic-workflows repo (fetch_content).
-- Local Rope: `.rope/CONTEXT.md`, `.rope/adr/0001`, `.rope/research/single-window-go-orchestration.md`, `skills/rope-go`, `skills/rope-shape`, `skills/rope-harness-presets`.
+- 2026-08 外部宿主研究：Claude Code Workflow/Agent Teams/worktree、Cursor 3、Roo Code、Cline、OpenHands、Codex、batuta-mcp、parallel-implementation、Claim Plane、multi-agent-orchestrator-skill。
+- Cognition “Don't Build Multi-Agents”；Anthropic 工程文章。
+- pi-dynamic-workflows 仓库抓取。
+- 本地 `.rope/CONTEXT.md`、`.rope/adr/0001`、`.rope/research/single-window-go-orchestration.md`、`skills/rope-go`、`skills/rope-shape`、`skills/rope-harness-presets`。

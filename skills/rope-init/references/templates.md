@@ -1,21 +1,20 @@
-# Rope Init Templates
+<a id="rope-init-templates"></a>
+# Rope Init 初始化模板
 
 ## `.rope/GLOSSARY.md`
 
 ```md
 # Glossary
 
-Project-specific domain language for this repository.
-This is the single Rope vocabulary; keep definitions short and put
-implementation contracts in `.rope/specs/`, not here.
+本仓库特有的领域语言。这里只保留唯一的一套 Rope 术语及简短定义；实现契约写入 `.rope/specs/`。
 
 ## Language
 
-<!-- Add resolved project terms here.
+<!-- 在这里添加已确定项目术语。
 
-**Term**:
-One or two sentence definition.
-_Avoid_: ambiguous synonym
+**<术语>**:
+用一两句话定义。
+_Avoid_: <歧义同义词>
 -->
 ```
 
@@ -24,8 +23,7 @@ _Avoid_: ambiguous synonym
 ```md
 # Routes
 
-Navigation map for agents working in this repository. Keep this concise and
-evidence-based.
+供代理在本仓库定位的导航图，保持精简且有证据。
 
 ## Repo Shape
 
@@ -35,16 +33,16 @@ evidence-based.
 
 ## Common Work Routes
 
-### <Area or workflow>
+### <区域或流程>
 
 Read first:
-- `<path>`
+- `<路径>`
 
 Verify with:
-- `<command>`
+- `<命令>`
 
 Notes:
-- <stable navigation note>
+- <稳定导航说明>
 ```
 
 ## `.rope/specs/index.md`
@@ -52,33 +50,33 @@ Notes:
 ```md
 # Rope Specs
 
-Stable implementation contracts and project coding rules.
+稳定实现契约和项目编码规则。
 
 ## Areas
 
-- `guides/` - general thinking and verification guides.
-- `<area>/` - area-specific implementation contracts.
+- `guides/` - 通用思考与验证指南。
+- `<area>/` - 分领域实现契约。
 
 ## Usage
 
-Before changing code, read the specs relevant to the target area. After fixing a
-bug or discovering a reusable contract, update the smallest relevant spec.
+改代码前读目标区域相关规范。修复缺陷或发现可复用契约后，更新最小相关规范。
 ```
 
-## Agent Doc Block
+<a id="agent-doc-block"></a>
+## 代理指令区块
 
 ```md
 ## Rope
 
-This repository uses `.rope/` as a local agent knowledge layer.
+本仓库使用 `.rope/` 作为本地代理知识层。
 
-Before shaping or implementing work:
-- Read `.rope/GLOSSARY.md` for project language (legacy `.rope/CONTEXT.md` until rope-clear migrates it).
-- Read `.rope/routes.md` for navigation.
-- Read relevant `.rope/specs/` before changing code.
-- Read relevant `.rope/adr/` before changing architecture.
-- Read referenced `.rope/research/` for external or platform facts.
+开展 shape 或实现前：
+- 读取 `.rope/GLOSSARY.md` 了解项目语言；rope-clear 迁移前读取旧 `.rope/CONTEXT.md`。
+- 读取 `.rope/routes.md` 了解导航。
+- 改代码前读取相关 `.rope/specs/`。
+- 改架构前读取相关 `.rope/adr/`。
+- 外部或平台事实读取引用的 `.rope/research/`。
 - 需要代码上下文时，先读相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/`，不要只靠文件名或 grep 结果推断架构。
-- 完成代码变更后，若沉淀出可复用架构规则、adapter contract、配置契约、部署约束或踩坑修复，更新最小相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/` 后再收尾。
-- Track local work under `.rope/issues/` unless the user says otherwise.
+- 完成代码变更后，若沉淀出可复用架构规则、adapter 契约、配置契约、部署约束或踩坑修复，更新最小相关 `.rope/specs/` / `.rope/adr/` / `.rope/research/` 后再收尾。
+- 除非用户另有要求，本地工作记在 `.rope/issues/`。
 ```

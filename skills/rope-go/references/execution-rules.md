@@ -1,521 +1,276 @@
-# Rope Go Execution Rules
+<a id="rope-go-execution-rules"></a>
+# Rope Go 执行规则
 
-## Parent / Leaf Contract
+<a id="parent--leaf-contract"></a>
+## 父编排器与叶子契约
 
-The go session is the **Parent Orchestrator**. Leaf workers:
+go 会话就是**父编排器**，叶子分工如下：
 
-| Role | Typical preset | Job |
+| 角色 | 常用预设 | 工作 |
 | --- | --- | --- |
-| implementer | `rope-implementer` | TDD, implement one slice unit, commit, return summary + paths |
-| reviewer | `rope-reviewer` | End-of-issue behavior acceptance: code-only Matrix walk over the assembled diff + high-risk boundaries; verdict owner |
-| scanner | `rope-explore` + Standards brief | End-of-issue Standards fast-scan: lint/typecheck gate, conventions, smell baseline; never runs the product |
-| explore | `rope-explore` | Investigation and baseline/integration checks per the brief; no product/test edits |
+| implementer（实现者） | `rope-implementer` | TDD，实现一个切片单元、提交，返回摘要和路径 |
+| reviewer（审查者） | `rope-reviewer` | issue 结束行为验收：只读代码，依据组装 diff 走查矩阵及高风险边界；拥有结论 |
+| scanner（扫描器） | `rope-explore` + 规范简报 | 快扫规范、lint/typecheck、约定和异味基线；不运行产品 |
+| explore（探索者） | `rope-explore` | 按简报调查及执行基线 / 集成检查；不改产品 / 测试 |
 
-Rules:
+规则：
 
-- Parent spawns leaves with **self-contained briefs**; leaves return
-  **summary + artifact paths/status** only.
-- **No nested spawn.** Parent owns all dispatch.
-- Investigation and validation follow the shared
-  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
-  A new symptom can be dispatched before its cause is known; the parent
-  decides repair scope from findings instead of doing the full diagnosis.
-- **Parent writes no product/test code:** during go and E2E,
-  every code change rides an implementer brief — including "small" fixes
-  mid-E2E. Parent self-editing is a contract violation; the correction
-  path is always rewrite brief + re-dispatch. A dispatch that failed or
-  returned empty is handled as a dispatch problem (re-brief), never by
-  the parent taking over the leaf's job.
-- Correction = rewrite brief + re-spawn implementer. No progress — the
-  same failure signature returning from a fresh leaf → Human Escalation
-  Stop. Design/contract defect → immediate stop. A fix round never pauses
-  dispatch of other ready slices.
-- **Concurrency default**: every ready slice gets a background leaf; a
-  single parallel pair still runs in parallel; any serialization needs a
-  recorded reason in `tasks.md`.
+- 父编排器用**自包含简报**派生叶子；叶子只返回**摘要、产物路径及状态**。
+- **禁止嵌套派生。**全部派发由父编排器负责。
+- 调查和验证遵守共享[交接契约](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff)。新症状无需先查明原因才派发；父编排器依据调查决定修复范围，不自行完成全套诊断。
+- **父编排器不写产品 / 测试代码：**go 和 E2E 的所有代码修改，包括 E2E 中的“小修”，都走实现者简报。自行编辑违反契约；纠偏始终是改简报再派发。失败或空返回按派发问题处理，不能由父编排器接手叶子工作。
+- 纠偏 = 改简报 + 重派实现者。全新叶子仍返回相同失败特征，说明无进展，触发人工升级停止；设计 / 契约缺陷立即停止。修复不暂停其他就绪切片派发。
+- **默认并发：**每个就绪切片都派后台叶子；即使只有一对也并行。任何串行安排都须在 `tasks.md` 记录理由。
 
-## Modes
+<a id="modes"></a>
+## 模式
 
-- **Worktree mode** — host can isolate a spawn in a git worktree (pi
-  subagents: `isolation: "worktree"`; Claude Code: agent `--worktree`; a
-  hand-made worktree works too). Slice-ready: ready = seam-required blockers **merged**;
-  dispatch into a fresh worktree from the latest merged HEAD. Overlapping
-  slices may run concurrently — overlap surfaces in the merge queue.
-- **Shared mode** — waves; same-wave parallelism needs disjoint owned
-  files; parallel leaves must not commit simultaneously (index contention):
-  the parent collects commits serially in landing order, or leaves stop at
-  green + diff and the parent commits.
+- **Worktree 模式：**宿主能把叶子隔离在 git worktree 中，如 pi 的 `isolation: "worktree"`、Claude Code 的 agent `--worktree`，或手工 worktree。按切片就绪调度：`seam-required` 阻塞项**已合并**即就绪，从最新合并 HEAD 建新 worktree。重叠切片可并行，重叠留到合并队列处理。
+- **Shared 模式：**按波次；同波并行需要拥有文件不相交。叶子不能同时提交，避免索引争用；父编排器按落地顺序串行收集提交，或叶子停在测试通过和 diff 状态，由父编排器提交。
 
-## Merge queue (worktree mode)
+<a id="merge-queue-worktree-mode"></a>
+## 合并队列（worktree 模式）
 
-The parent runs this queue. Landed branches merge **serially, one at a
-time**, in landing order, and the parent never merges while a leaf is running
-that could touch the same paths.
+父编排器按落地顺序**一次一个、串行**合并。仍有运行叶子可能触碰相同路径时，不得合并。
 
-1. Merge one branch; conflict → re-dispatch **one** implementer leaf with
-   both branch names and conflicting paths, resolving **on the unmerged
-   branch** (merge/rebase the landed sibling — the unmerged slice's brief
-   and commits carry its intent); its fix rejoins the queue.
-   When tasks.md records methodology-order preferences, order
-   the queue by them when convenient — they never gate dispatch, only
-   landing order.
-2. After each merge: update `map.md` from leaf summaries, re-check the
-   ready set, dispatch newly-ready slices.
-3. No per-merge test ritual — leaves ran TDD; downstream worktrees
-   exercise upstream changes. Assembled behavior is accepted at the
-   end-of-issue review. Long-lived/whole-line integration branches use the
-   separate [candidate-merge gate](architecture-gates.md#whole-line--integration-merge),
-   not this ordinary slice path. **Flake discipline:** a failure under
-   parallel load → rerun only the failing tests to classify the flake; a
-   full clean rerun needs a recorded reason.
+1. 合并一个分支；冲突则派发**一个**实现叶子，给出两边分支名和冲突路径，在**未合并分支**解决，合并 / rebase 已落地的相邻分支。未合并切片的简报及提交保留其意图；修复后重入队列。tasks.md 有 methodology-order 偏好时，方便则按其排队；只影响落地顺序，不阻塞派发。
+2. 每次合并后依据叶子摘要更新 `map.md`，重算就绪集，派发新就绪切片。
+3. 不逐次合并重跑测试：叶子已跑 TDD，下游 worktree 会使用上游变化，组装行为由结束审查验收。长期 / 整线集成分支走独立[候选合并检查](architecture-gates.md#whole-line--integration-merge)。**偶发失败纪律：**并行负载下失败，只重跑失败测试判断偶发性；全量干净重跑必须记录理由。
 
-## Worktree setup (repo contract, in `routes.md`)
+<a id="worktree-setup-repo-contract-in-routesmd"></a>
+## Worktree 准备（routes.md 中的仓库契约）
 
 ```md
-- Worktree setup: `./scripts/worktree-setup.sh`   # or: host-managed | npm ci | uv sync | …
+- Worktree setup: `./scripts/worktree-setup.sh`   # 或 host-managed | npm ci | uv sync | …
 ```
 
-- **Declared command** — **check-first and idempotent**: the script begins
-  with a cheap testability check (e.g. `test -d node_modules`) and exits
-  fast when the worktree is already testable. Prefer cheap strategies over
-  reinstalling: read-only symlinks from the main checkout
-  (`node_modules`, venvs, `.env*` — the quick-path convention), shared
-  package caches (pnpm store). It goes into every worktree leaf's brief as
-  **step 0, unconditional** — a precondition, not a repair the leaf decides
-  to run after a green failure:
+- **声明的命令**必须**先检查、可幂等**：脚本先廉价判断是否可测试，如 `test -d node_modules`，已就绪则快速退出。优先低成本方案：从主检出只读链接 `node_modules`、虚拟环境、`.env*`，或共享包缓存如 pnpm store，避免重复安装。每个 worktree 叶子简报都必须带**无条件第 0 步**，它是前置条件，不能等测试失败后由叶子决定是否补环境：
   ```md
-  Worktree setup (run first; check-first script, fast no-op when already
-  testable): <command>. Environment failure after setup → report blocker;
-  never spend fix rounds on environment setup.
+  Worktree setup（先运行，脚本先检查；已有测试条件时快速空操作）：<命令>。
+  准备后仍有环境失败，报告阻塞；不把修复轮次花在环境准备上。
   ```
-  Running a declared command is mechanics; recognizing an environment
-  failure inside test output is judgement — the brief must not depend on
-  the latter. A worktree leaf returns one setup line (`setup: ran <cmd>` |
-  `setup: no-op (already testable)`); the Return Gate bounces a code-bearing
-  slice whose return is missing it.
-- **`host-managed`** — a host hook prepares worktrees. State its **scope**:
-  hooks firing only for host-created worktrees do not cover rope-spawned
-  isolation worktrees — declare the script invoked manually instead
-  (usually `bash <host-setup.sh> <path>`). Either way the brief still
-  carries step 0 (a no-op check when the hook already ran).
-- **Undeclared** — leaf tries green first; environment failure is a
-  blocker. Parent falls back to shared mode for remaining slices and
-  records the reason. Before accepting any "setup friction" reason to fall
-  back, check whether the host setup script applies manually — it usually
-  can, keeping worktree mode available.
+  执行声明命令是机械动作，识别测试输出中的环境失败则需判断；简报不能依赖后者。叶子返回一行 `setup: ran <cmd>` 或 `setup: no-op (already testable)`；带代码切片缺此行，返回检查必须退回。
+- **`host-managed`：**宿主 hook 准备 worktree，须说明覆盖**范围**。仅对宿主创建的 worktree 触发的 hook 不覆盖 Rope 隔离 worktree，应声明手动执行脚本，通常 `bash <host-setup.sh> <path>`。无论如何，简报仍带第 0 步；hook 已跑时做空操作检查。
+- **未声明：**叶子先尝试 green，环境失败即阻塞。父编排器对剩余切片降级 shared 并记录理由。接受“环境准备麻烦”作为降级理由前，先核查宿主脚本能否手动运行，通常可以保住 worktree 模式。
 
-## Test tiers & baseline ladder (repo contract)
+<a id="test-tiers--baseline-ladder-repo-contract"></a>
+## 测试层级与基线阶梯（仓库契约）
 
-`routes.md` declares:
+`routes.md` 声明：
 
 ```md
-- Test tiers: quick: `<cmd>` (~Ns, measured)   # guards + entrypoint smoke + pure units
-               full:  `<cmd>` (~Ns, measured)   # regression net, not an iteration tool
+- Test tiers: quick: `<cmd>` (~Ns, measured)   # 检查 + 入口冒烟 + 纯单元
+               full:  `<cmd>` (~Ns, measured)   # 回归安全网，不用于日常迭代
                report: `<full cmd> 2>&1 | tee <log> | grep -E '<failure|tally>'`
-                       # one run prints the failure names plus the tally and
-                       # saves everything; see One run, below
+                       # 单次执行打印失败名称和统计，保存完整输出；见下文
 ```
 
-- **Impact selection:** shape's Testing Decisions names affected modules,
-  shared consumers, focused commands, and reasons for included/excluded
-  suites. Slice tests stay focused; integration checks exercise affected
-  seams; final review walks the Matrix/E2E and checks assembled impact.
-  Expand to broader suites for shared infrastructure, uncertain impact,
-  evidence of cross-module coupling, or an explicit repository requirement.
-  A local failure is diagnosed before using it to justify a global rerun.
-  - **Contract sweep.** The affected set follows what the change *breaks*,
-    not what it *touches*. When a slice retires, reverses, renames, or
-    re-keys a contract — prompt text, enum or status value, field or
-    parameter name, error string, menu entry, response shape — the
-    assertions that pin it usually live in files the slice never opens:
-    tests exercise public interfaces and rarely import the symbol being
-    deleted, so grepping for that symbol returns near zero. Grep the test
-    tree for the contract's own vocabulary instead (the literal string, the
-    old value, the removed field). Every hit is migrated in this slice or
-    named out of scope with a reason. A hand-picked file list is not a
-    sweep.
-- **Baseline ladder** (go startup): reuse same-HEAD green evidence (CI or
-  recorded run ≤24h) that covers the selected scope and relevant environment;
-  otherwise delegate the declared quick tier or affected tests to an existing
-  leaf under the handoff contract above. Broader suites
-  are an issue-level fallback only with one of the impact reasons above.
-  Record the selected scope, command, reason, and reused/run evidence in
-  existing Testing Decisions/work records.
-- **One run shows the failures.** Every command used as evidence writes its
-  full output to a file and prints the failing item names plus the tally in
-  that same invocation. Three projections of one command means running it
-  once and reading the file three ways — never three runs. Keep the exit
-  status intact through the capture: a bare `cmd | tee log | grep …`
-  pipeline reports the grep's status and silently turns a red suite green,
-  so `set -o pipefail` first. Recover a stack trace by grepping the saved
-  file, never by rerunning the command.
-- **Validation return:** require the shared handoff's commit/environment,
-  command/exit status, counts/failing items and full-log path in the check
-  brief. Parent reviews coverage and disposition, not the full log; needed
-  failure investigation returns to explore. This applies to baseline and
-  assembled checks, not just implementer self-tests.
-- **Full is a scope, not a frequency.** Baseline and final review are
-  decision points, not two mandatory full-suite executions. Scope-green
-  proves only that scope. Backend-only local changes do not automatically
-  run frontend suites; changes to a shared API consumed by the UI include
-  affected UI tests, expanding further when coupling is broad or unknown.
-- **Undeclared is legal**: the ladder skips the rung. When shape finds
-  the line missing, shape derives it (explore leaf or in-session scan —
-  never a human step, never mid-flight invention at go): guards +
-  entrypoint smoke mandatory, pure unit tests optional, fixture-heavy
-  integration / benchmark / network tests excluded; time the candidate
-  and write it back **only if ≤60s**, with date, criteria, and measured
-  time. These criteria live here only — shape references, never
-  duplicates.
+- **按影响选择：**shape 的 Testing Decisions 记录受影响模块、共享消费者、聚焦命令，以及纳入 / 排除套件的理由。切片测试保持聚焦，集成检查覆盖受影响边界，结束审查走矩阵 / E2E 并核查组装影响。共享基础设施、影响不明、跨模块耦合证据、仓库明确要求，才扩大套件。先诊断局部失败，再判断是否足以支持全局重跑。
+  - **契约全量检查：**受影响集合取决于改动*破坏什么*，不只是*碰了什么*。删除、反转、重命名、改键的契约（提示文本、枚举 / 状态值、字段 / 参数、错误字符串、菜单项、响应形状），对应断言往往在切片未打开的文件。测试通过公共接口工作，未必导入被删符号，因此只搜该符号几乎无结果。应在测试树搜契约自身词汇，如字面量、旧值、删除字段。每个命中都在本片迁移，或具名排除并说明理由；手挑文件列表不算全量检查。
+- **基线阶梯，go 启动：**复用同一 HEAD、覆盖所选范围及相关环境、≤24 小时的 CI 或已记录通过证据；否则按上述交接契约，委派已有叶子运行声明的 quick 或受影响测试。更广套件仅作 issue 级回退，且须满足上述影响理由。将范围、命令、原因及复用 / 执行证据写入已有 Testing Decisions / 工作记录。
+- **一次运行即显示失败：**证据命令一次执行就将完整输出写文件，同时打印失败项名称和统计。一个命令的三种视图应读同一文件，不执行三次。采集必须保留退出状态；裸 `cmd | tee log | grep …` 只返回 grep 状态，会把失败套件变成通过，因此先 `set -o pipefail`。从保存文件搜索堆栈，不为取堆栈重跑命令。
+- **验证返回：**检查简报要求交接契约中的提交 / 环境、命令 / 退出码、统计 / 失败项、完整日志路径。父编排器判断覆盖与处置，不读全日志；需要调查的失败再交 explore。这同时适用于基线和组装检查。
+- **full 指范围，不指频率：**基线与结束审查是决策点，不是两次必跑全量。范围内通过只证明该范围。后端局部改动不自动跑前端；修改 UI 消费的共享 API 须包含受影响 UI 测试，耦合广泛或不明再扩。
+- **允许未声明：**阶梯跳过缺省层级。shape 发现缺行时自行推导（explore 或会话内扫描，不问用户，不由 go 中途发明）：检查与入口冒烟必需，纯单元可选，排除重 fixture 集成 / 基准 / 网络测试。测量候选，**仅 ≤60 秒**时写回，附日期、标准、实测耗时。标准只在此定义，shape 引用而不复制。
 
-## Leaf Brief Contract (hard budget)
+<a id="leaf-brief-contract-hard-budget"></a>
+## 叶子简报契约（硬预算）
 
-**Minimal brief** — allowlist + ≤60-line cap (paths and
-command blocks excluded). The parent checks the budget before dispatch.
+**最小简报**采用允许清单，正文 ≤60 行，路径与命令块不计。父编排器派发前检查。
 
-**Content payload (allowed inline):**
+**允许直接写入的内容：**
 
-1. Issue path + slice id/title
-2. **Public behavior:** one user-visible sentence — or, for a component
-   slice, the user-story row it serves + its own completion criteria
-   (interface signature / tests green)
-3. **Behavior Contract:** the 6 fields cut to their thinnest form
-4. **Architecture constraints (mandatory, by reference):** Constraint Bundle
-   **path** + explicit `Constraint IDs:` + short global invariant list.
-   Required source paths/sections go in the operational contract; blank or
-   placeholder IDs block dispatch. Justified `none` follows the
-   [package readiness gate](../../rope-shape/references/architecture-continuity.md#package-readiness-gate).
-5. **Test seam + prior art:** the seam from PRD Testing Decisions + one
-   prior-art path
+1. issue 路径及切片 ID / 标题。
+2. **Public behavior：**一句用户可见行为；组件切片则写服务的用户故事行及自身完成条件，如接口签名 / 测试通过。
+3. **Behavior Contract：**六字段的最简表达。
+4. **架构约束，必填并按引用加载：**约束包**路径**、明确 `Constraint IDs:`、短全局不变量列表。必读来源路径 / 章节写在操作契约。空白或占位 ID 阻塞派发；有理由的 `none` 遵守[整包就绪检查](../../rope-shape/references/architecture-continuity.md#package-readiness-gate)。
+5. **测试边界与先例：**PRD Testing Decisions 的边界，加一个先例路径。
 
-**Operational contract (required, not counted as content):**
+**必需的操作契约，不计为内容载荷：**
 
-- TDD mode: `required` (default for behavior-bearing code) | `waived (<kind>)`
-  with a playbook-supported kind + reason;
-  when required — red command(s) + what counts as red, green command(s)
-  after minimal implementation — focused seam commands by default; a
-  full-suite run is issue-level evidence, never a brief
-  requirement. Resolve the [TDD playbook](tdd.md) relative to this loaded
-  skill reference, verify that the file exists, and pass its **absolute path**
-  in Required reading: read before product/test edits. This applies to correction
-  briefs and generic fallback workers too, without a preset refresh. Keep
-  task-specific acceptance/seams/commands in the brief; keep policy in the
-  playbook. The parent locates the file rather than loading and retransmitting its body.
-  An inaccessible path is a blocker to resolve, not permission to skip reading.
-- Required reading: effective spec/ADR paths + sections; read before editing,
-  then record the ≤3-line Architecture landing (responsibility reused / public seam /
-  ownership direction preserved). Return actual source-reading and landing record
-  references; unresolved conflicts stop the slice. See [architecture gates](architecture-gates.md).
-- Expected return shape: summary, paths changed, delivery branch + commit
-  hash (`git rev-parse HEAD`), acceptance text exercised, red evidence (command +
-  failure) unless waived, green evidence, constraint IDs checked + landing record +
-  disposition conflicts, affected guard/exception delta evidence, falsified/needed
-  map lines (worktree mode), blockers with class, setup line (`setup: ran <cmd>` |
-  `setup: no-op`) — **plus Return Gate payload:** every Required-evidence item
-  mapped to pasted command output or artifact path, keyed by evidence id
-- Worktree mode: state delivery steps in brief — commit everything, leave
-  `git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`;
-  the host's cleanup branch is not a name the merge queue routes on.
-- Relevant artifact paths (prd/tasks/e2e, bundle, map, specs, files)
-- Map path — orient by it; update falsified lines before commit (shared
-  mode) or report them in the summary (worktree mode)
-- Worktree mode: the worktree-setup step-0 command when the repo declares
-  one (unconditional; check-first script)
-- No nested spawn; commit rules; Blocked by / Scope
+- TDD 模式：行为代码默认 `required`；或 `waived (<kind>)`，附手册允许的类型和原因。required 需给 red 命令及有效失败信号、最小实现后的 green 命令，默认聚焦边界。全套属于 issue 级证据，不能要求叶子必跑。相对当前已加载参考文档定位 [TDD 手册](tdd.md)，核实文件存在，把**绝对路径**放入 Required reading，要求编辑产品 / 测试前读。纠偏简报、通用回退叶子同样适用，无需刷新预设。任务验收 / 边界 / 命令留简报，策略留手册；父编排器只定位，不加载并转发正文。路径不可访问是待解决阻塞，不是跳读许可。
+- Required reading：生效 spec/ADR 路径和章节；编辑前读，再记录 ≤3 行架构落点（复用职责 / 公共边界 / 保持归属方向）。返回真实阅读和落点记录引用，未决冲突停片。见[架构检查](architecture-gates.md)。
+- 返回格式：摘要、改动路径、交付分支与 `git rev-parse HEAD` 提交号、验证过的验收文本、除豁免外的 red 命令及失败证据、green 证据、已检查约束 ID 与落点记录和处置冲突、受影响检查 / 例外差异、worktree 的 map 修正 / 所需行、带类别的阻塞、`setup: ran <cmd>` 或 `setup: no-op`。**另附返回检查载荷：**每个 Required evidence 按证据 ID 映射到粘贴输出或产物路径。
+- worktree 交付步骤：提交全部工作，使 `git status --porcelain` 为空，再 `git branch -f <delivery branch> HEAD`。宿主清理分支不能作为合并队列路由名。
+- 相关产物路径：prd/tasks/e2e、约束包、map、specs、文件。
+- map 路径：据其定位；shared 提交前修正被证伪行，worktree 在摘要报告。
+- worktree：仓库声明准备命令时，作为无条件第 0 步，脚本先检查再执行。
+- 禁止嵌套派生；提交规则；Blocked by / Scope。
 
-End-of-issue briefs (two): **scanner** — diff + commit list +
-standards-source paths + required architecture block + guard commands/evidence
-+ inline global invariants + pasted smell baseline
-(below); **reviewer** — diff + commit list + Matrix behavior rows + e2e
-path (high-risk reading only; the E2E stage owns running them) + inline
-global invariants + required architecture block + exception delta paths
-(read applicable bundle/source sections upfront; no map). Axes
-and high-risk list live in the reviewer preset body, not the brief. Same
-allowlist and line cap.
+结束审查有两份简报：**扫描器**拿 diff、提交列表、规范来源路径、必需架构块、检查命令 / 证据、内联全局不变量和下述异味基线原文；**审查者**拿 diff、提交列表、矩阵行为行、e2e 路径（只用于高风险阅读，执行由 E2E 阶段负责）、全局不变量、必需架构块、例外差异路径；先读适用约束包 / 来源章节，不带 map。审查轴和高风险清单在审查预设正文，不放简报。沿用同一允许清单与行数上限。
 
-## Return Gate reconciliation & Defense Budget
+<a id="return-gate-reconciliation--defense-budget"></a>
+## 返回证据核对与防御预算
 
-On each landing, reconcile mechanically — a table check, not a review:
+每次落地做机械表格核对，不做代码审查：
 
 ```md
-| Evidence item (id) | Required by (matrix row / Constraint ID) | Returned output/path | verdict |
+| 证据项 ID | 要求来源（矩阵行 / 约束 ID） | 返回输出 / 路径 | verdict |
 | --- | --- | --- | --- |
-| S2-E1 crash-after-rename | B4 | pasted pytest output | ok |
-| S2-E2 concurrent get-or-create | B5 | (missing) | BOUNCE |
-| S2-A1 source reading + pre-edit landing | D1 | work log path | ok |
+| S2-E1 重命名后崩溃 | B4 | 粘贴 pytest 输出 | ok |
+| S2-E2 并发 get-or-create | B5 | 缺失 | BOUNCE |
+| S2-A1 来源阅读与编辑前落点 | D1 | 工作日志路径 | ok |
 ```
 
-- Any `BOUNCE` row → re-dispatch leaf with missing item IDs; nothing else reopens.
-- Architecture evidence is declared at shape: source sections read, pre-edit landing
-  record, applicable IDs checked, affected guards/exception deltas. Missing items bounce;
-  conflicts hold the affected landing for resolution. See architecture-gates.
-- The gate never re-reads implementations, reruns tests, or issues verdicts — the
-  end-of-issue review is the only review gate. Parent never tests to backfill evidence.
-- **Defense Budget:** correction briefs contain **zero** new acceptance requirements absent
-  from the shaped Behavior Matrix/Constraint Bundle. Architecture obligations are declared
-  at shape, not invented in fixes. Mid-execution gaps return to shape as re-cuts or become
-  non-blocking notes in tasks.md. Drift across rounds is a Defense Budget violation — re-cut instead.
+- 任一 `BOUNCE`：只带缺失 ID 重派，不重开其他内容。
+- 架构证据在 shape 声明：已读章节、编辑前落点、已查 ID、受影响检查 / 例外差异。缺失则退回；冲突则暂停该落地等待解决。见 architecture-gates。
+- 不重读实现、不重跑测试、不下审查结论；结束审查是唯一审查点。父编排器不自行测试来补证据。
+- **防御预算：**纠偏简报中，shaped 行为矩阵 / 约束包之外的新验收要求必须为 **0**。架构义务在 shape 声明，不能修复时发明。执行中发现缺口，回 shape 重切，或记为 tasks.md 非阻塞备注。轮次间要求漂移违反预算，应重切。
 
-## Human Gate Panel
+<a id="human-gate-panel"></a>
+## 人工授权面板
 
-Multiple pending gates render once, batched:
+多个待授权项一次批量展示：
 
 ```md
-## Human Gate Panel (2 pending)
-1. [S5] authorize fail-open → fail-closed switch — blast radius: summary
-   gate path; lanes S2/S3 continue, S4 holds.
-2. [S8] approve destructive worktree cleanup — blast radius: none unmerged;
-   all lanes continue.
+## Human Gate Panel（2 项待确认）
+1. [S5] 批准 fail-open 改 fail-closed；影响范围：摘要检查路径。
+   S2/S3 继续，S4 暂停。
+2. [S8] 批准破坏性 worktree 清理；影响范围：无未合并工作。
+   所有执行线继续。
 ```
 
-Each entry: affected slices / exact authorization requested / blast radius /
-other lanes' continue-or-hold status. Never present gates one-at-a-time while
-other lanes sit idle without an explicit hold statement.
+每项写受影响切片、具体请求、影响范围、其他执行线继续 / 暂停状态。不能逐项卡住，同时让其他线空等却不说明。
 
-## End-of-Issue Review Execution
+<a id="end-of-issue-review-execution"></a>
+## issue 结束审查执行
 
-After all slices and before verify. The parent runs this gate: spawns
-**two read-only leaves in one message**,
-both new eyes, never watched the build, then does bookkeeping from the
-structured return and renders a non-progressing fix loop as the Human
-Escalation Stop:
+所有切片完成后、verify 前，由父编排器在**同一消息派发两个只读叶子**。两者都是未参与构建的新视角；父编排器根据结构化返回记账，无进展修复循环触发人工升级停止：
 
-1. **Scanner leaf** — the `rope-explore` preset with the Standards brief
-   below (generic read-only worker otherwise; record the type used).
-   Runs declared full architecture guard coverage and impact-selected
-   lint/typecheck/build first (or checks reusable evidence) and skips what tooling enforces;
-   never runs the product.
-2. **Reviewer leaf** — `rope-reviewer` from the harness manifest (generic
-   worker with explicit review instructions otherwise). Read-only on code;
-   code-only: reads the assembled diff,
-   reads applicable architecture sources upfront, then walks the Behavior
-   Matrix, ownership/seam invariants, exception deltas, and high-risk boundaries. Product running,
-   entrypoint walking, and e2e execution belong to the E2E acceptance
-   stage below — never to the reviewer.
-3. **Aggregate mechanically**: verdict = worst of axis verdicts
-   (`approve` < `changes_requested` < `blocked`); blocking findings from
-   either leaf → one fix brief. No rerank, no merge, no re-judgment —
-   the parent is not a second reviewer. Record verdict + both leaf
-   identities + fix rounds in `tasks.md`.
-4. **Fix protocol**: the fix brief transcribes blocking findings verbatim
-   — `{severity, path:line, issue, fix}` — nothing left to explore.
-   Rounds continue while each shrinks the blocking set; the first
-   no-progress round (same finding returns, new findings offset fixed
-   ones, or a fix reverts a prior fix) is the Human Escalation Stop.
-   `note` findings are recorded in `tasks.md`, never fixed by a round.
-5. **Delta re-review**: after a fix round, the scanner re-scans the fix
-   commit diff only; the reviewer re-probes only affected paths. A full
-   re-review never repeats. (E2E-stage fixes add their own re-run rules
-   in the acceptance stage below.)
+1. **扫描器：**用 `rope-explore` 预设及下述规范简报；无预设则通用只读叶子并记录类型。先执行声明的完整架构检查，以及按影响选择的 lint/typecheck/build，或验证可复用证据；工具已保证的内容不重复查。不运行产品。
+2. **审查者：**用宿主清单的 `rope-reviewer`，否则明确审查指令的通用叶子。只读代码和组装 diff，先读适用架构来源，再走矩阵、归属 / 边界不变量、例外差异、高风险边界。产品运行、真实入口走查和 E2E 全归后续验收阶段。
+3. **机械汇总：**取最差结论，顺序 `approve` < `changes_requested` < `blocked`。任一轴的阻塞项汇成一份修复简报。不能重排、合并或重新判断，父编排器不是第二审查者。tasks.md 记录结论、两个叶子身份和修复轮次。
+4. **修复协议：**原样转录阻塞发现 `{severity, path:line, issue, fix}`，不留下待探索内容。每轮必须缩小阻塞集合；首个无进展轮次（相同问题重现、新问题抵消已修复项、修复回退先前修复）触发人工升级停止。`note` 只记 tasks.md，不进入修复轮次。
+5. **差量复审：**扫描器只扫描修复提交 diff，审查者只重查受影响路径，不重复全量复审。E2E 修复还遵守下方重跑规则。
 
-### Diff hygiene (both leaves)
+<a id="diff-hygiene-both-leaves"></a>
+### Diff 清理（两个叶子共用）
 
 ```md
 git diff <base>...HEAD -- . ':(exclude)*lock*' ':(exclude)*.snap' ':(exclude)dist/'
 ```
 
-Extend the excludes per repo (vendor/, build output, generated files) —
-lockfile/snapshot noise is 20–50 % of a web project's assembled diff, and
-both leaves pay for every included line.
+按仓库扩展排除项，如 vendor/、构建输出、生成文件。锁文件 / 快照常占 Web 项目组装 diff 的 20–50%，两叶子都要为每行付出上下文成本。
 
-### Scanner brief (paste, ~35 lines)
+<a id="scanner-brief-paste-35-lines"></a>
+### 扫描器简报（粘贴，约 35 行）
 
-- diff command (with excludes) + commit list; preserve guard/exception changes
-- standards-source paths (CODING_STANDARDS / CONTRIBUTING / lint config)
-- Constraint IDs + bundle path + required source sections; declared architecture
-  guard commands or reusable evidence paths (full architecture scope)
-- inline global invariants (short list from the bundle)
-- the smell baseline below, pasted verbatim
-- return contract: "Report `clean` or findings, ≤200 words, each
-  `{severity blocking|note, path:line, issue, fix}`. Every hit is a
-  judgement call, never a violation; documented repo standards override
-  the baseline; skip what tooling enforces. Return guard command/coverage/exit
-  status/output/commit pointers separately from the findings summary."
+- 带排除项的 diff 命令及提交列表，但保留检查 / 例外变化。
+- 规范来源路径：CODING_STANDARDS / CONTRIBUTING / lint 配置。
+- 约束 ID、约束包路径、必读来源章节；声明的完整架构检查命令或可复用证据路径。
+- 内联全局不变量短列表。
+- 原样粘贴下述异味基线。
+- 返回契约：“报告 `clean` 或 ≤200 词发现，每项 `{severity blocking|note, path:line, issue, fix}`。每个命中均需判断，不能自动视为违规；仓库已记录规范优先于基线，工具已保证的项目跳过。检查命令 / 覆盖 / 退出状态 / 输出 / 提交引用另行返回，不挤入发现摘要。”
 
-**Smell baseline** (Fowler, _Refactoring_ ch.3, one line each; plus rope's
-TDD anti-patterns: implementation-coupled, tautological, bulk-horizontal):
+**异味基线**，Fowler《重构》第 3 章，每项一行，另加 Rope TDD 反模式：耦合实现、自证式测试、横向批量测试。
 
-- Mysterious Name — the name doesn't say what it does → rename; no honest name means murky design
-- Duplicated Code — same logic shape in >1 hunk → extract the shared shape
-- Feature Envy — method reaches into another's data more than its own → move it there
-- Data Clumps — same fields/params travel together → bundle into one type
-- Primitive Obsession — a primitive stands in for a domain concept → give the concept a type
-- Repeated Switches — same switch/if-cascade recurs → polymorphism or one shared map
-- Shotgun Surgery — one change scattered across many files → gather into one module
-- Divergent Change — one module edited for unrelated reasons → split by reason
-- Speculative Generality — hooks the spec doesn't need → delete, inline back
-- Message Chains — long `a.b().c().d()` walks → hide behind one method
-- Middle Man — mostly delegates onward → cut it, call the target
-- Refused Bequest — implementer ignores most of what it inherits → compose instead
+- 神秘命名：名称说不出职责就改名；无法诚实命名通常说明设计模糊。
+- 重复代码：多处逻辑形状相同，提取共同形状。
+- 依恋情结：方法更关心别人的数据，移到数据所属处。
+- 数据泥团：字段 / 参数总是一起出现，组成一个类型。
+- 基本类型偏执：基础值承担领域概念，为概念建类型。
+- 重复分支：相同 switch / if 链反复出现，用多态或共享映射。
+- 霰弹式修改：一次改动散落多文件，聚合进一个模块。
+- 发散式变化：同模块因无关原因修改，按原因拆开。
+- 推测式通用：规范不需要的扩展钩子，删掉或内联。
+- 消息链：过长 `a.b().c().d()`，封装在一个方法后。
+- 中间人：主要转发调用，去掉中间层直接访问目标。
+- 被拒绝的遗赠：实现者忽略大部分继承能力，改用组合。
 
-### Reviewer brief
+<a id="reviewer-brief"></a>
+### 审查者简报
 
-- diff command (same excludes) + commit list
-- Matrix behavior rows + e2e path (for high-risk reading only — the E2E
-  acceptance stage below owns running them)
-- Judge whether test inputs and observable assertions at the agreed seams
-  prove each slice's promised behavior / Matrix rows, not merely that a new
-  function works in isolation. Where the promise includes caller wiring,
-  check that the tests exercise that wiring; a component-only promise may
-  be proved at its own public interface. This is code/test review judgment,
-  not a requirement to run mutation testing.
-- inline global invariants + mandatory Constraint IDs + bundle path + required
-  effective source sections (read applicable records/sections upfront)
-- architecture guard evidence paths + per-entry exception delta/reasons and
-  confirmed disposition records; review guard weakening as well as additions
-- no map; axes and high-risk focus live in the
-  reviewer preset body
-- return source-reading record references + per-entry exception coverage/outcome
-  alongside the verdict/findings; do not dump the bundle or source prose
+- 同样排除项的 diff 命令及提交列表。
+- 矩阵行为行和 e2e 路径，只作高风险阅读，执行由 E2E 阶段负责。
+- 判断已定边界上的测试输入及可观察断言，是否证明每片承诺的行为 / 矩阵行，而非仅证明新函数孤立可用。承诺包含调用者组装时，测试必须覆盖组装；纯组件承诺可在其公共接口证明。这是代码 / 测试审查判断，不要求运行变异测试。
+- 内联全局不变量、必填约束 ID、约束包路径、生效来源章节；先读适用记录 / 章节。
+- 架构检查证据路径、逐项例外差异及原因、已确认处置；检查规则削弱也要审。
+- 不带 map；审查轴及高风险焦点在预设正文。
+- 结论 / 发现同时返回来源阅读记录引用、逐项例外覆盖及结果，不倾倒约束包或来源正文。
 
-## High-risk boundaries (the reviewer's deepest look)
+<a id="high-risk-boundaries-the-reviewers-deepest-look"></a>
+## 高风险边界（审查者重点深查）
 
-- public interface or user-visible behavior
-- external system or adapter behavior
-- auth, permission, secret, or data leak risk
-- persistence, schema, migration, stored format
-- routing, app entrypoint, runtime wiring, background worker
-- multi-layer behavior; E2E critical path
-- architecture responsibility/lifecycle ownership, public seam/dependency
-  direction, guard coverage changes, whitelist/exception deltas
+- 公共接口或用户可见行为。
+- 外部系统或 adapter 行为。
+- 认证、权限、密钥或数据泄露风险。
+- 持久化、schema、迁移、存储格式。
+- 路由、应用入口、运行时组装、后台工作者。
+- 跨层行为、E2E 关键路径。
+- 架构职责 / 生命周期归属、公共边界 / 依赖方向、检查覆盖变化、白名单 / 例外差异。
 
-## E2E Acceptance Stage (after review approve)
+<a id="e2e-acceptance-stage-after-review-approve"></a>
+## E2E 验收阶段（审查批准后）
 
-Runs only after the end-of-issue review returns `approve`. Preconditions:
-clean tree, review verdict recorded, HEAD recorded — every evidence line
-cites the commit it ran on.
+只有结束审查返回 `approve` 才能运行。前提：工作树干净、结论已记录、HEAD 已记录；每行证据都引用实际执行提交。
 
-**Shared stack, parent-owned.** Start command and entrypoints come from the
-project's declaration (`routes.md` `E2E entrypoints:` / issue Testing
-Decisions). Never invent an entrypoint; no declaration → `blocked_on_user`,
-ask. The parent starts **one** stack, probes readiness before any dispatch,
-saves the boot log + ports under `<issue>/evidence/`, and tears it down after
-the last journey. Readiness failure → `blocked_on_*`, report — no dispatch,
-no fix rounds spent on environment.
+**共享服务栈由父编排器负责。**启动命令和入口来自项目声明，如 routes.md 的 `E2E entrypoints:` 或 issue Testing Decisions。不能发明入口；无声明则 `blocked_on_user` 并询问。父编排器只启动**一套**服务，派发前探测就绪，把启动日志与端口存到 `<issue>/evidence/`，最后一条旅程结束后关闭。就绪失败记录 `blocked_on_*` 并报告；不派发，不花修复轮次处理环境。
 
-**Journeys.** Group e2e items into journeys: one user-visible walk per leaf;
-one journey may prove several items of one mechanism. Resource-disjoint
-journeys run as parallel runner leaves with isolated browser sessions;
-journeys sharing an account or mutable state serialize. Host without
-session isolation → serial journeys with a recorded reason.
+**旅程。**把 E2E 项分成用户可见旅程，每叶子一条；同机制的多个项目可由一条旅程证明。资源不相交的旅程用隔离浏览器会话并行；共享账户或可变状态则串行。宿主无会话隔离时，记录理由后串行。
 
-**Runner leaf** — `rope-e2e-runner` from the harness manifest (generic
-read-only worker with explicit instructions otherwise; record the type
-used). One journey brief per leaf; collect every structured return; a
-journey that returned nothing is a blocker, never a pass. Every journey
-**must** run as a runner-leaf dispatch — the parent never drives a
-journey itself to substitute for a failed or empty dispatch.
+**Runner 叶子：**宿主清单的 `rope-e2e-runner`，否则带明确指令的通用只读叶子并记录类型。每份简报对应一条旅程，收集全部结构化返回；空返回是阻塞，绝非通过。每条旅程**必须派 runner 叶子执行**；父编排器不能自行驾驶来代替失败或空派发。
 
-Journey brief (~40 lines, same budget discipline as slice briefs):
+旅程简报约 40 行，沿用切片预算纪律：
 
 ```md
 # E2E Journey <id> — <issue slug>
-Issue/base commit; stack already running (entrypoints given) — NEVER
-restart/rebuild services; readiness problems are blocker reports.
-Items: <E#> <mechanism> — pass criteria each.
-Entrypoint (project-declared): <URL / CLI / real channel>.
-Browser session name: <journey-id> (isolated; never touch other sessions).
-Steps: Given/When/Then as the user would walk them.
-Evidence: save under <issue>/evidence/e2e/ — per item the tool/command
-used + artifact path; failed step: what you did / observed / which
-criterion broke.
-Bounds: read-only on code; no spawning agents; real entrypoint only —
-internal seams (injection, fixtures) are not substitutes.
+Issue/base commit: <路径 / 提交>；服务栈已运行，入口如下。
+禁止重启 / 重建服务；未就绪时报告阻塞。
+Items: <E#> <mechanism> — <逐项通过标准>。
+Entrypoint: <项目声明的 URL / CLI / 真实通道>。
+Browser session name: <journey-id>，隔离会话，不碰其他会话。
+Steps: 按用户操作写 Given/When/Then。
+Evidence: 存入 <issue>/evidence/e2e/；每项记录工具 / 命令及产物路径。
+失败步骤记录做了什么、观察到什么、违反哪条标准。
+Bounds: 代码只读，禁止派生代理，只走真实入口；注入 / fixture 不可替代。
 Return: journey id; items [{id, verdict pass|fail|blocked, evidence}];
-steps executed; blockers [{class, detail}]; notes ≤5 lines.
+steps executed; blockers [{class, detail}]; notes ≤5 行。
 ```
 
-**Fix loop.** `agent_failed` → one fix brief to an implementer leaf:
-transcribe the runner's failure verbatim; zero new acceptance requirements.
-For a code defect, require a failing regression test at an appropriate agreed
-public seam, then minimal green per [TDD](tdd.md); seam gaps follow its existing
-plan-adjustment rule. For an environment/deployment defect, retain the
-corresponding real-environment validation rather than forcing it into ordinary
-TDD. Stack operation and E2E remain with the parent and runner, not the implementer.
-Rounds continue while each shrinks the failing set; the first that doesn't
-is the Human Escalation Stop. After a fix merges: delta-only code
-re-review (protocol above), re-deploy the stack onto the new HEAD, re-run
-affected journeys plus a shared-entry smoke, and annotate every reused
-evidence line with its commit — a green from a superseded HEAD is void.
+**修复循环。**`agent_failed` 产生一份实现者修复简报，原样转录 runner 失败，不新增验收要求。代码缺陷按 [TDD](tdd.md) 在合适的已定公共边界先加失败回归，再最小实现至通过；边界缺口遵守已有计划调整规则。环境 / 部署缺陷保留对应真实环境验证，不强塞入普通 TDD。服务栈操作和 E2E 仍由父编排器、runner 负责。每轮必须缩小失败集，首个无进展轮次触发人工升级停止。修复合并后：差量代码复审，在新 HEAD 重新部署，重跑受影响旅程及共享入口冒烟；复用证据逐行注明提交，旧 HEAD 的通过不能当作新 HEAD 证据。
 
-**Delivery gate.** Every required `e2e.md` item carries success evidence —
-`agent_passed` (runner evidence) or `user_confirmed` (the user ran it) —
-or an explicit **per-item user waiver** recorded as a waiver, never as a
-pass; silence is not a waiver. Anything else blocks the run and escalates
-with the exact unproven items. Green: teardown the stack (record), write
-the E2E stage verdict line in `tasks.md`, hand off to `rope-finish`.
+**交付门槛。**每个必需 E2E 项均需成功证据：runner 的 `agent_passed` 或用户亲自执行的 `user_confirmed`；否则必须有**逐项明确用户豁免**，记录为豁免，不能记通过。沉默不是豁免。其他状态均阻塞运行，升级时列出确切未证明项目。通过后关闭服务栈并记录，在 tasks.md 写阶段结论，交给 `rope-finish`。
 
-## E2E Execution Statuses
+<a id="e2e-execution-statuses"></a>
+## E2E 执行状态
 
-e2e.md carries **real-environment behaviors only** (real APIs, real
-entrypoints, real external systems). Ticket-level units live in TDD
-evidence, never in e2e.md.
+ e2e.md 只记录**真实环境行为**（真实 API、入口、外部系统）。工单级单元留在 TDD 证据。
 
-Executor resolution is capability-relative (gates-and-vocab): read each
-item's mechanism label, probe the harness tool surface, and run every
-covered mechanism as agent. A user handing an item over mid-go
-(“你自己跑吧”) is the probe firing late — run it and record it as agent
-execution with evidence, never as an exception.
+执行者依据能力确定，见 gates-and-vocab：读机制标签、探测宿主工具，工具覆盖的机制均由 agent 执行。用户在 go 中说“你自己跑吧”，等于较晚触发能力探测；执行并记录 agent 证据，不当作例外。
 
-**The resolution is recorded in `e2e.md` before dispatch.** Each item
-carries `executor` (`agent` | `agent-with-gate` | `user` | `not-run`) plus
-its `decision`; a gated action cannot start without a recorded `approved`.
-An item that runs must name its `preset`. An item that does not run must
-carry the `reason` it does not, and is recorded with its terminal status
-rather than dropped: a skipped item and a missing item must not look the
-same in the record.
+**派发前写入 e2e.md。**每项带 `executor`（`agent` | `agent-with-gate` | `user` | `not-run`）和 `decision`；授权动作无已记录 `approved` 不得开始。执行项写 `preset`，未执行项写 `reason` 并保留终态，不能让主动跳过与条目缺失无法区分。
 
-Only success evidence gates the delivery decision: an item the agent ran and
-passed (`agent_passed`), or the user ran and confirmed (`user_confirmed`).
-A required item kept out of the run (`user`, `not-run`, a declined gate) is
-an honest terminal record — but it delivers only with an explicit per-item
-user waiver (acceptance stage above); otherwise the run is blocked. A leaf
-that *ran* and reported `blocked` has not passed.
+只有 `agent_passed` 或 `user_confirmed` 成功证据支持交付。必需项未执行（user、not-run、拒绝授权）可如实记录终态，但只有逐项明确用户豁免后才能交付；否则阻塞。叶子执行后返回 `blocked` 不是通过。
 
-- `agent_passed`: agent ran it; record command + evidence.
-- `agent_failed`: ran and failed; fix or record blocker.
-- `blocked_on_gate` / `blocked_on_user`: missing approval / human-only
-  (judgment, credentialed, unreachable).
-- `skipped_by_user_at_shape` / `not_run_with_reason`: intentional skips.
+- `agent_passed`：agent 执行通过，记录命令和证据。
+- `agent_failed`：已执行但失败，修复或记录阻塞。
+- `blocked_on_gate` / `blocked_on_user`：缺授权 / 需人工判断、认证或不可达。
+- `skipped_by_user_at_shape` / `not_run_with_reason`：有意跳过。
 
-## Commit Rules
+<a id="commit-rules"></a>
+## 提交规则
 
-- Commit each completed slice independently; commit review fixes
-  independently; do not combine unrelated slices; never push/merge/rebase
-  unless asked.
+- 每个完成切片独立提交，审查修复独立提交，不合并无关切片；未被要求时不 push / merge / rebase。
 
-## Handoff Checklist
+<a id="handoff-checklist"></a>
+## 交接清单
 
-- Per-slice commits present; end-of-issue review verdict (+ fix rounds) and identity
-  recorded; E2E stage verdict recorded; e2e statuses terminal; tree clean.
-- Architecture source/landing evidence, declared guard coverage, per-entry
-  exception delta review, and resolved dispositions recorded in tasks.md.
+- 各切片提交齐全；结束审查结论、修复轮次及身份已记录；E2E 阶段结论已记录，各项终态，工作树干净。
+- tasks.md 已记录架构来源 / 落点证据、声明的检查覆盖、逐项例外差异审查及已定处置。
 
 ---
 
-## Fault manual (read on failure, not upfront)
+<a id="fault-manual-read-on-failure-not-upfront"></a>
+## 故障手册（失败时读，不在启动时加载）
 
-**No harness presets** (`~/.config/rope/harness/<host>.json` or `rope-*`
-agents missing): use generic host worker without model pin; record
-`preset_missing` in `tasks.md`; continue. Never auto-run `rope-harness-presets`; never hard-block.
+**缺宿主预设**，即 `~/.config/rope/harness/<host>.json` 或 rope-* 代理缺失：使用不固定模型的通用宿主叶子，tasks.md 记 `preset_missing` 后继续；不能自动运行 `rope-harness-presets`，不因此硬阻塞。
 
-**Cannot background-spawn**: run waves foreground, one leaf at a time;
-record reason in parallelism declaration.
+**不能后台派生：**前台逐叶子执行波次，在并行声明记录理由。
 
-**Worktree requested but result carries no branch name / copy toplevel**:
-downgraded to shared checkout — record downgrade and hold shared discipline.
+**请求 worktree 但返回无分支名 / 仍是主检出：**记录降级到共享检出，遵守 shared 纪律。
 
-**Cannot spawn any reviewer worker at all**: self-review and record
-`review_degraded: no_subagent_tool_available` + what was attempted + why.
-Never silently skip review when worker can be spawned; never instruct implementer to review.
+**完全无法派生审查叶子：**自行审查，记录 `review_degraded: no_subagent_tool_available`、已尝试内容及原因。能派生时不能默默跳过，也不能要求实现者审自己。
 
-**Leaf truncated / aborted mid-work**: probe git status + test state before
-re-dispatch; recover uncommitted work or reset, then re-brief.
+**叶子截断 / 中途终止：**先查 git 状态和测试状态，恢复未提交工作或重置后再改简报派发。
 
-**Implementer quota exhausted (429 / Insufficient Quota / Terminal API error)**:
-Switch to backup model declared in `~/.config/rope/harness/<host>.json`
-(`roles.implementer.backup_model` + `backup_thinking`). Re-dispatch affected slice
-with `Agent({ subagent_type: "rope-implementer", model: backup_model, thinking: backup_thinking, ... })`.
-Record `implementer_degraded: switched to <backup_model> (quota)` in `tasks.md`.
-Maintain sticky degradation for remaining slices in this issue session.
-If no `backup_model` in manifest, stop immediately for human decision (Human Escalation Stop).
+**实现者配额耗尽，429 / Insufficient Quota / Terminal API error：**使用宿主清单的 `roles.implementer.backup_model` 与 `backup_thinking`，以 `Agent({ subagent_type: "rope-implementer", model: backup_model, thinking: backup_thinking, ... })` 重派受影响切片。tasks.md 记录 `implementer_degraded: switched to <backup_model> (quota)`，本 issue 剩余切片持续沿用降级。清单无备用模型则立即人工升级停止。

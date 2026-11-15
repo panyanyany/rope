@@ -1,273 +1,131 @@
-# Context
+<a id="context"></a>
+# 项目上下文
 
-## Language
-**Parent Orchestrator**:
-The main issue session that owns grill, shape, the slice loop, leaf-worker dispatch, issue-level verify, and finish handoff. It is the only agent allowed to spawn workers for an issue. Judgment-primary and context-protective: it decides, talks to the human, writes durable artifacts, and re-briefs/steers leaves — it does not bulk-load exploratory noise or run long implement/fix loops in its own context, because compaction discards earlier discussion. Course correction is done by rewriting the brief and re-spawning a leaf, not by the parent absorbing the full failure trace and fixing in-place.
-_Avoid_: main session (ambiguous), god agent, multi-agent swarm, pure router, parent self-implements everything
-_Historical alias_: Planner Window / Window A (optional deployment mode, not the architecture)
+<a id="language"></a>
+## 项目语言
 
-**Leaf Worker**:
-A subagent (or equivalent host worker) that receives a self-contained brief, does one job, and returns a summary plus artifact paths. Implementer, reviewer, and explore are leaf roles. Leaves also execute course-correction work after the parent rewrites the brief. A leaf worker must not spawn other workers.
-_Avoid_: nested subagent, child orchestrator
-_Historical alias_: Implementer Window / Window B when the host cannot spawn code-writing workers (degraded top-level session)
+**Parent Orchestrator（父编排器）**：
+负责 grill、shape、切片循环、叶子派发、issue 级验证和 finish 交接的主 issue 会话，也是唯一可为该 issue 派生工作者的代理。以判断和保护上下文为主：做决定、与用户交流、写长期产物、改简报并引导叶子；不批量加载探索噪声，也不在自己上下文执行长实现 / 修复循环，避免压缩丢失早期讨论。纠偏通过改写简报、重新派叶子完成，不接收整份失败轨迹后自行修复。
+_避免_：含混的主会话、上帝代理、代理群、纯路由器、父编排器包办实现。
+_历史别名_：Planner Window / Window A，属于可选部署方式，不是架构本身。
 
-**Human Escalation Stop**:
-When leaf fix loops fail twice on the same problem, or the parent judges the failure is a design/requirements/contract issue rather than an implementation miss, the parent stops automated repair and presents a short precise problem statement to the user for a decision. It does not keep re-spawning leaves hoping the third try works.
-_Avoid_: infinite fix loop, silent retry, bury the design conflict in more patches
+**Leaf Worker（叶子工作者）**：
+接收自包含简报、做一件事、返回摘要和产物路径的子代理或宿主工作者。实现、审查、探索都属于叶子角色；父编排器重写简报后的纠偏也由叶子执行。叶子不能再派生工作者。
+_避免_：嵌套子代理、子编排器。
+_历史别名_：宿主不能派写代码子代理时，降级独立主会话称 Implementer Window / Window B。
 
-**Harness Profile / Role Preset**:
-A binding of Rope leaf roles (implementer, reviewer, explore) onto **harness-native** subagent/agent preset templates. Generated **discovery-based**: the running model identifies the host, probes its agent registry and model catalog at run time, and writes the host's native format (pi Markdown+frontmatter, codex TOML, …) — no hardcoded per-host adapter branches in the skill. Default write target is the host's **user-level** agents directory (machine-local model churn). Plus a thin **user-global** Rope manifest (not project `.rope/`) that maps role → preset name/model and generation metadata. Refresh is **manual only** (no TTL/stale timer). The host preset is the source of spawn configuration; Rope does not keep a second full prompt/tool database as primary. The explore preset carries an **unrestricted tool surface** — mode discipline (read-only default; research briefs write `.rope/research/**` only) lives in the preset body, never in tool restriction.
-_Avoid_: hard-coded model list in skills, provider lock-in, Rope-only shadow agent runtime, default project-committed model ids, project-committed private model catalogs, automatic preset refresh, per-host adapter branches in skill text
+**Human Escalation Stop（人工升级停止）**：
+叶子修复无进展，或父编排器判断属于设计 / 需求 / 契约问题而非实现遗漏时，停止自动修复，给用户简短准确的问题说明并请求决定。当前无进展标准见 ADR 0007：全新叶子重复相同失败特征，或审查 / E2E / verify 的阻塞集合不再缩小。
+_避免_：无限修复、静默重试、用更多补丁掩盖设计冲突。
 
-**Issue-Level Verify**:
-The thin paperwork gate between go and finish (ADR 0007): the end-of-issue
-review really ran (verdict + identity + fix rounds recorded), every E2E item
-is terminal with drift hunted, per-slice commits present, tree clean,
-architecture documentation outcomes routed. Read-only on everything; never
-re-judges code or product truth — that verdict belongs to the end-of-issue
-reviewer.
-_Avoid_: second code review, replaying green tests, trusting verdict claims
-without identity
+**Harness Profile / Role Preset（宿主角色预设）**：
+将 Rope 叶子角色绑定到宿主原生代理模板。运行模型识别宿主，探测注册机制和模型目录，写 pi Markdown+frontmatter、codex TOML 等原生格式，不在技能中硬编码宿主适配分支。默认写用户级代理目录，另有薄用户全局清单，映射角色、预设名 / 模型及生成信息，不放项目 `.rope/`。仅手动刷新，无 TTL。原生预设是派生配置来源，Rope 不另建完整提示 / 工具数据库。explore 工具不限制；默认只读、调研只写 `.rope/research/**` 的模式纪律放正文。
+_避免_：技能硬编码模型表、provider 锁定、影子运行时、默认提交机器私有模型目录、自动刷新、按宿主写分支。
 
-**End-of-Issue Review**:
-The single code-review gate after all slices (ADR 0007, mechanics refined by
-0010, product-run scope split by 0015): **two parallel read-only leaves with
-new eyes**, spawned in one message against a frozen clean HEAD (every slice
-merged, tree clean, no leaf running), fix loop ≤2 rounds with delta
-re-review. The **Standards scanner**
-(explore-class preset, cheap model) runs lint/typecheck first, then
-judgement-call-scans the assembled diff for repo conventions, TDD
-anti-patterns, the smell baseline, and inline global invariants — never runs
-the product. The **Behavior reviewer** (`rope-reviewer`, strong model) reads
-the assembled diff against the Behavior Matrix and gives high-risk
-boundaries the deepest look. The reviewer is
-code-only: starting the product, walking the real entrypoint, and running
-e2e items belong to the **E2E acceptance stage** that follows an `approve`
-(ADR 0015). Aggregation is mechanical — verdict = worst of axis verdicts, no
-rerank. Findings are `blocking | note` with path:line + one-sentence fix;
-only blocking enters the one fix brief (≤2 rounds, then Human Escalation
-Stop); post-fix re-review is delta-only. Per-slice review no longer exists.
-_Avoid_: review (wrong level), per-slice verdict bookkeeping, silent
-self-check degradation, fixture-only acceptance, parent re-ranking axes,
-scanner running the product, the reviewer re-walking journeys the E2E
-Runner already proved
+**Issue-Level Verify（issue 级验证）**：
+go 之后、finish 收尾前的薄文书检查，现为 finish 第一阶段。核实结束审查确实运行，结论 / 身份 / 修复轮次已记，E2E 均终态且无漂移，各切片已提交、工作树干净、架构文档结果已安排。不重判代码或产品；只可按已有核验证据补 issue 文书。
+_避免_：第二次代码审查、重跑已绿测试、无身份的结论声称。
 
-**Standards Scanner**:
-The cheap read-only leaf of the end-of-issue review (ADR 0010): runs the
-briefed lint/typecheck/build commands first (skips what tooling enforces),
-then fast-scans the assembled diff against repo standards, TDD
-anti-patterns, the fixed Fowler smell baseline, and the inline global
-invariants — every hit a judgement call, never a violation, with
-repo-documented standards overriding the baseline. Spawned from the
-explore preset with the baseline pasted in the brief; returns `clean` or
-≤200 words of `{severity, path:line, issue, fix}` findings. Never starts
-the product; ports and processes belong to the E2E acceptance stage — the
-parent-owned stack + E2E Runner leaves (ADR 0015).
-_Avoid_: deep judgment in the scanner, hard-violation framing, moving
-architecture-continuity judgment out of the Behavior reviewer
+**End-of-Issue Review（issue 结束审查）**：
+全部切片后的唯一代码审查。冻结干净 HEAD，确保全部合并且无活动叶子，在一条消息并行派两个未参与构建的只读叶子。规范扫描器先 lint/typecheck，再按仓库规范、TDD 反模式、异味基线、全局不变量判断组装 diff，不运行产品。行为审查者依据矩阵审组装 diff，深查高风险边界。产品启动、真实入口、E2E 归 approve 后的验收阶段（ADR 0015）。机械取两轴最差结论，不重排；发现为 blocking/note，带 path:line 和一句修复。只有 blocking 进统一简报；修复集不再缩小则人工升级停止，复审只看差量。不再逐片审查。
+_避免_：混淆审查层级、逐片结论记账、静默自审降级、只靠 fixture 验收、父编排器重排轴、扫描器运行产品、审查者重走 runner 已证明旅程。
 
-**Graph-Driven Execution**:
-The post-0007/0008/0009 execution model. Shape slices tracer-bullet style
-(blocking edges + fresh-context fit are the hard rules; component and
-prefactor slices legal; vertical path-per-slice is a habit, not a rule). Shape reads the slice graph after
-slicing — initial ready count, level widths and the longest gating chain
-derived from the edges — and asks one execution question with those numbers. Go's default intent is maximum concurrency in either mode (every ready
-slice gets a background leaf; serialization needs a recorded reason;
-startup declares planned vs max parallelism). It picks a mode from host
-capability: **worktree mode**
-(slice-ready scheduling, ADR 0008/0012 — ready = seam-required blockers
-merged (file-overlap edges are merge-order preferences under this mode), one worktree
-per leaf, serial merge queue, repo-declared `worktree-setup:` contract in
-`routes.md`, parent owns `map.md` updates) or **shared mode** (waves,
-disjoint owned files per wave, leaves maintain the map; the parent serializes
-to one leaf at a time because there is one index and one checkout). No `mode:` or
-`review:` frontmatter; legacy packages that carry them are ignored.
-Re-cutting that bends the requirement goes back to grill.
-_Avoid_: wave barriers in worktree mode, asking serial-or-parallel before
-the graph exists, merging in parallel, per-merge test rituals, leaves
-writing the shared map concurrently
+**Standards Scanner（规范扫描器）**：
+结束审查中的低成本只读叶子。先跑简报的 lint/typecheck/build，跳过工具已保证项，再依据仓库规范、TDD 反模式、Fowler 异味基线及全局不变量快扫 diff。每个命中需判断，仓库规范优先。由 explore 预设加内联基线派生，返回 clean 或 ≤200 词的 severity/path:line/issue/fix。端口、进程归后续父编排器服务栈及 E2E runner。
+_避免_：扫描器做深度判断、把启发式当硬违规、将架构连续性判断移出行为审查者。
 
-**Delivery Branch**:
-The predeclared branch a worktree leaf points at its own final commit as
-the last write before returning — commit everything, leave
-`git status --porcelain` empty, then `git branch -f <delivery branch> HEAD`.
-Stated in the brief because the host's own `pi-agent-<id>` cleanup branch is
-not a name the merge queue can route on. The parent establishes the SHA
-from git, so a leaf's claimed SHA is never trusted. This replaces parsing
-branch names out of agent text.
-_Avoid_: reading a branch name from a leaf's prose, trusting a claimed SHA,
-routing on the host's `pi-agent-*` cleanup branch
+**Graph-Driven Execution（依赖图驱动执行）**：
+shape 按 tracer-bullet 切片，真实阻塞边和全新上下文容量是硬约束；组件 / 前置重构合法，不强制每片完整纵向旅程。切后读初始就绪数、各层宽度、最长阻塞链，只问一次带数字的执行问题。go 默认最大并发，就绪即后台派发，串行须记录理由，启动声明计划 / 最大并行。worktree 模式按切片就绪，seam-required 已合并即就绪，file-overlap 仅合并顺序偏好；每叶子独立 worktree、串行合并、routes 声明准备契约、父编排器维护 map。shared 按不相交拥有文件分波，叶子维护 map，单索引 / 检出要求提交串行。无 mode/review frontmatter，旧包字段忽略。改变需求的重切返回 grill。
+_避免_：worktree 波次屏障、图未成就问串并行、并行合并、逐合并测试仪式、并发写共享 map。
 
-**E2E Runner**:
-The read-only product-driving leaf of the E2E acceptance stage
-(ADR 0015), dispatched only after the two-axis code review returns
-`approve`. One runner drives **one journey** through the project-declared
-real entrypoint (browser, real message channel, CLI, API — the project
-declares, Rope prescribes no tool); internal seams (submitter injection,
-fixtures) are integration evidence and never substitute. The **parent owns
-one shared test stack** — project-declared start command, readiness probe,
-teardown; runners never build their own. Resource-disjoint journeys run as
-parallel leaves with isolated browser sessions; journeys sharing an account
-or mutable state serialize. A runner never edits code, never spawns, and
-returns structured evidence (steps, tool/command, artifacts, per-item
-pass/fail). Every required `e2e.md` item carries success evidence —
-`agent_passed` (runner) or `user_confirmed` (user ran it) — or an explicit
-per-item user waiver recorded as a waiver, never as a pass; otherwise the
-issue stays blocked. After an E2E fix merges:
-delta code re-review, stack re-deploys on the new HEAD, affected journeys +
-shared-entry smoke re-run, reused evidence annotated with its commit.
-_Avoid_: implementer signing acceptance, reviewer re-walking proved
-journeys, per-runner stacks, headless injection recorded as entrypoint
-truth, waivers absorbed silently
+**Delivery Branch（交付分支）**：
+简报预先声明，worktree 叶子返回前最后将其指向最终提交：提交全部，确保 `git status --porcelain` 空，再 `git branch -f <delivery branch> HEAD`。宿主 pi-agent 清理分支不能路由合并。父编排器从 git 核 SHA，不信叶子声称，不从自由文本猜分支。
+_避免_：解析散文分支名、信任口头 SHA、路由到 pi-agent-*。
 
-**Self-Fix Loop**:
-A check/verify pattern (from Trellis) where the verifying model finds a problem and fixes it directly, then reruns checks, looping until green. Not used at issue-level verify in Rope, because verify must not edit code (cross-role separation of implement vs accept).
-_Avoid_: auto-fix, retry (too generic)
+**E2E Runner（端到端执行者）**：
+双轴代码审查 approve 后派发的只读产品操作叶子。每人通过项目声明的浏览器 / 消息 / CLI / API 真实入口走一条旅程，Rope 不指定工具；注入 / fixture 是集成证据，不能替代真实入口。父编排器只维护一套共享栈，负责声明启动命令、就绪、关闭；runner 不自建。资源不相交且会话隔离则并行，共享账户 / 可变状态则串行。不改代码、不派生，结构化返回步骤、命令、产物、逐项通过 / 失败。必需项须 agent_passed、user_confirmed 或逐项明确用户豁免，豁免不记通过，否则阻塞。修复后差量代码复审、新 HEAD 重新部署、受影响旅程及共享入口冒烟重跑，复用证据注明提交。
+_避免_：实现者自签验收、审查者重复旅程、每 runner 一栈、把注入当真实入口、静默吸收豁免。
 
-**Escalation**:
-The act of the verify model deciding on its own that a finding needs deeper inspection — either by reading more itself or by dispatching a read-only leaf (`explore`). Driven by the model's judgment, not by mechanical trigger rules.
-_Avoid_: upgrade, promote (mechanical connotation)
+**Self-Fix Loop（自修复循环）**：
+源自 Trellis 的检查模式：验证模型发现问题后直接修，再检查至通过。Rope issue 验证不使用，因为实现与验收角色分离，verify 不改代码。
+_避免_：含混的自动修复、重试。
 
-**Upstream Harvest**:
-A maintenance workflow for this Rope repository that compares pinned external inspiration sources (initially Matt Pocock skills, optionally Trellis) against the last reviewed revision, produces a human-facing review brief of idea/reference changes, and only after human accept/adapt/ignore decisions lands changes into Rope-native skills or `.rope/` docs. Not a product skill shipped by `rope add`, and not automatic vendor merge.
-_Avoid_: sync (ambiguous with file copy), submodule update (mechanism only), one-time migration bridge (retired)
+**Escalation（升级检查）**：
+验证模型自行判断发现需更深入检查，通过继续阅读或派只读 explore 完成；由判断驱动，不靠机械触发器。
+_避免_：带机械含义的 upgrade/promote。
 
-**Acceptance Behavior**:
-The user- or caller-visible outcome a ticket or issue must make true. Layered (ADR 0009): **ticket-TDD** — each ticket's units proved by red→green at a shape-confirmed seam; **issue-BDD** — the Behavior Matrix is the issue's behavior spec (no slice pointers), walked at the real entrypoint by the end-of-issue reviewer; e2e.md carries real-environment behaviors only (`covered_by_slice` is deleted — anything that would earn it does not belong in e2e.md).
-_Avoid_: TDD as “write many unit tests then code”, acceptance test as synonym for issue-level verify only, re-running every green unit test at verify by default
+**Upstream Harvest（上游灵感采收）**：
+本仓维护流程：比较固定外部灵感来源与上次已审版本，生成面向人的变更简报，经接受 / 改造 / 忽略决定后才落入 Rope 原生技能或知识层。初始来源 Matt Pocock，可选 Trellis。不由 rope add 分发，不自动合并 vendor。
+_避免_：与复制混淆的同步、只描述机制的子模块更新、已退役的一次性迁移桥。
 
-**Architecture Impact**:
-The conditional shape-stage record of whether an issue touches an existing architecture decision, public seam, dependency direction, lifecycle, state, persistence, permission, concurrency, error semantics, adapter, runtime entrypoint, or duplicated responsibility. A `not-applicable` result is still an explicit lightweight check; an uncertain result is treated as requiring resolution.
-_Avoid_: full architecture review for every task, inference from filenames or diff alone, architecture impact as an automatic ADR request
+**Acceptance Behavior（验收行为）**：
+工单 / issue 必须实现的用户或调用者可见结果。ADR 0009 分层：ticket-TDD 在 shape 确认边界 red→green；issue-BDD 用行为矩阵说明整体行为，不以切片索引替代规范。真实入口由 E2E 阶段执行，e2e.md 只放真实环境行为；已删除 covered_by_slice，能这样标的项目本就不属于 E2E。
+_避免_：先写大堆单测再编码、把验收等同文书 verify、默认验证时重跑全部绿单测。
 
-**Decision Disposition**:
-The per-decision statement of how an issue handles a relevant existing architecture decision: `inherit`, `extend`, `supersede`, `exception`, or `not-applicable`. It is distinct from the source decision's status, which describes whether that source is active, superseded, deprecated, provisional, or unknown.
-_Avoid_: one issue-level disposition for several decisions, silently choosing a disposition during implementation, treating exception as an undocumented shortcut
+**Architecture Impact（架构影响）**：
+shape 按条件记录 issue 是否触碰已有决策、公共边界、依赖方向、生命周期、状态、持久化、权限、并发、错误语义、adapter、运行入口或重复职责。not-applicable 也需轻量检查，存疑按需解决处理。
+_避免_：每任务完整架构审查、仅凭文件名 / diff 推断、自动要求新 ADR。
 
-**Constraint Bundle**:
-The portable architecture constraint set derived from effective sources before slicing: decision sources/statuses, scope, invariants, public seams, forbidden shortcuts, evidence, and conflicts. The parent keeps the full bundle; each slice/brief requires applicable global + slice IDs and source sections to read. A justified `none` is explicit. Effective sources take precedence over slice-local convenience; conflicts return to the parent.
-_Avoid_: a bare instruction to “follow the ADR”, IDs without source reading, leaf-local reinterpretation, or a second canonical architecture document
+**Decision Disposition（决策处置）**：
+逐决策说明本 issue 如何处理已有架构：inherit、extend、supersede、exception、not-applicable。与来源本身 active、superseded、deprecated、provisional、unknown 状态不同。
+_避免_：多决策共用一处置、实现中默选、把例外当无文档捷径。
 
-**Architecture Landing**:
-The implementer's pre-edit statement after reading mapped source sections: at most three lines naming the existing responsibility reused, public seam used, and ownership/dependency direction preserved. Returned with source sections read and the pre-edit record reference; checked mechanically, judged by the end-of-issue reviewer. No separate approval round.
-_Avoid_: a copy of the spec, a file-by-file plan, retrospective evidence claimed as pre-edit reading
+**Constraint Bundle（约束包）**：
+切片前由生效来源推导的可传递架构约束：来源 / 状态、范围、不变量、公共边界、禁止捷径、证据、冲突。父编排器保留完整包；各切片 / 简报必须有全局及局部 ID、必读章节，有理由的 none 要明写。生效来源优先于切片便利，冲突回父编排器。
+_避免_：一句“遵循 ADR”、有 ID 无阅读、叶子局部重新解释、第二份权威架构文档。
 
-**Contract Note**:
-A shape-time, user-facing projection of the issue's Behavior Contract: 3–5 one-sentence bullets answering “when this issue is done, what can you observe?”, plus failure visibility where relevant. Written into `prd.md` as `## Contract Note`; step 11 of `rope-shape` asks the user to confirm the note instead of reading the full PRD. Confirming the note confirms the Behavior Contract because the note is a direct projection of it — not a separate wish list. Verify still accepts against the Behavior Contract, matrix, and E2E.
-_Avoid_: a second contract that can drift from the PRD, asking the user to read the full PRD by default, treating the note as an acceptance artifact
+**Architecture Landing（架构落点）**：
+实现者读映射章节后、编辑前的 ≤3 行声明：复用什么职责、用哪个公共边界、保留什么归属 / 依赖方向。返回阅读章节及编辑前记录引用，机械核对，结束审查判断。不增加批准轮次。
+_避免_：复制 spec、逐文件计划、把事后记录冒充编辑前阅读。
 
-**Minimal Leaf Brief**:
-The hard budget for implementer/reviewer briefs: a content allowlist (slice Public behavior one sentence; Behavior Contract 6 fields at their thinnest; mandatory Constraint Bundle path + global/slice Constraint IDs + short global invariants; test seam + one prior-art path) plus a required operational contract (source files/sections to read before editing and Architecture landing evidence; relevant artifact paths including the investigation map;
-TDD red/green commands + red signal, expected return shape, no-nested-spawn
-and commit rules). Everything else loads by reference; brief body ≤ 60 lines (paths and command blocks excluded). More enforceable than “be concise” because it can be checked before dispatch.
-_Avoid_: full inline PRD paragraphs, inline bundle detail, speculative file-by-file plans, dropping TDD commands or return shape to save tokens
+**Contract Note（契约摘要）**：
+shape 将行为契约投影给用户，3–5 个单句回答“完成后能观察到什么”，适用时说明失败可见性。写 prd.md 的 `## Contract Note`，用户确认摘要即确认所投影的契约，无需默认通读 PRD。验收仍依据行为契约、矩阵、E2E；摘要不是另一份愿望或独立验收产物。
+_避免_：第二份易漂移契约、默认要求用户读全 PRD、把摘要作为验收证据。
 
-**Investigation Map**:
-`<issue>/map.md` — one fact per line, each with a file path and a date.
-Seeded at shape from exploration. Shared mode: implementers update the
-lines their work falsifies before committing. Worktree mode: leaves report
-falsified / needed lines in their summaries; the parent writes them after
-each merge — concurrent leaves never share the file. Entries that stop
-earning their line are deleted.
-_Avoid_: dumping transcripts into the map, uncommented stale facts, inlining
-the map into briefs
+**Minimal Leaf Brief（最小叶子简报）**：
+内容允许清单：一句 Public behavior、最简六字段契约、必需约束包路径与全局 / 局部 ID 和短全局不变量、测试边界与一个先例路径。另有必需操作契约：编辑前必读来源及落点证据、产物和 map 路径、TDD 红绿命令 / 失败信号、返回形状、禁止嵌套及提交规则。其余按引用加载，正文 ≤60 行，不计路径 / 命令块；派发前可检查。
+_避免_：内联 PRD / 包细节、推测逐文件计划、为省词删 TDD 命令或返回格式。
 
-**Quick Fix Path**:
-The lightweight solo entry (`rope-quick`) for small tasks that fit **one fresh context window** — already-diagnosed fixes **and** small features. One model runs **grill-lite** (fact self-check against the tree + one round of decision questions, Q&A recorded into quick.md), changes red→green / test-first at the nearest seam, commits locally, and syncs `.rope/` docs inline. No issue package, no leaf dispatch, no issue-level verify; the human is the accept gate, assisted by the closing report's risk-focus section. Four stop lines (new architecture decision, change failed twice, scope sprawl, schema/destructive/production) abort to the full pipeline with `status: stopped` in `quick.md` — the solo-session replacement for "leaf conflict returns to the parent".
-_Avoid_: treating quick as a replacement for the full pipeline on any issue, silent absorption of newly discovered architecture decisions, tests-green-only claims without red evidence, entry-gating what counts as quick, needing a second question round instead of stopping
+**Investigation Map（调查图）**：
+`<issue>/map.md`，shape 从探索初始化，每行一事实、路径、日期。shared 实现者提交前修正被其工作证伪行；worktree 叶子在摘要报告，由父编排器每次合并后改，共享文件不并发写。失去价值的条目删除。
+_避免_：倾倒对话、无说明的旧事实、简报内联整图。
 
-**Plan Artifact Reader Layering**:
-The rule that plan artifacts name their reader: humans read the grill recap (3–6 bullets) and the Contract Note (3–5 bullets); machines read the Behavior Contract, Behavior Matrix, Constraint Bundle, and tasks records by reference. Unresolved questions are resolved at the grill gate before shape; a conflict discovered by a leaf during go is re-briefed back to the parent for disposition, never silently absorbed. This replaces the older “concise plan + list unresolved questions at the end” rule.
-_Avoid_: one artifact trying to serve both readers with one format, unresolved questions shipped to execution, silent absorption of leaf conflicts
+**Quick Fix Path（小任务快速路径）**：
+rope-quick 单人完成一个全新窗口内的已诊断修复和小功能。先 grill-lite 核事实、一轮决策并记 quick.md，再最近边界 red→green / 测试先行，本地提交及同步知识层。不建完整包、不派叶子、不做 issue verify，用户验收，收尾风险焦点辅助。新架构决策、同修复两次失败、范围扩散、schema / 破坏性 / 生产四条停止线回完整流程，quick.md 标 stopped。
+_避免_：任何 issue 都用 quick、默吸新决策、无 red 只报绿、额外入口限制、需要第二轮仍不停。
 
-**Edge Classification**:
-The shape-time labeling of every `Blocked by` edge as `file-overlap`,
-`seam-required`, or `methodology-order`. `seam-required` always blocks
-dispatch; `file-overlap` blocks in shared mode and, under shape-verified
-`Execution mode: worktree` (ADR 0012), is demoted to a merge-order
-preference — concurrent dispatch from the same merged base, serial merge
-queue orders landing, one conflict re-dispatch resolved on the unmerged
-branch. `methodology-order` (no owned-file overlap, no seam consumption —
-pure "reads better if done first") never blocks dispatch. This refines
-ADR 0008's ready-set definition.
-_Avoid_: treating "feels safer sequential" as a dependency, wave thinking
-reintroduced through unclassified edges, edge labels without owned-files
-facts, demoting a seam-required edge (a seam that does not exist yet is
-unavailability, not conflict)
+**Plan Artifact Reader Layering（计划产物读者分层）**：
+明确每类读者：人读 grill 3–6 点回顾及 Contract Note 3–5 点；机器按引用读契约、矩阵、约束包、任务。可解问题在 shape 前 grill 解决，go 叶子发现冲突回父编排器重简报处置，不能默默吸收。代替“计划简洁、最后列未解问题”旧规则。
+_避免_：一个格式服务所有读者、带未决问题执行、默吸叶子冲突。
 
-**Two-stage Contract Slice**:
-The required shape of any `Kind: contract` slice that carries deep durability,
-concurrency, or protocol semantics: a **thin-interface** slice (public seam +
-minimal working operations; consumers may block on it) plus a separate
-**hardening** slice (crash-recovery, concurrency protocols, sanitization depth;
-consumers must NOT block on it). Persistence/schema migration ownership is
-unique — exactly one slice owns a migration file.
-_Avoid_: one storage state-machine ticket packing interface and hardening,
-hardening rework sitting on the consumer critical path, two slices owning one
-migration file
+**Edge Classification（边分类）**：
+shape 给每条 Blocked by 标 file-overlap、seam-required、methodology-order。seam-required 始终阻派；file-overlap 在 shared 阻派，经验证 worktree 时降为合并顺序偏好，可从共同基线并发，串行落地，未合并分支冲突重派一次。methodology-order 无文件重叠、无边界消费，仅顺序更易理解，不阻派。
+_避免_：把“串行更安全”当依赖、无标签引回波次、无文件事实标边、降级尚不存在的必要边界依赖。
 
-**Mechanical Return Gate**:
-The join-time reconciliation between a leaf's return summary and its slice's
-Required evidence, including mapped source reading/Architecture landing,
-affected guards, and exception deltas: every item maps to recorded output or
-an artifact/message reference; missing items bounce exactly those IDs, reported
-architecture conflicts hold the affected landing for resolution. It
-is **evidence reconciliation, not code review** (ADR 0007 boundary): no
-implementation re-read, no test reruns, no second review point — the
-end-of-issue review stays the only review gate.
-_Avoid_: parent re-reading implementations at join, rerunning leaf tests,
-using the gate to inject new acceptance requirements
+**Two-stage Contract Slice（两阶段契约切片）**：
+深持久性 / 并发 / 协议的 Kind: contract 必须分薄接口（公共边界及最小操作，消费者可依赖）与独立加固（崩溃恢复、并发协议、净化深度，消费者不能阻塞于此）。迁移文件归属唯一。
+_避免_：接口与存储状态机加固塞同片、加固返工卡消费者关键路径、两片拥有同迁移。
 
-**Defense Budget**:
-The rule that a correction brief may not introduce acceptance requirements
-absent from the shaped Behavior Matrix/Constraint Bundle — new acceptance
-lines = 0; architecture obligations are declared at shape, not invented in fixes. A genuine
-gap found during execution goes back to shape (re-cut as a new slice) or is
-demoted to a recorded non-blocking note. Acceptance scope is fixed at shape;
-fix rounds converge instead of escalating.
-_Avoid_: mid-execution acceptance inflation, defensive requirements appearing
-only in fix rounds, design constraints drifting between correction rounds
+**Mechanical Return Gate（机械返回检查）**：
+叶子返回与切片 Required evidence 对账，含来源阅读 / 架构落点、受影响检查、例外差异。每项映射真实输出或产物 / 消息引用，缺项只退对应 ID，架构冲突暂停相关落地。只核证据，不读实现、不重跑测试、不新增审查点，结束审查仍唯一。
+_避免_：父编排器落地时读实现、重跑叶子测试、借检查新增验收。
 
-**Granularity Quiz**:
-The shape-time challenge of slice granularity after the graph exists, folded
-into the graph-confirmation step: is any slice too coarse (fits-no-window) or
-too fine (trivial grouping lost)? Are the blocking edges real? Merge or split?
-The user approves granularity, not just wave order. Backed by two hard rules:
-every slice has a **demo path** (a demoable behavior, never a layer name), and
-a change that fits one fresh context window should not become a multi-slice
-issue at all (route `rope-quick`).
-_Avoid_: quiz as a new serial Q&A round, demo path answered with a layer name,
-splitting a one-window change to look rigorous
+**Defense Budget（防御预算）**：
+纠偏不能引入 shape 行为矩阵 / 约束包外的新验收行，新增数为 0。架构义务在 shape 声明，不能修复时发明。真正缺口回 shape 重切或降为已记录非阻塞备注。范围固定，让修复收敛。
+_避免_：执行中膨胀验收、只在修复出现防御要求、轮次间约束漂移。
 
-**Human Gate Panel**:
-The batched presentation of multiple pending Human Escalation Stops / gate
-approvals in one panel — each entry naming the affected slices, the exact
-authorization requested, and the blast radius — instead of one-at-a-time
-blocking. Non-gated lanes' continue-or-hold status is stated explicitly.
-_Avoid_: sequential gate blocking idle lanes, vague gate descriptions that
-require a follow-up question to understand
+**Granularity Quiz（粒度确认）**：
+图形成后与图确认一起检查过粗、过细、阻塞边真假、应合并或拆分。用户批准粒度，不只批准波次。每片有可演示行为，不能只是层名；一窗口改动直接推荐 quick，不建多片 issue。
+_避免_：另开串行问答轮、演示路径写层名、为显严谨拆小改动。
 
-**Research Floor**:
-The grill-stage dispatch floor (ADR 0017): a request involving a new
-mechanism, an external platform/service integration, or a "how do mature
-products solve this" design judgment requires parallel research dispatch
-before the decision rounds — typically two briefs (repo precedent +
-external product survey). Purely internal small changes record
-`research: not-needed` + one-line reason instead. Shape backstops it: a
-PRD citing neither research nor a waiver is refused. Backs the prior-art
-ladder (need → repo precedent → stdlib/platform → installed deps → minimal
-build) and bans unverified industry-practice claims as decision bases.
-_Avoid_: "prefer to research when wide" as a license to skip, treating
-model memory as prior art, floor turned into an excuse to skip quick-path
-work that needs no research
+**Human Gate Panel（人工授权面板）**：
+多个待人工升级 / 批准一次展示，每项列受影响切片、具体授权、影响范围，并说明未授权线继续或暂停，避免逐项阻塞。
+_避免_：其他线空等、含混授权需再追问才懂。
 
-**Dispatch Contract**:
-The ADR 0017 contract family: the dispatch brief is executable (question,
-sources, output path, return shape; leaf honors exactly what it declares;
-unmet requirements return under `unknowns` with attempts); dispatch is the
-mandated path wherever rules name a leaf (E2E journeys, research, fixes);
-and the parent writes no product/test code during go/E2E — correction is
-always rewrite-brief + re-dispatch, never parent self-editing or parent
-takeover of a failed leaf's job.
-_Avoid_: parent takeover framed as "brief correction", empty leaf returns
-accepted as passes, silent shrinking of a brief's scope in the return
+**Research Floor（调研底线）**：
+ADR 0017 规定：涉及新机制、外部集成、成熟产品做法判断，决策轮次前必须并行调研，通常仓库先例加外部调查；纯内部小改记 research: not-needed 和理由。shape 兜底，无调研引用也无豁免则拒绝 PRD。先例阶梯为需求必要性、仓库、标准库 / 平台、已有依赖、最小自建；未核验行业实践不能作依据。
+_避免_：把“优先调研”当可跳过、把模型记忆当先例、用底线阻碍无需调研的 quick。
+
+**Dispatch Contract（派发契约）**：
+ADR 0017 契约族：简报是可执行契约，声明问题、来源、输出路径、返回格式，未完成要求带尝试写 unknowns。规则指定叶子的地方必须派发，如 E2E、调研、修复。go/E2E 父编排器不写产品 / 测试，纠偏始终改简报再派，不自行编辑或接管失败叶子。
+_避免_：把接管包装成改简报、空返回算通过、返回时默缩范围。

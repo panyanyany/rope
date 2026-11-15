@@ -2,167 +2,158 @@
 
 # Rope
 
-**Grill. Shape. Go.**
+**盘问。塑形。出发。**
 
-**English** · [简体中文](README.zh-CN.md)
+**中文主文档** · [中文副本](README.zh-CN.md)
 
-A repo-local skill harness for agentic coding tools — spec-driven,
-graph-driven, and honest about what "done" means.
+一套仓库本地的 agent 编码技能挂具（skill harness）——规格驱动、依赖图驱动，
+并且对"做完了"三个字诚实。
 
 </div>
 
 ---
 
-## What is Rope
+<a id="what-is-rope"></a>
+## Rope 是什么
 
-Rope is a set of small skills + a `.rope/` knowledge layer that turns one
-messy feature request into shipped, verified work. It exists because agent
-sessions fail in two familiar ways: **long-session drift** (the agent forgets
-what it decided three hours ago) and **green-pipeline rot** (every test
-passes, the product is still broken — nobody started it for real).
+Rope 是一组小技能 + 一个 `.rope/` 知识层，把一个含混的功能需求变成交付了的、
+验证过的工作。它存在，是因为 agent 会话总以两种方式翻车：**长会话漂移**
+（三小时前定的决定，agent 已经忘了）和**全绿管线腐烂**（测试全过、产品还是坏的
+——没人真的把它启动起来过）。
 
-Rope answers both. Durable knowledge lives in files, not chat. Heavy work
-runs in fresh-context leaf workers, orchestrated by one lean parent. And
-nothing is called done until a reviewer with **new eyes** walks the **real
-entrypoint** — starting the product the way a user would.
+Rope 对这两件事各有一手：持久知识落在文件里而不是聊天记录里；重活跑在
+全新上下文的叶子 worker 里，由一个精简的父会话编排；而任何东西想被叫做
+"做完了"，都得先过一个**新眼睛**评审——它从没看过施工过程，会把**真实入口**
+当用户一样走一遍。
 
-Works with any host that supports skills and subagents (pi, Claude Code,
-codex, agy, …); `rope-harness-presets` discovers the active host's agent
-mechanism and model catalog at run time and writes leaf presets in that
-host's native format — no hardcoded adapters.
+任何支持 skills + subagents 的宿主（pi、Claude Code……）都能用；
+`rope-harness-presets` 会把叶子模型的选路适配到你机器上的模型目录。
 
-## How it works
+<a id="how-it-works"></a>
+## 工作方式
 
-One issue, one parent session, five moves:
+一个 issue，一个父会话，五个动作：
 
-1. **Grill** — a plain-language interview that settles behavior and
-   architecture *before* planning. Decisions land in `.rope/` docs
-   immediately; chat is treated as volatile.
-2. **Shape** — requirements become an issue package: PRD with a
-   **Contract Note** (3–5 observable outcomes), tracer-bullet slices sized
-   to a fresh context window (component and prefactor slices legal), and a
-   behavior matrix as the issue's BDD spec. Then shape **reads the slice
-   graph** — rivers, sizes, numbers — and asks you exactly one execution
-   question.
-3. **Go** — two modes by host capability. **Worktree mode** (host can
-   isolate a spawn): slice-ready scheduling — a slice starts in its own
-   worktree the moment its blockers merge, no wave barrier; a serial merge
-   queue lands branches one at a time. **Shared mode** (any host): waves
-   with disjoint owned files. Leaves orient by a shared investigation
-   **map** and commit slice by slice. TDD discipline lives here, at agreed
-   seams.
-4. **Review (once)** — after all slices, two parallel read-only leaves
-   that never watched the build: a cheap scanner fast-scans the diff for
-   standards and smells while the behavior reviewer walks the Matrix over
-   the assembled diff. Blocking findings route to one fix brief, max two
-   rounds, then it stops and asks you. Then the **E2E acceptance stage**:
-   runner leaves drive the project's real entrypoint — one user journey
-   per leaf on a parent-owned stack — and every required item passes with
-   evidence or gets your explicit waiver.
-5. **Finish** — finish first runs the thin paperwork gate (review recorded,
-   E2E terminal, tree clean), then closes the issue and routes
-   architecture-doc updates home.
+1. **盘问（grill）**——用大白话把行为和架构在规划*之前*聊清楚。决定立刻落进
+   `.rope/` 文档；聊天被当作易挥发物。
+2. **塑形（shape）**——需求变成 issue 包：带**契约便签**（3–5 条可观察结果）的
+   PRD、按"一个新脑子装得下"裁切的垂直切片、行为矩阵。然后 shape **读依赖图**
+   ——河流、尺寸、数字——只问你一个执行问题。
+3. **出发（go）**——宿主支持隔离时按**切片就绪**调度：切片的前置一合并，就从
+   最新 HEAD 切出自己的 worktree 开跑，没有波次栅栏，串行合并队列逐个落地；
+   否则退波次模式（同波不相交文件）。叶子靠共享的调查**地图**定向，逐片提交。
+   TDD 纪律住在这里，在约定的 seam 上。
+4. **评审（只一次）**——全部切片完成后，两个从没看过施工的只读评审叶子并发：
+   规范扫描器扫 diff 的规范与坏味道，行为评审员对着行为矩阵走整体 diff。
+   阻塞发现走一份修正简报，每轮须缩小阻塞集，无进展即停下来问你。然后是 **E2E 验收**：
+   父会话启动一套共享服务，runner 叶子各走一条用户旅程，每个必过项
+   要么拿到证据，要么你明确豁免。
+5. **收尾**——finish 先跑一道薄文书门（评审记录在案、E2E 终态、树干净），
+   再关闭 issue 并把架构文档更新送回各自的家。
 
-Small task that fits one fresh context window — fix with the diagnosis done,
-or a small feature? Skip all of it: `rope-quick` is
-the solo path — red → green at the nearest seam, one page of record, four
-stop lines back to the full pipeline.
+一个全新上下文窗口内的已诊断小修或小功能，可跳过完整流程：`rope-quick` 单人快道——最近的 seam 上
+红→绿、一页记录、四条停止线退回完整管线。
 
-## What makes it different
+<a id="what-makes-it-different"></a>
+## 有什么不一样
 
-| Idea | What it buys you |
+| 想法 | 换来什么 |
 | --- | --- |
-| **The graph answers, not vibes** | Serial-vs-parallel is decided *after* slicing, from `Blocked by` edges, with numbers. Zero-dependency "rivers" get offered as splits. |
-| **Slice-ready worktrees** | With host isolation, a slice runs the moment its blockers merge — the graph itself is the scheduler, waves never existed. One `worktree-setup:` line makes each fresh copy testable. |
-| **Contract Note** | You confirm 3–5 observable bullets instead of reading a PRD. The note *is* the contract's human projection — never a second contract. |
-| **Fresh-context iron rule** | Every slice fits one clean context window. Oversized slices are re-cut at shape; a re-cut that bends the requirement goes back to grill. |
-| **One review, new eyes** | Per-slice reviews see per-slice problems. The failure classes that kill issues — cross-slice conflicts, spec-observable gaps, fixture-vs-product drift — only show at the assembled diff. The budget goes there. |
-| **Real entrypoint walk** | Fixture-green is not product-true. After review passes, dedicated runner leaves start the product — browser, CLI, or API, whatever the project ships — and walk one user journey each. |
-| **Investigation map** | One fact per line, path + date. Leaves stop re-finding the same code (in our field data, 56–71% of big-slice tool calls were wayfinding). |
-| **Architecture continuity** | Every issue records a disposition — inherit, extend, supersede — for each ADR it touches, and hands leaves a Constraint Bundle by reference. |
-| **Thin verify** | Paperwork only, run as finish's first stage. It never re-judges code; it checks the gate really closed. |
+| **依赖图回答问题，不靠感觉** | 串行还是并行在切片*之后*由 `Blocked by` 边决定，带数字。零依赖的"河流"会作为拆分建议提给你。 |
+| **切片就绪 + worktree** | 宿主能隔离派生时，切片前置一合并就开跑——依赖图本身就是调度器，没有波次栅栏；一条 `worktree-setup` 声明让新副本秒变可测。 |
+| **契约便签** | 你确认 3–5 条可观察的要点，而不是读一份 PRD。便签是行为契约的人类投影——不是第二份契约。 |
+| **新脑子铁律** | 每个切片装得下一个干净上下文窗口。超尺寸切片在 shape 当场重裁；重裁会扭弯需求就回炉 grill。 |
+| **一次评审、新眼睛** | 片级评审只看得见片级问题。杀死 issue 的那几类失败——跨切片冲突、规格可观察缺口、fixture 与产品的漂移——只在整体 diff 上显形。预算花在那里。 |
+| **真实入口走查** | fixture 全绿不等于产品为真。评审通过后，父会话启动共享服务，专职 runner 叶子操作产品——浏览器、CLI 或 API，项目发布什么就用什么——一人一条用户旅程。 |
+| **调查地图** | 一行一事实，带路径和日期。叶子不再重复找同一批代码（我们的实测里，大切片 56–71% 的工具调用在找路）。 |
+| **架构连续性** | 每个 issue 对它碰到的每条 ADR 记录处置——继承、扩展、取代——从不悄无声息。叶子按引用拿到约束包。 |
+| **薄 verify** | 只查文书。它从不重审代码；它检查门真的关上了。 |
 
-## How our thinking evolved
+<a id="how-our-thinking-evolved"></a>
+## 思路变迁
 
-- **2026-06-27 · ADR 0001** — Verify splits from go as its own gate; parent/leaf roles get names.
-- **2026-08-05 · ADR 0002** — Decisions get dispositions; issues inherit, extend, or supersede recorded architecture — never silently.
-- **2026-08-11 · ADR 0003** — First parallelism: an opt-in "dynamic mode" with disjoint file ownership. (Later superseded.)
-- **2026-08-17 · ADR 0004** — Review goes risk-tiered per-slice/batch; leaf briefs get a hard budget (≤60 lines, allowlist).
-- **2026-08-19 · ADR 0005/0006** — Humans confirm a Contract Note, not a PRD; small fixes get a solo quick path.
-- **2026-08-22 · ADR 0007** — A 7.5-hour all-green session shipped a broken product. Execution turns graph-driven; review collapses to one new-eyes gate with a real-entrypoint probe; verify goes thin.
-- **2026-09-23 · ADR 0016** — The script-driven "dynamic workflow" experiment is retired; parent agent dispatch is the single execution form, and the skills shrink to one path.
-- **2026-09-29 · ADR 0017** — Dispatch becomes a contract: tiered research floor at grill (with shape backstop), brief-as-contract leaf returns with unknowns discipline, must-dispatch + parallel E2E journeys, parent writes no code during go/E2E, per-round crystallize, narrow-first slicing; explore preset thinking rises to medium.
+- **2026-06-27 · ADR 0001**——verify 从 go 中拆出成为独立门；父/叶角色命名。
+- **2026-08-05 · ADR 0002**——决策有了处置方式；issue 对已记录架构继承、扩展或取代，绝不无声。
+- **2026-08-11 · ADR 0003**——第一次并行：可选的"dynamic 模式"，文件所有权不相交。（后被取代。）
+- **2026-08-17 · ADR 0004**——评审分级 per-slice/batch；叶子简报有了硬预算（≤60 行、白名单）。
+- **2026-08-19 · ADR 0005/0006**——人类确认的是契约便签而不是 PRD；小修有了单人快道。
+- **2026-08-22 · ADR 0007**——一个 7.5 小时全绿的会话交付了坏产品。执行改为依赖图驱动；评审收敛为一次"新眼睛 + 真实入口"；verify 变薄。
+- **2026-09-23 · ADR 0016**——脚本驱动的"dynamic workflow"实验退役；父会话
+  Agent 派发成为唯一执行形态，skill 收缩为单一路径。
 
-## Install
+- **2026-09-29 · ADR 0017**——调研底线、简报即契约、每轮决策落盘、窄切片优先；go/E2E 父会话不写代码，E2E 必须派 runner，资源不相交则并行。
+
+<a id="install"></a>
+## 安装
 
 ```bash
-# into the default agent skills directory
+# 装进默认 agent 技能目录
 npx git+https://github.com/WufeiHalf/rope.git add
 
-# or project-local
+# 或装进项目本地
 npx git+https://github.com/WufeiHalf/rope.git add --target ./.agents/skills
 ```
 
-Both targets receive the full skill set, including shared runtime references;
-cross-skill references resolve relative to the loaded skill, not the managed
-repo's `.rope/` directory. Updating the CLI alone does not refresh
-already copied skills; explicitly run `add` for the intended target. If the
-host finds duplicate skill names, check which path it loaded before updating.
-
-Then, in the repo you want to manage:
+然后在你要管理的仓库里：
 
 ```bash
-rope-init        # scaffold .rope/ (GLOSSARY, routes, adr, specs, …)
+rope-init        # 搭起 .rope/（GLOSSARY、routes、adr、specs……）
 ```
 
-Optional, once per machine or model-catalog change:
+可选，每台机器或模型目录变化时跑一次：
 
 ```bash
-rope-harness-presets   # write rope-* leaf presets for your host
+rope-harness-presets   # 为你的宿主写 rope-* 叶子预设
 ```
 
-Missing presets never block — go/verify soft-degrade and record it.
+预设缺失从不阻塞——go/verify 软降级并记录在案。
 
-## Skills
+全局和项目目标都安装完整技能集及共享运行说明；跨 skill 引用相对于
+实际加载的 skill 解析，不依赖业务仓库里的 `.rope/`。只更新 CLI 不会刷新
+已复制的 skill，需对目标目录显式执行 `add`；同名副本冲突时先确认宿主加载路径。
 
-| Skill | Job |
+<a id="skills"></a>
+## 技能清单
+
+| 技能 | 职责 |
 | --- | --- |
-| `rope-init` | Scaffold `.rope/` in a target repository |
-| `rope-grill` | Plain-language requirement interview; decisions land in durable docs |
-| `rope-shape` | Issue package: PRD + Contract Note, slices, matrix, E2E, graph read |
-| `rope-go` | Slice dispatch + serial merge queue, investigation map, TDD at seams, one two-axis review, E2E acceptance stage |
-| `rope-finish` | Verify paperwork gate, then close the issue and route architecture-doc updates |
-| `rope-summary` | Preserve reusable contracts/learnings into `.rope/` after the fact |
-| `rope-clear` | Organize docs and migrate legacy `.rope` layouts in approved batches; retain decision history |
-| `rope-quick` | Solo single-window path (fixes + small features): grill-lite, stop lines back to the pipeline |
-| `rope-harness-presets` | Bind leaf roles to harness-native presets for your host |
+| `rope-init` | 在目标仓库搭起 `.rope/` |
+| `rope-grill` | 大白话需求访谈；决定落进持久文档 |
+| `rope-shape` | issue 包：PRD + 契约便签、切片、矩阵、E2E、读依赖图 |
+| `rope-go` | 切片就绪/波次双模执行、调查地图、seam 上的 TDD、一次双轴评审 + E2E 验收、逐片提交 |
+| `rope-finish` | 先跑薄文书门，再关闭 issue、路由架构文档更新 |
+| `rope-summary` | 事后把可复用契约/经验沉进 `.rope/` |
+| `rope-clear` | 按确认批次整理文档、迁移旧版 `.rope` 布局，保留正式决策历史 |
+| `rope-quick` | 单人小任务路径：grill-lite、测试先行，四条停止线退回完整流程 |
+| `rope-harness-presets` | 把叶子角色绑到宿主原生预设 |
 
-## `.rope/` layout
+<a id="rope-layout"></a>
+## `.rope/` 布局
 
 ```text
 .rope/
-  GLOSSARY.md       # glossary / project language
-  routes.md         # navigation map
-  adr/              # architecture decision records
-  research/         # verified external/internal facts
-  specs/            # architecture contracts
+  GLOSSARY.md       # 词汇表 / 项目语言
+  routes.md         # 导航地图
+  adr/              # 架构决策记录
+  research/         # 已验证的内部/外部事实
+  specs/            # 架构契约
   issues/<slug>/
-    prd.md          # contract, matrix source, constraint bundle
-    tasks.md        # slices + statuses + review verdict
-    e2e.md          # classified end-to-end plan
-    map.md          # investigation facts, one per line
-    verify.md       # paperwork rounds
-    quick.md        # solo-path record (rope-quick)
+    prd.md          # 契约、矩阵来源、约束包
+    tasks.md        # 切片 + 状态 + 评审结论
+    e2e.md          # 分类过的端到端计划
+    map.md          # 调查事实，一行一条
+    verify.md       # 文书轮次
+    quick.md        # 快道记录（rope-quick）
 ```
 
-Existing `.rope/CONTEXT.md` remains readable until `rope-clear` migrates it
-to `.rope/GLOSSARY.md` and repairs active references. `rope-init` preserves
-existing knowledge rather than creating a second vocabulary.
+已有的 `.rope/CONTEXT.md` 在迁移前仍可读取；执行 `rope-clear` 按批次迁移到
+`.rope/GLOSSARY.md` 并修复有效引用。`rope-init` 保留已有知识，不创建第二份词汇表。
 
-## Development
+<a id="development"></a>
+## 开发
 
 ```bash
-node bin/rope.js --help          # CLI usage
+node bin/rope.js --help          # CLI 用法
 python3 /path/to/skill-creator/scripts/quick_validate.py skills/rope-init
 ```
 
@@ -170,6 +161,6 @@ python3 /path/to/skill-creator/scripts/quick_validate.py skills/rope-init
 
 <div align="center">
 
-**Agents forget. Rope remembers — and checks.**
+**Agent 会忘。Rope 记住——并且检查。**
 
 </div>

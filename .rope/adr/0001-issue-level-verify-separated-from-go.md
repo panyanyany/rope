@@ -1,60 +1,57 @@
-# 0001 Issue-Level Verify Separated From Go
+<a id="0001-issue-level-verify-separated-from-go"></a>
+# 0001 从 Go 分离 issue 级验证
 
-Rope adds a `rope-verify` stage between `rope-go` and `rope-finish`. Verify is owned by the **Parent Orchestrator** (strong judgment role) and checks whether an issue's completion state actually satisfies its PRD, Behavior Matrix, and E2E plan. It does not edit code; it only produces findings and, when needed, a fix brief for the parent to spawn an **implementer leaf**.
+Rope 在 go 与 finish 之间引入 rope-verify，由**父编排器**这一强判断角色负责，检查完成状态是否满足 PRD、行为矩阵、E2E。它不改代码，只产出发现，必要时写修复简报，由父编排器派**实现叶子**执行。
 
-## Context
+<a id="context"></a>
+## 背景
 
-Empirical evidence from the agent-workbench experiment showed two gaps:
+agent-workbench 实验显示两个缺口：
 
-1. Per-slice review inside `rope-go` was silently degraded. Every slice in `deepen-core-modules` recorded `review_degraded: no_subagent_tool_available` — the read-only review subagent never actually ran.
-2. Failed E2E items leaked into "completed" status. In `human-intake-tool-loop-guard`, E5/E6 were `agent_failed` with a slice review verdict of `pending E6 real repro`, yet the slice Status was set to `completed` with no re-verification before the issue drifted toward finish.
+1. go 的逐片审查静默降级。deepen-core-modules 各片均记录 review_degraded: no_subagent_tool_available，只读审查从未实际运行。
+2. 失败 E2E 流入完成状态。human-intake-tool-loop-guard 的 E5/E6 是 agent_failed，切片审查仍 pending E6 real repro，却无复验便标 completed 并趋向 finish。
 
-Most issues stopped after `rope-go` with no structured check that the finished work met the PRD before closing.
+多数 issue 在 go 后停止，没有结构化检查确认满足 PRD。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-Introduce `rope-verify` as a separate stage with a **cross-role** split of implement vs accept:
+引入独立验证阶段，**跨角色分离实现与验收**：
 
-- **Verify is owned by the Parent Orchestrator** (session/strong judgment model). It owns the final accept/reject verdict on issue completion state.
-- **Verify does not edit code.** It produces findings and, for `CHANGES_REQUESTED`, a fix brief. The parent spawns an implementer leaf to apply code fixes. The implementer leaf (or degraded top-level implement session) remains the sole code-writing surface.
-- **Verify may edit issue-document metadata only** (tasks.md/e2e.md/prd.md status records) — not code. This corrects stale status without a round-trip.
-- **Escalation is model-driven, not rule-driven.** The verify model decides autonomously what to read and whether to dispatch read-only leaves (prefer `rope-verify-inspector` / `rope-explore`) for deeper inspection. The skill nudges it to use leaves to save its own tokens, but does not prescribe mechanical trigger rules.
+- 父编排器拥有完成状态接受 / 拒绝结论。
+- verify 不改代码。CHANGES_REQUESTED 产出修复简报，由实现叶子执行；实现叶子或降级顶层实现会话仍是唯一代码写入面。
+- verify 只可改 tasks/e2e/prd 状态等 issue 文档元数据，避免为修正旧状态多一次往返。
+- 升级检查由模型判断，自主决定阅读及是否派只读 verify-inspector / explore；鼓励叶子节省上下文，不设机械触发。
 
-### Amendment (roles, not windows)
+<a id="amendment-roles-not-windows"></a>
+### 修订：角色而非窗口
 
-The durable property is **cross-role separation of implement vs accept**, not two human windows.
+长期属性是实现 / 验收角色分离，不是两个用户窗口。父编排器判断 grill/shape/verify 并派发，实现者写代码提交，reviewer/explore/verify-inspector 只读或受工具边界限制。宿主不能派写代码叶子时，可选 Planner Window A / Implementer Window B 部署；窗口不是架构。见 CONTEXT 及 single-window-go-orchestration 调研的决定 1–16。
 
-- **Parent Orchestrator** judges (grill/shape/verify accept-reject) and dispatches leaves.
-- **Implementer leaf** writes code and commits.
-- **Reviewer / explore / verify-inspector leaves** are read-only (or otherwise tool-bounded) workers.
+<a id="why-this-split"></a>
+## 理由
 
-Two human windows (historical "Planner Window A" / "Implementer Window B") remain an **optional host deployment** when the harness cannot spawn code-writing workers. They are not the architecture. See `.rope/CONTEXT.md` and `.rope/research/single-window-go-orchestration.md` (crystallized decisions 1–16).
+- 强模型预算用于可信度判断，不用于编辑循环。Trellis 单模型自修复不面对 Rope 的跨角色成本取舍。
+- 单一代码写入面让 git 历史与工作上下文共处；验证者改代码会使后续实现者不知变更归属。
+- 用户拒绝机械升级，保留模型判断，沿用“不猜测而升级检查”，扩展为跨角色派发。
 
-## Why this split
+<a id="consequences"></a>
+## 后果
 
-- **Budget allocation.** The strong model's tokens should buy judgment ("is this completion state trustworthy"), not code writing. Letting verify self-fix (the Trellis pattern) would sink strong-model tokens into edit loops, the scarcest part of the budget. Trellis is single-model and does not face this tradeoff; Rope is cross-role and must.
-- **Single code-writing surface.** The implementer leaf (or one degraded implement session) is the sole code-writing surface, so git history and working context stay co-located. If verify edited code, the next implement continuation would not know which changes were its own versus the verifier's.
-- **Model-driven escalation over mechanical triggers.** The user rejected rule-based escalation ("mechanical trigger is not my style"). Escalation is left to the verify model's judgment, matching the Trellis mind of "AI escalates instead of guessing," extended with cross-role leaf dispatch.
+- 验证失败走父验证 → 修复简报 → 派实现者 → 复验；verify.md 每次追加，不覆盖。
+- 原规则为同问题两轮失败或设计 / 需求 / 契约缺陷后人工升级停止；后续无进展规则见 ADR 0007。
+- finish 需 verify.md 的 Verdict: PASS，或明确用户豁免。
+- 原 go 交接 issue 级 verify，不直接 finish；下述合并修订更新用户入口。
 
-## Consequences
+<a id="considered-options"></a>
+## 考虑过的方案
 
-- A failed verify produces a round-trip: parent verify → fix brief → parent spawns implementer leaf → parent re-verifies. `verify.md` appends a new round each time rather than overwriting.
-- After two unsuccessful automated fix rounds on the same problem, or when the parent judges a design/requirements/contract defect, stop at a **Human Escalation Stop** (see CONTEXT).
-- `rope-finish` gains a precondition: `verify.md` with `Verdict: PASS`, or an explicit user waiver.
-- `rope-go` no longer recommends `rope-finish` directly; it hands off to issue-level `rope-verify` in the parent session.
+<a id="amendment-2026-10-verify-merged-into-finish"></a>
+### 修订：2026-10，verify 并入 finish
 
-## Considered Options
+当前用户流程为 rope-grill → rope-shape → rope-go → rope-finish。verify 与 finish 实际总是连续执行，因此删除独立技能，由 finish 第一阶段执行同样的薄文书检查、追加 verify.md 后再关闭。跨角色分离、简报、升级、轮次记录保持，旧 verify.md 仍有效。
 
-## Amendment (2026-10: verify merged into finish)
-
-The user pipeline is now `rope-grill` → `rope-shape` → `rope-go` → `rope-finish`.
-In practice verify and finish were always run back-to-back, so the standalone
-`rope-verify` skill was deleted: `rope-finish` Stage 1 runs the same thin
-paperwork gate and appends the `verify.md` round before closing. Everything
-else in this ADR (cross-role implement/accept split, fix briefs, escalation,
-`verify.md` rounds) is unchanged; legacy `verify.md` files remain valid input.
-
-- **Trellis-style self-fix loop at verify.** Rejected: burns strong-model tokens on edits and breaks the single code-writing-surface boundary.
-- **Mechanical escalation rules** (cheap subagent coarse-pass, strong model only on flagged findings). Rejected by the user: too rigid, not the desired judgment style.
-- **Strong model reads the full diff every time.** Rejected: max cost, no budget scaling for low-risk issues.
-- **Window-based architecture as the durable split.** Superseded by role language: windows are optional deployment, not the product contract.
+- Trellis 式验证自修复：拒绝，消耗强模型编辑预算并破坏单一写入面。
+- 机械升级，廉价粗筛后只对标记项用强模型：用户拒绝，过于僵硬。
+- 强模型每次读完整 diff：拒绝，低风险成本不能缩放。
+- 窗口作为长期架构：被角色语言替代，窗口只是可选部署。

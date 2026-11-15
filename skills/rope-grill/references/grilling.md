@@ -1,144 +1,104 @@
-# Grill habits (load when running the interview loop)
+<a id="grill-habits-load-when-running-the-interview-loop"></a>
+# Grill 访谈方法（执行访谈循环时加载）
 
-## Fact vs decision
+<a id="fact-vs-decision"></a>
+## 事实与决策
 
-- **Facts** (code, tests, docs, primary sources, mature libraries): resolve
-  through explore by default, per the
-  [handoff contract](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff).
-  Dispatch independent lookups in parallel — mandatory under the research
-  floor below; research briefs carry output
-  contracts per the explore research mode. A running
-  exploration delays only the questions downstream of it, never the
-  current round. Never turn answerable facts into user quizzes.
-- **Decisions** (product tradeoffs, risk, gates, which option wins): put to
-  the user in frontier rounds, each with a recommended answer. Never write
-  contested choices into `.rope/` as settled.
+- **事实**（代码、测试、文档、一手来源、成熟库）：默认按[交接契约](../../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff)交给 explore。独立查询并行派发；满足下述调研底线时必须派发。调研简报按 explore 调研模式声明输出契约。探索只推迟依赖其结果的问题，不暂停当前轮次。不要让用户回答能查证的事实。
+- **决策**（产品取舍、风险、授权、选择哪个方案）：在前沿轮次中交给用户，每题附推荐答案。存在争议的选择不能作为定论写入 `.rope/`。
 
-## Domain discipline
+<a id="domain-discipline"></a>
+## 领域语言纪律
 
-1. Glossary clash with `.rope/GLOSSARY.md` → force a choice immediately.
-2. Fuzzy language → propose canonical term + `_Avoid_`.
-3. User claim vs code → surface evidence before continuing.
-4. Abstract boundaries → concrete scenario (prefer this issue’s world).
+1. 与 `.rope/GLOSSARY.md` 术语冲突：立即明确采用哪一个。
+2. 用词模糊：提出规范术语及 `_Avoid_`（避免用词）。
+3. 用户描述与代码矛盾：先展示证据再继续。
+4. 边界抽象：给具体场景，优先使用当前 issue 的业务场景。
 
-## Question preference
+<a id="question-preference"></a>
+## 问题优先级
 
-Prioritize **product, UX/design, scope, policy** over file layout / class names /
-framework trivia unless they change the Behavior Contract or a human gate. If
-you are only probing structure, step back to a product question.
+优先问**产品、体验 / 设计、范围、策略**，而非文件布局、类名或框架细节；只有后者影响行为契约或人工授权时才问。若只在追问结构，退一步改成产品问题。
 
-## Communication
+<a id="communication"></a>
+## 沟通
 
-Use a plain interview. The user-facing answer must be simpler than the internal
-Rope reasoning.
+用通俗访谈方式，用户看到的表述必须比内部 Rope 推理简单。
 
-- Translate internal terms before speaking:
-  - Behavior Contract -> “what behavior must we guarantee”
-  - Failure visibility -> “where the user sees the error”
-  - Forbidden shortcut -> “a lazy implementation that could still pass tests”
-  - Human gate -> “this needs your explicit approval before we touch it”
-- Ask the frontier in **rounds**: independent decisions share one numbered
-  round (structured question tool preferred); each item still has its own plain
-  question, recommendation, concrete example, and tradeoff. A decision that
-  depends on an answer still open belongs to a later round — never guess at an
-  answer not yet heard. A stalled branch never pauses the rest of the round.
-- Number every visible option (`1.`, `2.`). Accept a bare option number as the
-  answer and mirror the selected label before continuing.
-- Pair the recommended answer with a concrete example: user scenario, click,
-  command, screen result, file, or message.
-- State the tradeoff of the other option when it affects product behavior.
-- If the user does not understand, stop advancing the checklist and re-explain
-  through a real scenario.
+- 开口前转换术语：
+  - Behavior Contract → “必须保证什么行为”。
+  - Failure visibility → “用户在哪里看到错误”。
+  - Forbidden shortcut → “哪种偷懒实现能过测试却违背需求”。
+  - Human gate → “动手前需要你明确批准”。
+- 按**轮次**提问前沿：独立决策放在同一编号轮次，优先结构化提问；每题都包含通俗问题、推荐、具体例子和代价。依赖未收到答案的决策留到后续轮次，不能猜答案。某个分支停滞不暂停其余问题。
+- 所有可见选项都编号（`1.`、`2.`）。接受单独的选项数字，继续前复述所选项。
+- 推荐答案配具体例子：用户场景、点击、命令、屏幕结果、文件或消息。
+- 另一选项影响产品行为时，说明其代价。
+- 用户不理解时，停止推进清单，改用真实场景解释。
 
-Completion criterion: the recommendation is understandable on first read, and
-the user can choose without learning Rope vocabulary.
+完成标准：推荐内容读一遍就能懂，用户无需学习 Rope 术语即可选择。
 
-## Design tree + frontier rounds
+<a id="design-tree--frontier-rounds"></a>
+## 设计树与前沿轮次
 
-- Map the decisions as a tree: every decision branches into the decisions
-  that hang off it.
-- The **frontier** is every decision whose prerequisites are already settled —
-  the questions askable **now** without guessing at answers not yet heard. Ask
-  the whole frontier in one numbered round; a question whose answer depends on
-  another question still open in this round belongs to a **later** round.
-- Each answered round reshapes the tree: settled decisions push the frontier
-  outward and unblock what depended on them. Recompute the frontier, then ask
-  the next round.
-- Done when the frontier is empty: every branch visited, nothing silently
-  assumed. The Ready-for-shape checklist below still gates shape.
+- 将决策组织成树，每个决策向下展开依赖它的决策。
+- **前沿**是前置条件均已确定的全部决策，即**现在**无需猜测未收到的答案就能提的问题。整个前沿在同一编号轮次提出；答案依赖本轮其他未决问题的问题留到**后续**轮次。
+- 每轮答案都会重塑决策树：已定决策推动前沿外移，解除后续问题的阻塞。重新计算前沿，再问下一轮。
+- 前沿为空才算遍历完成：每条分支都走过，没有默默假定的内容。进入 shape 仍须满足下方就绪清单。
 
-## Research floor
+<a id="research-floor"></a>
+## 调研底线
 
-Before inventing, walk the prior-art ladder: question the need →
-repo precedent → standard library / platform-native → installed deps →
-minimal implementation — full behavior understood first, without
-sacrificing boundary checks, error handling, security, accessibility.
+自建前先走先例阶梯：质疑需求必要性 → 仓库先例 → 标准库 / 平台原生能力 → 已安装依赖 → 最小实现。先理解完整行为，不牺牲边界检查、错误处理、安全或无障碍。
 
-**Floor:** a request involving a new mechanism, an external
-platform/service integration, or a "how do mature products do this"
-design judgment requires **parallel research dispatch before the decision
-rounds** — typically two briefs: repo precedent + external product survey
-(brief shape per
-[explore-research-mode.md](../../rope-harness-presets/references/explore-research-mode.md):
-question+why / primary sources / output path+sections / return shape).
-Purely internal small changes record `research: not-needed` + one-line
-reason on the issue/PRD.
+**底线：**涉及新机制、外部平台 / 服务集成，或“成熟产品怎么做”这类设计判断时，必须**在决策轮次前并行派发调研**，通常两份简报：仓库先例 + 外部产品调查。简报格式见[探索调研模式](../../rope-harness-presets/references/explore-research-mode.md)：问题及原因 / 一手来源 / 输出路径及章节 / 返回格式。纯内部小改动则在 issue/PRD 记录 `research: not-needed` 及一句原因。
 
-**Evidence rule:** an industry-practice claim with no research artifact
-behind it ("X and Y both do it this way") is an unverified memory claim —
-never a decision basis; dispatch a leaf or drop the claim.
+**证据规则：**没有调研产物支撑的行业实践说法（如“X 和 Y 都这么做”）只是未验证的记忆，不能作为决策依据；派发叶子验证，或删去该说法。
 
-When the capability has mature open-source options, search popular
-packages and official guidance **before** inventing. Write facts to
-`.rope/research/` and cite from the PRD. If network is blocked, retry via
-the host's proxy (e.g. `HTTP(S)_PROXY`) before degrading to offline
-heuristics.
+存在成熟开源方案时，先搜索常用软件包和官方指引，再考虑自建。事实写入 `.rope/research/`，由 PRD 引用。网络受阻时，先通过宿主代理（如 `HTTP(S)_PROXY`）重试，再退回离线推断。
 
-**Use the findings before recommending a new mechanism/tool surface.** Ask
-the research leaf how mature implementations solve the same user task and
-which route can be reused or adapted. Verify the project's additional
-constraints from effective contracts and implementation evidence; an existing
-custom mechanism is not proof that it is necessary. Compare reuse, adopting
-the mature approach, and custom work with reasons and the smallest residual
-build scope. Persist that conclusion in the existing decision/research record,
-not just a list of sources. Independent questions determine dispatch count;
-there is no fixed fan-out quota.
+**推荐新机制 / 工具接口前必须使用调研结论。**让调研叶子说明成熟实现如何完成同一用户任务，哪些路径可复用或改造。依据生效契约和实现证据核验项目的额外约束；已有自建机制不证明它确有必要。比较复用、采用成熟做法、自建的理由，并说明剩余自建范围的最小值。结论写入已有决策 / 调研记录，不能只列来源。派发数量由独立问题决定，没有固定并行配额。
 
-## Behavior Contract fields
+<a id="behavior-contract-fields"></a>
+## 行为契约字段
 
-- System under test
-- Trigger/input
-- Collaborators
-- Observable result
-- Failure visibility
-- Forbidden shortcuts
+保留以下字段名，内容用中文填写：
 
-## Scenario minimum
+- System under test：被测系统。
+- Trigger/input：触发或输入。
+- Collaborators：协作者。
+- Observable result：可观察结果。
+- Failure visibility：失败在哪里可见。
+- Forbidden shortcuts：禁止的捷径。
 
-- Primary-path success
-- Failure visibility
-- Forbidden shortcut (shallow test would pass, intent violated)
-- When relevant: empty input or unavailable dependency
+<a id="scenario-minimum"></a>
+## 最少场景
 
-## Doc crystallize targets
+- 主路径成功。
+- 失败可见性。
+- 禁止的捷径：浅层测试通过，但违背意图。
+- 适用时：空输入或依赖不可用。
 
-| Decision | File |
+<a id="doc-crystallize-targets"></a>
+## 文档沉淀位置
+
+| 决策 | 文件 |
 | --- | --- |
-| Term | `.rope/GLOSSARY.md` |
-| Hard-to-reverse tradeoff (all three ADR tests) | `.rope/adr/` |
-| External fact | `.rope/research/` |
-| Stable contract/gotcha | `.rope/specs/` |
+| 术语 | `.rope/GLOSSARY.md` |
+| 难以逆转的取舍，且满足 ADR 三项条件 | `.rope/adr/` |
+| 外部事实 | `.rope/research/` |
+| 稳定契约 / 易踩坑 | `.rope/specs/` |
 
-ADR only when hard to reverse **and** surprising **and** real tradeoff — see
-[doc-formats.md](doc-formats.md).
+只有同时**难以逆转、脱离上下文会令人意外、存在真实取舍**时才写 ADR，见[文档格式](doc-formats.md)。
 
-## Ready for shape checklist
+<a id="ready-for-shape-checklist"></a>
+## 进入 shape 的就绪清单
 
-- [ ] Behavior Contract six fields user-confirmed
-- [ ] Key terms in the glossary or explicitly deferred
-- [ ] Prior-art ladder walked, or `research: not-needed` recorded with reason
-- [ ] No unverified "industry practice" claims in decisions — each cites research or is dropped
-- [ ] External facts in research or “not needed”
-- [ ] Human gates listed
-- [ ] Primary / failure / forbidden-shortcut scenarios discussed
-- [ ] User confirmed shared understanding
+- [ ] 用户已确认行为契约六个字段。
+- [ ] 关键术语已进术语表，或明确延期。
+- [ ] 已走先例阶梯，或记录 `research: not-needed` 及原因。
+- [ ] 决策中没有未经核验的“行业实践”说法：每项均引用调研或已删除。
+- [ ] 外部事实已写入 research，或说明“不需要”。
+- [ ] 已列出人工授权项。
+- [ ] 已讨论主路径 / 失败 / 禁止捷径场景。
+- [ ] 用户已确认共同理解。

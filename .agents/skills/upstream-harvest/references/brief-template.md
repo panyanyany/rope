@@ -1,4 +1,5 @@
-# 审查 brief 模板
+<a id="审查-brief-模板"></a>
+# 审查简报模板
 
 brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 
@@ -34,7 +35,8 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 - 关闭时间：_（关闭前留空）_
 ```
 
-## Baseline 正文
+<a id="baseline-正文"></a>
+## 基线（Baseline）正文
 
 ```markdown
 ## 基线说明
@@ -76,7 +78,8 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 - 关闭后 last-reviewed-sha：`<tip 或放弃则不变>`
 ```
 
-### Baseline 结构规则
+<a id="baseline-结构规则"></a>
+### 基线结构规则
 
 | 规则 | 要求 |
 | --- | --- |
@@ -90,7 +93,8 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 | 关闭前不推进 SHA | 是 |
 | 写 brief 时不改 `skills/rope-*` | 是 |
 
-## Delta 正文
+<a id="delta-正文"></a>
+## 增量（Delta）正文
 
 ```markdown
 ## 摘要
@@ -131,7 +135,8 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 - 关闭后 last-reviewed-sha：…
 ```
 
-### Delta 结构规则
+<a id="delta-结构规则"></a>
+### 增量结构规则
 
 | 规则 | 要求 |
 | --- | --- |
@@ -142,7 +147,8 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 | tip == last 时 clean no-op，不发明 adopt | 是 |
 | 不改 `skills/rope-*`；关闭前不推进 SHA | 是 |
 
-### Clean no-op（tip == last）
+<a id="clean-no-optip--last"></a>
+### 无变化即结束（tip == last）
 
 可用中文短报，不必硬写空 delta 文件：
 
@@ -160,4 +166,4 @@ C1 allowlist 无实质变更。pin 未改（无需 close）。未改动 skills/r
 | `ignore` | 不收 |
 | `watch` | 先记着，本批不动 |
 
-Harvest **从不**通过改 `skills/rope-*` 来「完成」标记（A1）。
+采收**从不**通过改 `skills/rope-*` 来「完成」标记（A1）。

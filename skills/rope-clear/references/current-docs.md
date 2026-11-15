@@ -1,62 +1,31 @@
-# Current documents
+<a id="current-documents"></a>
+# 现行文档契约
 
-Read when maintaining or consuming project knowledge. Current instructions
-and historical evidence serve different readers; keep their boundaries explicit.
+维护或使用项目知识时读取。当前指令与历史证据面向不同读者，必须明确边界。
 
-## Read current truth
+<a id="read-current-truth"></a>
+## 读取当前事实
 
-1. Start from repo instructions and routes, then the relevant current source.
-   Treat search snippets as leads: open the enclosing section and its status,
-   scope, and replacement links before using it as a requirement.
-2. Check evidence appropriate to the claim. Source/tests establish implemented
-   behavior; an accepted decision establishes intended behavior. A mismatch
-   is a conflict to resolve, not automatic permission to rewrite either side.
-3. For superseded/deprecated material, follow the explicit replacement.
-   For a partially superseded ADR, identify which clauses survive. Unknown
-   status or competing active sources that change the task's contract require
-   a decision; carry uncertainty instead of silently choosing by recency.
+1. 从仓库指令和 routes 进入相关当前来源。搜索摘要只是线索，作为要求前必须打开所在章节，检查状态、范围、替代链接。
+2. 按主张选择证据：源码 / 测试说明已实现行为，已接受决策说明期望行为。不一致是待解决冲突，不自动授权重写任一方。
+3. 已替代 / 废弃内容沿明确替代链接读取；部分替代 ADR 须辨别仍有效条款。未知状态或竞争活动来源若会改变任务契约，必须决策；保留不确定性，不能按新旧默默选边。
 
-## Maintain one owner
+<a id="maintain-one-owner"></a>
+## 保持唯一归属
 
-- Before writing, classify the information and find its existing owner:
-  `.rope/GLOSSARY.md` for short domain definitions; specs for current behavior
-  and implementation contracts; ADRs for qualifying design tradeoffs; research
-  for reusable source-backed facts; the current issue for task progress and
-  temporary evidence; routes for navigation. Split mixed paragraphs by role
-  and link them rather than grow a glossary into an implementation manual.
-- Edit the smallest existing current document in place. Replace obsolete
-  clauses and remove redundant explanations within the authorized scope;
-  adding a later contradictory paragraph is not an update.
-- Give a rule one authoritative home; other documents link to it. Current
-  facts belong in current specs/research/glossary, task history in task records.
-  Retire task-local evidence that has stopped being true rather than append
-  an opposing map line. Keep reusable findings distinct from hypotheses.
-- Ordinary committed prose uses Git for history, not another Markdown archive.
-  Before removing uncommitted/untracked content, get an explicit preservation
-  choice. A timestamp alone proves neither truth nor recoverability.
-- Retain formal ADR decision history. For an approved replacement, update
-  status and the replacement link/scope; keep partial supersession precise.
-  Amend an existing ADR for a confirmed clarification; record a genuinely new
-  decision through the repo's architecture gate. Current navigation points
-  to the applicable rule, with history clearly identified as history.
-- Resolve skill runtime references relative to the loaded skill directory.
-  Installed copies are deployment outputs, not extra canonical sources; report
-  discrepancies and leave installation changes to an authorized update.
+- 写前分类并找已有归属：GLOSSARY 放短领域定义，specs 放现行行为 / 实现契约，ADR 放符合条件的设计取舍，research 放有来源的可复用事实，当前 issue 放进度 / 临时证据，routes 放导航。混合段落按职责拆开再链接，不让术语表膨胀成实现手册。
+- 原位编辑最小当前文档。在授权范围内替换旧条款、删重复说明，不能以末尾追加矛盾段落代替更新。
+- 每条规则只有一个权威归属，其他文档引用它。当前事实进 specs/research/术语表，任务历史留任务记录。已失效任务证据应退役，不在 map 另加相反事实。区分可复用结论与假设。
+- 普通已提交正文依靠 Git 留历史，不另建 Markdown 档案。删除未提交 / 未跟踪内容前，明确保留选择。时间戳不能证明真实或可恢复。
+- 保留正式 ADR 历史。已批准替代更新状态、替代链接 / 范围，准确记录部分替代。已确认澄清修订原 ADR，真正新决策走架构确认。当前导航指向适用规则，历史明确标为历史。
+- 技能运行时引用相对已加载技能目录解析。安装副本是部署输出，不是额外权威来源；报告差异，由已授权更新处理安装变化。
 
-## Project language
+<a id="project-language"></a>
+## 项目语言
 
-The sole Rope glossary is `.rope/GLOSSARY.md`, inside `.rope/`, not at the
-repo root. Until migration, read and update `.rope/CONTEXT.md` when it is the
-only glossary; route its rename through rope-clear rather than create a
-second vocabulary. If both exist, surface conflicting
-definitions instead of treating both as authoritative or choosing by recency.
-Initialization preserves existing content; cleanup owns legacy migration.
+唯一 Rope 术语表为 `.rope/GLOSSARY.md`，位于 `.rope/` 内，不在根目录。迁移前若只有 `.rope/CONTEXT.md`，就继续读写它，改名由 rope-clear 处理，不能另建第二套词汇。两者并存时暴露定义冲突，不能同时视为权威或按日期选边。初始化保留内容，整理负责旧版迁移。
 
-## Completion check
+<a id="completion-check"></a>
+## 完成检查
 
-For every changed rule, inspect its current owner, duplicates, inbound links,
-and the search hits that originally exposed it. Current readers must reach one
-applicable rule; historical hits must expose status/scope and replacement.
-Global grep and external retrieval indexes may still return history — this
-contract does not filter arbitrary tools or promise to purge existing sessions.
-If an index needs refreshing, report its owner and remaining action explicitly.
+每条变更规则都检查当前归属、重复、入链及最初搜索命中。当前读者应到达唯一适用规则，历史命中暴露状态 / 范围 / 替代。全局 grep 和外部索引仍可返回历史，本契约不筛任意工具，也不保证清除已有会话。若需刷新索引，明确报告负责方和剩余动作。

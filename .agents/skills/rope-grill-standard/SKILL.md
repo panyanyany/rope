@@ -1,265 +1,171 @@
 ---
 name: rope-grill-standard
-description: Clarify software requirements through self-contained risk-based discovery, decision grilling, architecture checks, and Rope-compatible documentation without delegating to another grilling skill.
+description: 独立完成按风险分层的事实发现、需求追问、架构检查和兼容 Rope 的文档沉淀，不转交其他需求访谈技能。
 ---
 
-# Rope Grill Standard
+<a id="rope-grill-standard"></a>
+# Rope Grill Standard：标准需求澄清
 
-Self-contained requirements discovery for work that needs more rigor than a
-quick clarification but should not become an unbounded design interview. This
-skill owns the entire discussion: exploration, questioning, decision tracking,
-documentation, architecture impact, and the final Rope-compatible handoff.
-Do not delegate the discussion to `grill-me`, `grill-with-docs`, or `rope-grill`.
+适用于简单澄清不足、又不应无限展开设计访谈的需求。独立负责探索、提问、决策追踪、文档、架构影响和最终 Rope 交接；不把讨论委派给 grill-me、grill-with-docs 或 rope-grill。
 
-## Plain-language rules
+<a id="plain-language-rules"></a>
+## 通俗表达规则
 
-Use product language with the user. Say:
+与用户说产品语言：
 
-- “what behavior must we guarantee” instead of “Behavior Contract”
-- “where the user sees the error” instead of “failure visibility”
-- “a shortcut that could pass shallow tests but violate the intent” instead of
-  “forbidden shortcut”
-- “this needs your explicit approval” instead of “human gate”
+- Behavior Contract → “必须保证什么行为”。
+- failure visibility → “用户在哪里看到错误”。
+- forbidden shortcut → “什么捷径能过浅层测试，却违背意图”。
+- human gate → “这需要你明确批准”。
 
-Every decision question contains:
+每个决策问题包含：一个通俗问题、推荐答案、用户 / API / 运维能看到的具体例子、另一选择的代价。所有可见选项都编号，单独回复数字即选中该项。后续问题依赖答案时逐题问，只合并真正独立的决策。
 
-1. One plain-language question.
-2. A recommended answer.
-3. A concrete example of what the user, API, or operator would see.
-4. The tradeoff of the other option.
+<a id="phase-1-discover-facts"></a>
+## 第一阶段：发现事实
 
-Number every visible option. A bare numeric reply selects that option.
-Ask one question at a time when later questions depend on the answer. Group
-only genuinely independent decisions.
+提问前：
 
-## Phase 1: discover facts
+1. 复述期望结果及疑似歧义。
+2. 读取相关代码、测试、配置和本地约定。
+3. Rope 仓库读取 CONTEXT、routes、相关 specs、adr、research。
+4. 分开事实与决策：事实查代码 / 文档，只向用户询问产品选择、策略、取舍或缺失授权。
+5. 继续前核对术语冲突，以及请求、代码、文档的矛盾。
 
-Before asking the user:
+<a id="phase-2-select-discussion-depth"></a>
+## 第二阶段：选择讨论深度
 
-1. Restate the requested outcome and suspected ambiguity.
-2. Read the relevant code, tests, configuration, and local conventions.
-3. In a Rope repository, read `.rope/CONTEXT.md`, `.rope/routes.md`,
-   relevant `.rope/specs/`, `.rope/adr/`, and `.rope/research/`.
-4. Separate facts from decisions. Look up facts in code or documentation;
-   ask the user only about product choices, policy, tradeoffs, or missing
-   authority.
-5. Check glossary conflicts and contradictions between the request, code, and
-   existing documentation before continuing.
+选能覆盖全部影响实现分支的最浅深度，简要说明，允许用户覆盖。
 
-## Phase 2: select discussion depth
+<a id="quick"></a>
+### 快速
 
-Choose the shallowest depth that covers every implementation-changing branch.
-State the selected depth briefly; allow the user to override it.
+适用于影响局部、行为明确、不改公共契约、数据边界、权限、部署或架构。明确目标行为、验收标准、回归测试，通常不超过三题。
 
-### Quick
+<a id="standard"></a>
+### 标准
 
-Use when the blast radius is local, behavior is obvious, and no public
-contract, data boundary, permission, deployment, or architecture decision
-changes.
+功能或非简单缺陷默认采用。明确受影响用户 / 调用者 / 记录、主成功流程、失败行为和可见位置、有意义的空 / 重复 / 不可用 / 边界情况、兼容与回归预期、验收证据。通常不超过五个决策问题；预算用于帮助停止，不是必须问满。
 
-Resolve:
+<a id="architecture"></a>
+### 架构
 
-- target behavior
-- acceptance criteria
-- regression test
+以下任一触发：公共接口变化；依赖方向 / 模块边界变化；状态、生命周期、持久化、权限、并发、错误语义变化；新增调用者 / 入口 / adapter / 运行时；可能重复已有职责；引用或冲突 ADR/spec。
 
-Normally ask no more than three questions.
+查相关决策、确定处置，记录不变量与所需证据。继续到高影响分支全部解决，不按任意题数收工。
 
-### Standard
+<a id="investigation"></a>
+### 调查
 
-Use by default for a feature or non-trivial bug fix.
+主要不确定性是事实，或需求与代码 / 文档冲突时，先探索、展示证据，再问剩余决策。不让用户回答仓库能回答的问题。
 
-Resolve:
+<a id="phase-3-control-the-decision-tree"></a>
+## 第三阶段：控制决策树
 
-- affected users, callers, or records
-- primary successful flow
-- failure behavior and where it is visible
-- meaningful empty, duplicate, unavailable, or boundary cases
-- compatibility and regression expectations
-- acceptance evidence
+只有不同答案会改变以下至少一项时才问：实现结构 / 路径、用户 / API 可观察行为、数据模型 / 持久化 / 迁移 / 兼容性、授权 / 安全 / 隐私 / 可靠性 / 部署、测试 / 验收证据。
 
-Normally ask no more than five decision questions. The budget is a stopping aid,
-not a target.
+每个未决问题先明确影响，先解决阻塞再看兄弟分支。每个答案后：
 
-### Architecture
+1. 通俗复述所选决定。
+2. 更新工作契约。
+3. 执行下述强制落盘检查点。
+4. 移除因答案已失去意义的问题。
+5. 重算高影响未决分支。
 
-Use when any architecture trigger is present:
+所有影响实现的决策已解决或明确委托、验收行为可测，剩余仅低风险工程判断时停止。
 
-- public interface changes
-- dependency direction or module seam changes
-- state, lifecycle, persistence, permissions, concurrency, or error semantics
-  change
-- a caller, entrypoint, adapter, or runtime is added
-- an existing responsibility may be duplicated
-- an ADR or spec is cited or contradicted
+<a id="mandatory-persistence-checkpoint"></a>
+### 强制落盘检查点
 
-Inspect the relevant decisions, resolve their disposition, and record the
-invariants and evidence needed to prove them. Continue until all high-impact
-branches are resolved, not until an arbitrary question count is reached.
+每次实质用户回答后、下次提问前执行。必须用文件工具，不能只存在聊天：
 
-### Investigation
+1. 分类为领域术语、稳定契约 / 易踩坑、外部事实、架构取舍、issue 局部产品决定。
+2. 立即写入最小适当长期文档：
+   - 领域术语 → `.rope/CONTEXT.md`。
+   - 稳定契约 / 易踩坑 → `.rope/specs/<area>/<topic>.md`。
+   - 外部事实 → `.rope/research/<topic>.md`。
+   - 架构取舍 → `.rope/adr/`。
+   - issue 局部决定 → 当前决策记录；包尚未建立时用 `.rope/issues/<slug>/grill-decisions.md`。
+3. 重读变更文件或章节，验证已写入。
+4. 告知用户保存了什么、在哪里，例如 `已记录 D2：失败时保留原数据，写入 .rope/specs/orders/cancellation.md`。
+5. 之后才能问下一题。
 
-Use when the main uncertainty is factual or the request conflicts with the
-existing code or documents. Explore first, show the evidence, then ask only
-the decision that remains. Do not make the user answer questions the repository
-can answer.
+若无合适长期文档，明确说明，并追加到 grill-decisions.md，标 `issue-local / pending issue package`，不能只留聊天。该文件是澄清台账，不是 issue 包；共同理解确认前不建 prd/tasks/matrix 等产物。选完整流程时携入 issue 包，选直接 go 时传递路径及确认契约。仓库无 `.rope/` 时先暂停询问记录位置。
 
-## Phase 3: control the decision tree
+编辑已有文档只改 / 追加相关部分，保留用户无关改动。未成功写入及验证不能声称已保存。
 
-Ask a question only if a different answer could change at least one of:
+<a id="phase-4-maintain-the-compatible-contract"></a>
+## 第四阶段：维护兼容契约
 
-- implementation structure or approach
-- observable user or API behavior
-- data model, persistence, migration, or compatibility
-- authorization, security, privacy, reliability, or deployment
-- tests or acceptance evidence
+全程维护六字段，字段名保留英文：
 
-For every unresolved question, identify its impact before asking it. Resolve
-blockers before sibling branches. After each answer:
+1. System under test：被测系统。
+2. Trigger or input：触发 / 输入。
+3. Collaborators：协作者。
+4. Observable result：可观察结果。
+5. Failure visibility：失败可见位置。
+6. Shortcut that could pass shallow tests but violate the intent：能过浅层测试却违背意图的捷径。
 
-1. Mirror the chosen decision in plain language.
-2. Update the working contract.
-3. Run the mandatory persistence checkpoint below.
-4. Remove questions made irrelevant by the answer.
-5. Recalculate whether any high-impact branch remains unresolved.
+至少检验主成功路径、失败可见性、一个有意义边界、禁止捷径；适用时补空输入或依赖不可用。用户不懂 Rope 术语也应能复述最终决定，否则暂停，用具体场景解释。
 
-Stop when all implementation-changing decisions are resolved or explicitly
-delegated, acceptance behavior is testable, and remaining uncertainty is
-low-risk engineering judgment.
+<a id="phase-5-crystallize-decisions"></a>
+## 第五阶段：沉淀决策
 
-### Mandatory persistence checkpoint
+决定稳定即写，不等最后，只建 / 改最小相关文档：
 
-This checkpoint runs after every substantive user answer and before the next
-question. It is not optional and must use the file tools, not only the chat
-context:
-
-1. Classify the decision as a domain term, stable contract/gotcha, external
-   fact, architectural tradeoff, or issue-local product decision.
-2. Write it immediately to the smallest appropriate durable document:
-   - domain term -> `.rope/CONTEXT.md`
-   - stable contract/gotcha -> `.rope/specs/<area>/<topic>.md`
-   - external fact -> `.rope/research/<topic>.md`
-   - architectural tradeoff -> `.rope/adr/`
-   - issue-local product decision -> the current issue decision record or,
-     before an issue package exists, `.rope/issues/<slug>/grill-decisions.md`
-3. Re-read the changed file or the written section to verify the write.
-4. Tell the user what was saved and where, for example:
-   `已记录 D2：失败时保留原数据，写入 .rope/specs/orders/cancellation.md`
-5. Only then ask the next question.
-
-If no durable document is appropriate, say so explicitly and append the
-decision to `.rope/issues/<slug>/grill-decisions.md` with status
-`issue-local / pending issue package`; never leave a confirmed decision only in
-the conversation. This single file is a clarification ledger, not an issue
-package: do not create `prd.md`, `tasks.md`, `matrix.md`, or other issue
-artifacts until the shared-understanding gate is confirmed. When full flow is
-chosen, carry this ledger into the issue package; when direct go is chosen,
-pass its path with the confirmed contract. If the repository has no `.rope/`
-layer, stop and ask where the user wants the decision record stored before
-continuing.
-
-When an existing document must be changed, preserve unrelated user changes and
-append or edit only the relevant section. Do not claim a decision was saved
-without a successful file write and verification.
-
-## Phase 4: maintain the compatible contract
-
-Maintain these six fields throughout the discussion:
-
-1. System under test
-2. Trigger or input
-3. Collaborators
-4. Observable result
-5. Failure visibility
-6. Shortcut that could pass shallow tests but violate the intent
-
-Stress-test at least:
-
-- primary-path success
-- failure visibility
-- one meaningful boundary case
-- the forbidden shortcut
-- empty input or unavailable dependency when relevant
-
-The user must be able to repeat the final decision without knowing Rope
-terminology. If not, stop and explain with a concrete scenario.
-
-## Phase 5: crystallize decisions
-
-Write confirmed decisions as they become stable; do not wait until the end.
-Only create or update the smallest relevant document:
-
-| Decision | Destination |
+| 决策 | 归属 |
 | --- | --- |
-| Canonical domain term | `.rope/CONTEXT.md` |
-| Stable contract or gotcha | `.rope/specs/<area>/<topic>.md` |
-| Reusable external or platform fact | `.rope/research/<topic>.md` |
-| Hard-to-reverse, surprising tradeoff with credible alternatives | `.rope/adr/` |
+| 规范领域术语 | `.rope/CONTEXT.md` |
+| 稳定契约 / 易踩坑 | `.rope/specs/<area>/<topic>.md` |
+| 可复用外部 / 平台事实 | `.rope/research/<topic>.md` |
+| 难逆转、意外且有可信替代方案的取舍 | `.rope/adr/` |
 
-Do not write contested choices as settled. Do not put implementation steps,
-temporary facts, or ticket details in `CONTEXT.md`.
+不把争议写成定论，不把实现步骤、临时事实或工单细节放 CONTEXT。
 
-The persistence checkpoint takes precedence over the routing gate: the final
-recap is not allowed to contain a confirmed decision that has no document path
-or an explicit `issue-local / pending issue package` status.
+落盘检查点优先于分流确认：最终回顾中的每个确认决定必须有文档路径，或明确 issue-local / pending issue package 状态。
 
-For architecture work, maintain a decision entry for each relevant source:
+架构工作逐个相关来源记录：
 
 ```md
 - ID: D1
-  Source: <.rope/adr/... or .rope/specs/...>
+  Source: <.rope/adr/... 或 .rope/specs/...>
   Decision status: active | superseded | deprecated | provisional | unknown
-  Scope: <behavior and boundary>
+  Scope: <行为及边界>
   Decision disposition: inherit | extend | supersede | exception | not-applicable
   Inherited invariants:
-    - <invariant>
-  Affected public interfaces: <seams or none>
+    - <不变量>
+  Affected public interfaces: <边界或 none>
   Forbidden shortcuts:
-    - <shortcut>
-  Required evidence: <test, integration check, review, or documentation>
+    - <捷径>
+  Required evidence: <测试、集成检查、审查或文档>
   Applies to: issue | Slice N | e2e | verify
   Documentation update: pending-finish | updated-existing | added-new |
     no-new-decision | exception-recorded
-  Unresolved conflicts: <none or conflict>
+  Unresolved conflicts: <none 或冲突>
 ```
 
-If no architecture trigger applies, record a lightweight `not-applicable`
-check. If uncertain whether a trigger applies, treat impact as required until
-resolved.
+无架构触发仍记录轻量 not-applicable 检查。存疑则按 required 处理，直到解决。
 
-## Phase 6: finish and route
+<a id="phase-6-finish-and-route"></a>
+## 第六阶段：结束与分流
 
-Produce a shared-understanding recap with:
+共同理解回顾包含：范围及明确非目标、六字段契约、确认决策及路径、主路径 / 失败 / 边界 / 捷径场景、验收标准及证据、开放风险 / 人工授权、推荐下一步。
 
-- scope and explicit non-goals
-- six-field behavior contract
-- confirmed decisions and their document paths
-- primary, failure, boundary, and shortcut scenarios
-- acceptance criteria and required evidence
-- open risks or human gates
-- recommended next step
-
-After the user confirms the recap, present the compatible numbered route:
+用户确认回顾后，给兼容编号分流：
 
 ```text
 1. 完整流程：写 issue → shape → go
 2. 直接 go：跳过 issue 和 shape
 ```
 
-If the user chooses the full flow, the recap must be sufficient to form a
-shape-ready contract. If the user chooses direct go, the confirmed contract and
-decision paths must be sufficient for implementation without first creating an
-issue package. Do not create issue artifacts before the user confirms the
-shared understanding.
+完整流程的回顾应足以形成可 shape 契约；直接 go 的确认契约与路径应足以在不先建 issue 包的情况下实现。共同理解确认前不建 issue 产物。
 
-This skill does not implement feature code. It owns the clarification and
-decision record; implementation is a separate execution step.
+本技能不实现功能代码，只负责澄清与决策记录；实现另行执行。
 
-## Guardrails
+<a id="guardrails"></a>
+## 护栏
 
-- No answerable uncertainty as a user question.
-- No silent resolution of conflicting ADRs, specs, or code behavior.
-- No ADR for a reversible, unsurprising, non-tradeoff choice.
-- No feature implementation while grilling.
-- Schema, dependency, authentication, deployment, destructive filesystem/git,
-  production, or shared-environment changes require explicit approval.
+- 不问可查证事实。
+- 不默默解决 ADR、spec、代码行为冲突。
+- 可逆、常规、无取舍的选择不写 ADR。
+- 访谈时不实现功能。
+- schema、依赖、认证、部署、破坏性文件系统 / git、生产 / 共享环境变更需明确批准。

@@ -1,97 +1,86 @@
-# Close gate
+<a id="close-gate"></a>
+# 关闭门槛
 
-Advance `last-reviewed-sha` **only** when the human explicitly closes the review
-batch. Abandoned or partial review leaves the pin unchanged; a draft brief may
-remain under `reviews/`.
+**仅当人工明确关闭本批审查**时推进 `last-reviewed-sha`。放弃或部分审查保持固定版本不变，草稿可留在 `reviews/`。
 
-## What counts as close
+<a id="what-counts-as-close"></a>
+## 什么算关闭
 
-Human says the batch is done, e.g.:
+人工明确说本批完成，例如：
 
-- “close this harvest”
-- “pin it / advance the SHA”
-- “batch done, record marks and close”
+- “关闭这次采收”（close this harvest）。
+- “固定这个版本 / 推进 SHA”（pin it / advance the SHA）。
+- “本批完成，记录标记并关闭”（batch done, record marks and close）。
 
-Not close: silence, “looks interesting”, partial marks without a close phrase,
-starting unrelated work, successful fetch alone, writing the brief alone.
+沉默、“看起来有意思”、只标部分项目而未要求关闭、开始其他工作、仅 fetch 成功、仅写完简报，都不算关闭。
 
-## What “reviewed tip” is written
+<a id="what-reviewed-tip-is-written"></a>
+## 写入哪个已审 tip
 
-On close, write the **full** tip SHA that the brief header already recorded as
-`Reviewed tip` — i.e. the fetched `origin/<default-branch>` object at brief
-time (see clone-and-git). Do not close against a different tip without rewriting
-the brief first.
+关闭时写简报页眉已记录的 `Reviewed tip` **完整 SHA**，即写简报时 fetch 得到的 `origin/<default-branch>` 对象，见 clone-and-git。不先重写简报就不能关闭到另一个 tip。
 
-## On close (baseline or delta)
+<a id="on-close-baseline-or-delta"></a>
+## 关闭时（基线或增量）
 
-1. Ensure the brief reflects human intent:
-   - **Baseline:** no adopt/adapt list; close only pins SHA (**B1**).
-   - **Delta:** human marks recorded when provided (including explicit ignores).
-     Suggested marks alone are **not** human marks — copy human decisions into
-     `Human mark:` fields and the batch table before close when the human gave
-     them. If the human closes without per-item marks, record that explicitly
-     (e.g. human mark `_(none — closed without item marks)_`) rather than
-     pretending suggested == human.
-2. Set brief `Status: closed` and `Closed at: <ISO date or local timestamp>`.
-3. Update `.rope/upstream/mattpocock-skills/source.md`:
-   - `Last reviewed SHA: <full tip that was reviewed>`
-   - `Last reviewed at: <timestamp>`
-4. Confirm out loud: new SHA, brief path, and that **no** `skills/rope-*` files
-   were edited by this skill.
+1. 确认简报反映人工意图：
+   - **Baseline：**不生成 adopt/adapt 清单，关闭只固定 SHA（**B1**）。
+   - **Delta：**收到的人工标记须记录，包括明确 ignore。建议标记**不是**人工标记；关闭前把已给的人类决定写入 `Human mark:` 字段和批次表。人工未逐项标记而直接关闭时如实写明，如 `_(none — closed without item marks)_`，不能把建议冒充人工决定。
+2. 简报设 `Status: closed`，填写 `Closed at: <ISO 日期或本地时间戳>`。
+3. 更新 `.rope/upstream/mattpocock-skills/source.md`：
+   - `Last reviewed SHA: <已审完整 tip>`。
+   - `Last reviewed at: <时间戳>`。
+4. 向人工确认新 SHA、简报路径，以及本技能**未修改**任何 `skills/rope-*` 文件。
 
-### Delta close specifics
+<a id="delta-close-specifics"></a>
+### 增量关闭细则
 
-- Advance pin to the **reviewed tip** in the brief header (fetched default-branch
-  tip at brief time), not to an intermediate commit, not to `last` again.
-- Clean no-op delta (tip already equals pin): **no close required**; if human
-  still says “close”, leave SHA unchanged (idempotent).
-- Recording marks is **not** the same as absorbing them: product edits remain a
-  separate ordinary follow-up (**A1**).
+- 固定版本推进到简报页眉**已审 tip**，即当时 fetch 的默认分支 tip，不选中间提交、不再写 last。
+- tip 已等于固定版本的无变化增量**无需关闭**；人工仍说关闭则不改 SHA，保持幂等。
+- 记录标记不等于吸收变化；产品编辑是独立后续动作（**A1**）。
 
-### `source.md` field shapes after close
+<a id="sourcemd-field-shapes-after-close"></a>
+### 关闭后的 `source.md` 字段格式
 
 ```markdown
-- Last reviewed SHA: <40-char hex>
-- Last reviewed at: <YYYY-MM-DD or ISO-8601>
+- Last reviewed SHA: <40 位十六进制>
+- Last reviewed at: <YYYY-MM-DD 或 ISO-8601>
 ```
 
-Replace the placeholders `_(none yet — establish on first harvest baseline)_`
-and `_(none)_` only on successful close.
+只有成功关闭才替换 `_(none yet — establish on first harvest baseline)_` 与 `_(none)_` 占位符。
 
-## On abandon / partial
+<a id="on-abandon--partial"></a>
+## 放弃或部分审查
 
-1. Leave `last-reviewed-sha` as it was (**empty** on first baseline).
-2. Leave brief `Status: open` (or note abandoned in the Close section).
-3. Do not delete the draft brief unless the human asks.
-4. Do **not** set a “temporary” SHA “so we don’t forget.”
+1. 保持原 `last-reviewed-sha`，首次基线仍为**空**。
+2. 简报保留 `Status: open`，或在关闭一节注明放弃。
+3. 除非人工要求，不删除草稿。
+4. 不写“临时”SHA 来“防止忘记”。
 
-## Idempotency
+<a id="idempotency"></a>
+## 幂等性
 
-| Case | Behavior |
+| 情形 | 行为 |
 | --- | --- |
-| Re-close already-closed batch, **same tip** | No SHA churn; leave existing closed brief; no duplicate brief |
-| Re-run baseline while SHA still empty, **same tip** | Reuse open baseline brief if present; do not spawn a second `*-baseline.md` for the same tip |
-| Re-run baseline while SHA still empty, **tip moved** | Supersede/update open brief to new tip; SHA still empty until close |
-| Close after abandon of earlier open brief | Allowed: close the brief that matches the tip being pinned; update `source.md` once |
-| Delta re-run when tip still equals `last-reviewed-sha` | Clean no-op report; do not open a noisy empty adopt list; do not change SHA |
-| Delta re-run while open brief exists for **same tip** | Reuse/refresh that brief; no second file for same tip |
-| Delta tip moved before close of open brief | Supersede/update open brief to new tip; SHA unchanged until close |
-| Delta close after human marks recorded | SHA → reviewed tip; marks stay on brief; product skills still untouched |
+| 同一 tip 的已关闭批次再次关闭 | 不改 SHA，保留已关闭简报，不重复建文件 |
+| SHA 仍为空，同一 tip 重跑基线 | 复用已有 open 基线，不建第二个 `*-baseline.md` |
+| SHA 仍为空，tip 变化后重跑 | 更新 / 替代 open 简报，关闭前 SHA 仍为空 |
+| 先前放弃，之后关闭 | 可关闭与待固定 tip 对应的简报，只更新一次 `source.md` |
+| tip 仍等于已审 SHA，重跑增量 | 报告无变更，不建空采纳清单、不改 SHA |
+| 同一 tip 已有 open 增量简报，重跑 | 复用 / 刷新，不建第二份 |
+| open 增量关闭前 tip 变化 | 更新 / 替代简报，关闭前 SHA 不变 |
+| 记录人工标记后关闭增量 | SHA → 已审 tip；保留标记，仍不改产品技能 |
 
-## After close (A1)
+<a id="after-close-a1"></a>
+## 关闭之后（A1）
 
-Absorbing an accepted item is a **separate** ordinary edit (same or later
-session): e.g. “apply brief item 2 to rope-grill”. This skill does not perform
-that edit. Full `rope-grill` / `rope-shape` only for large semantic workflow
-shifts, not routine small upstream tweaks.
+吸收已接受项目是同一或后续会话的**独立普通编辑**，如“把简报第 2 项应用到 rope-grill”。本技能不执行该编辑。只有大工作流语义变化才走完整 `rope-grill` / `rope-shape`，普通小改不必如此。
 
-Baseline close especially: pin only — no product edits, no adopt backlog
-generated by this skill.
+基线关闭尤其只固定版本，不编辑产品、不由本技能生成采纳待办。
 
-## Forbidden
+<a id="forbidden"></a>
+## 禁止事项
 
-- Writing SHA “so we don’t forget” without human close
-- Closing automatically because the brief was written
-- Closing because fetch succeeded or baseline tip was resolved
-- Editing product skills as part of close
-- Advancing SHA on abandon
+- 未经人工关闭，为“防忘记”写 SHA。
+- 因简报写完、fetch 成功或基线 tip 已解析而自动关闭。
+- 关闭时编辑产品技能。
+- 放弃时推进 SHA。

@@ -1,105 +1,41 @@
-# 0011 Edge Classification & Acceptance Gates
+<a id="0011-edge-classification--acceptance-gates"></a>
+# 0011 边分类与验收检查
 
-**Status:** active — extends [0008](0008-slice-ready-worktree-execution.md)
-scheduling semantics; bounded by [0007](0007-graph-driven-go-single-review.md)
-(the Mechanical Return Gate is evidence reconciliation, never a second review
-gate). Gate bounce discipline refined by [0013](0013-test-cost-tiering.md).
+**状态：**active，扩展 [0008](0008-slice-ready-worktree-execution.md)，受 [0007](0007-graph-driven-go-single-review.md)单审查约束，返回检查只核证据。退回纪律由 [0013](0013-test-cost-tiering.md)细化。
 
-Date: 2026-08-27
+日期：2026-08-27。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. **Edge Classification.** At shape, every `Blocked by` edge is labeled
-   `file-overlap`, `seam-required`, or `methodology-order`. Only the first
-   two block dispatch; a methodology-order edge is a merge-order preference.
-   ADR 0008's ready set is therefore: no unresolved file-overlap or
-   seam-required blockers.
-2. **Two-stage Contract Slice.** A `Kind: contract` slice carrying deep
-   durability / concurrency / protocol semantics is cut in two: a
-   **thin-interface** slice (public seam + minimal working ops) that consumers
-   may block on, and a **hardening** slice (crash recovery, concurrency
-   protocols, sanitization depth) that consumers must not block on. Migration
-   and schema files have exactly one owning slice.
-3. **Evidence Projection.** Every slice's Required evidence entries cite the
-   Behavior Matrix rows they prove; shape runs a coverage check — a matrix row
-   with no slice evidence is a shape defect, not a go-time discovery.
-4. **Mechanical Return Gate.** At join, the parent reconciles the return
-   summary against Required evidence: each item maps to pasted command output
-   or an artifact path; missing items bounce the leaf to exactly those items.
-   It is evidence reconciliation — no implementation re-read, no test reruns,
-   no verdict (ADR 0007 unchanged).
-5. **Defense Budget.** Correction briefs introduce zero acceptance
-   requirements absent from the Behavior Matrix. Gaps found mid-execution go
-   back to shape (re-cut) or are demoted to recorded non-blocking notes.
-6. **Granularity hard rules.** Every slice declares a demo path (a demoable
-   behavior, never a layer). A change that fits one fresh context window does
-   not become a multi-slice issue — route `rope-quick` (ADR 0006). The
-   fresh-window upper bound (existing) stays a re-cut trigger. The granularity
-   quiz (too coarse / too fine / edges real / merge or split) folds into
-   shape's graph-confirmation step. The anti-pattern catalog (horizontal
-   slicing with quantified field evidence, over-decomposition, invalid
-   acceptance criteria) lives in `rope-shape` references.
-7. **Human Gate Panel.** Multiple pending gates render as one batched panel
-   (affected slices / authorization / blast radius) with explicit
-   continue-or-hold status of other lanes.
-8. **Research mode & declared dispatch deviation.** External research with
-   disk output is a **mode of `rope-explore`, declared by the brief**
-   (wording revised by [0017](0017-dispatch-contract.md): the brief is the
-   contract): a research brief unlocks web/search and write scoped to
-   `.rope/research/**` (one findings artifact); default and scanner
-   dispatches stay read-only. No fourth agent name; ranking/manifest
-   schema unchanged. Spawning with a
-   type/model differing from the preset requires a one-line reason in the
-   dispatch record.
-9. **Bounce-rate replay protocol.** `rope-harness-presets` carries an offline
-   replay evaluation (issue package + leaf-return summaries in, per-planner
-   bounce judgments out) for planner-window model selection.
+1. shape 每条 Blocked by 标 file-overlap / seam-required / methodology-order。原前两阻派，方法顺序仅合并偏好；worktree 的 file-overlap 效果后由 0012 降级。
+2. 深持久化 / 并发 / 协议契约片拆薄接口和加固。消费者只依赖薄接口；迁移 / schema 文件唯一归属。
+3. 每切片 Required evidence 引用所证明矩阵行；shape 查覆盖，无证据行是 shape 缺陷，不能 go 才发现。
+4. 返回时机械对账，每项映射命令输出或路径，缺项只退对应项。不读实现、不重跑、不下审查结论。
+5. 纠偏引入矩阵外验收为 0。中途缺口回 shape 重切或降为非阻塞备注。
+6. 每片有演示行为，不是层名。一窗口改动走 quick，不多片；上限仍触发重切。图确认同轮问粗细、边真假、合拆，不另开轮。反模式放 shape 参考。
+7. 多人工授权合一面板，带切片、请求、影响范围及其他线继续 / 暂停。
+8. 外部调研是简报声明的 explore 模式，[0017](0017-dispatch-contract.md)强调简报即契约。可联网及仅写 research 一份结论，默认 / 扫描只读；当时不加第四角色、不改排名 / 清单。偏离预设 type/model 记一句理由。runner 后由 0015 新增。
+9. harness-presets 带离线退回率回放，以包及叶子返回测规划模型。
 
-## Context
+<a id="context"></a>
+## 背景
 
-Session 01a03d5d (optimize-turn-tool-token-usage; 9 slices, 31 leaves) gave
-measured evidence (`.rope/research/session-01a03d5d-dispatch-metrics.md`):
-startup width was 1 of a possible 3 because two no-overlap edges blocked
-dispatch; storage contract slices packed thin interfaces with 900–1200 lines
-of hardening whose rework sat on the consumer critical path (fix diffs ≥ base
-implementations; defensive keywords only in fix commits; S8 deleted in fix2
-what fix1 built); the parent absorbed verification by re-reading
-implementations; acceptance scope inflated across correction rounds.
+01a03d5d 的 optimize-turn-tool-token-usage，9 片 31 叶子：两个无重叠边让启动宽度由 3 降 1；存储接口把 900–1200 行加固塞一起，返工卡消费者，修复 diff 不小于原实现，防御关键词只在修复，S8 第二修删除第一修；父重读实现吸收验证，验收逐轮扩张。详见 dispatch-metrics。
 
-Upstream alignment (mattpocock/skills, pin 6654f6b6;
-`.rope/research/mattpocock-skills-slicing-and-parallelism.md`) supplies the
-dual size anchors (demo path + fresh-context window, both directions), the
-post-cut granularity quiz, and quantified anti-pattern evidence: horizontal
-slicing produced 26 tickets × ~20 agent runs each, 3/4 rework.
+Matt pin 6654f6b6 提供演示路径、上下文双边界、图后粒度确认及横切代价：26 票，每票约 20 次代理，四分之三返工。
 
-## Why this shape
+<a id="why-this-shape"></a>
+## 理由
 
-- The concurrency loss and the fix-round churn have one common root: decisions
-  that belong to the graph (edges, ticket depth, acceptance scope) were made
-  implicitly at execution time by judgment alone. Making them explicit and
-  mechanical moves them to shape where they are cheap.
-- The return gate removes the parent's verification vacuum without violating
-  ADR 0007's single-review-gate design: reconciliation is not judgment.
-- A single ADR keeps the four mechanisms coherent — they all trade a small
-  amount of shape-time formality for measured execution-time savings.
+并发损失和修复波动同源：图边、深度、验收范围应 shape 明确，却执行时隐式判断。机械返回核证据，补父验证空白但不增审查点。一个 ADR 保持这些以少量前期形式换实测节省的机制一致。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- Shape artifacts gain fields (demo path, edge labels, two-stage contract
-  splits, evidence row citations) and the graph-confirmation step gains the
-  granularity quiz — no new serial Q&A round.
-- go's join becomes a table check; correction briefs are budgeted; gates batch.
-- Over-formalization is the main risk; the quiz-in-step-9 fold and the
-  docs-only waiver path keep the fixed cost bounded.
-- `rope-quick` becomes the designated lower-bound route; shape must name it
-  when a change fits one window.
+增加演示、边标签、两阶段、证据引用；粒度确认折入图确认。go 返回变表格核对，纠偏有预算，授权批量。形式过重风险由同轮确认和文档豁免减轻。单窗口必须具名推荐 quick。
 
-## Alternatives considered
+<a id="alternatives-considered"></a>
+## 考虑过的方案
 
-- Separate ADRs per mechanism: fragments shared rationale and creates
-  cross-reference loops; rejected.
-- Fix by planner-model selection alone: does not change structural incentives;
-  the bounce-rate protocol (item 9) keeps model selection as a measured
-  follow-up instead; rejected as the primary fix.
-- Keep judgment-primary acceptance with guidelines only: the measured failure
-  mode of this exact approach is the motivating evidence; rejected.
+分 ADR 会割裂理由并形成循环引用；只换规划模型不改结构激励，保留回放作测量后续；仅靠判断加指南正是现场失败模式，均拒绝作为主修复。

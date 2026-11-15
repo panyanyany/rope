@@ -1,62 +1,29 @@
-# 0009 Ticket-TDD / Issue-BDD Layering and Tracer-Bullet Slicing
+<a id="0009-ticket-tdd--issue-bdd-layering-and-tracer-bullet-slicing"></a>
+# 0009 工单 TDD、issue BDD 分层与 Tracer-bullet 切片
 
-**Status:** active — refines ADR 0008's dispatch model (unchanged) and
-supersedes the vertical-slice iron rule and the e2e duplication regime.
-Test-cost tiering completed by [0013](0013-test-cost-tiering.md).
+**状态：**active，保留 0008 派发，替代“每片完整纵向路径”硬规则和 E2E 重复记账；测试成本由 [0013](0013-test-cost-tiering.md)补齐。
 
-Date: 2026-08-24
+日期：2026-08-24。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. **Slicing aligns with to-ticket (tracer bullets)**: the hard rules are
-   blocking edges, fresh-context fit, and shared-mode file disjointness —
-   not "complete user-visible path per slice". **Component slices** (parts
-   of one user story) are legal; their briefs cite the story's Matrix row
-   plus their own completion criteria (interface signature / tests green).
-   Shape actively looks for a **prefactor** slice first ("make the change
-   easy, then make the easy change") — often the first source of wide
-   parallelism.
-2. **Ticket-TDD / Issue-BDD layering**: the Behavior Matrix becomes the
-   issue's behavior spec (Given/When/Then where helpful) and no longer
-   points at slices. Ticket-level units are proved by leaf TDD (red/green
-   evidence in brief returns); the **end-of-issue reviewer walks the
-   Matrix behaviors at the real entrypoint** — issue-level BDD acceptance.
-3. **e2e.md carries real-environment behaviors only** — real external
-   systems, real entrypoints, real data that mocks cannot prove (a
-   behavior unit-tested against fakes whose truth depends on a real API's
-   semantics belongs here). Ticket-level test reruns never appear;
-   `covered_by_slice` is deleted — anything that would have earned it does
-   not belong in e2e.md at all.
-4. rope-go's main path compresses to the concurrency loop; degrade paths
-   move to a **fault manual** section read on failure, not upfront.
+1. 切片与 to-ticket 的 tracer-bullet 一致。硬约束是阻塞边、单窗口、shared 文件不相交，不是每片完整用户路径。组件片合法，简报引用用户故事矩阵行及自身接口 / 通过标准。shape 主动找前置重构，先让变化容易，再完成容易的变化，常能打开并行宽度。
+2. 矩阵成为 issue 行为规范，适合时 Given/When/Then，不再指向切片。工单单元由叶子红绿证明；原始 issue BDD 由审查者真实入口走矩阵，后续运行归属见 0015。
+3. e2e.md 只放模拟无法证明的真实外部系统 / 入口 / 数据；依赖真实 API 语义的假件单测行为也需真实验证。不重跑工单测试，删 covered_by_slice；能如此标记的本就不属 E2E。
+4. go 主路径聚焦并发循环，降级放失败才读的故障手册。
 
-## Context
+<a id="context"></a>
+## 背景
 
-First real field run after 0008 (agent-web-search-tool, 2026-08-24)
-serialized its only parallel pair: the mode-selection text read as "find
-reasons to degrade" and the slicing iron rule (vertical, complete path)
-kept graph width at 2. Meanwhile e2e.md items were dominated by
-`covered_by_slice` bookkeeping — re-asserting validations TDD evidence
-already proved — a triple-insurance layer left over from when slices were
-not trusted. Upstream (mattpocock/skills to-tickets, implement-spec)
-demonstrates: blocking-edge slicing + background concurrency + one
-end-of-issue review is sufficient without per-slice demo-ability.
+0008 后 agent-web-search-tool 首次现场串行唯一并行对：模式文字像“找理由降级”，完整纵向硬约束把宽度压在 2。E2E 又充满重复 TDD 的 covered_by_slice，是旧不信片验收的三重保险残留。上游显示阻塞边、后台并发、单次结束审查足够。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- Shape produces wider graphs (component slices, prefactor slices);
-  go's concurrency default (0008 refinement) gets fed.
-- Reviewer's contract-axis becomes explicit BDD acceptance: Matrix rows
-  walked at the real entrypoint.
-- e2e.md shrinks to 3–5 real-behavior scenarios per issue; verify's E2E
-  check thins accordingly.
-- Vertical path-per-slice remains a habit, not a rule — a slice that can
-  demo alone still should.
+图更宽，组件及前置重构喂给并发；契约轴明确 BDD；E2E 缩为每 issue 约 3–5 个真实场景；纵向路径是偏好而非铁律，能独立演示仍应演示。
 
-## Alternatives considered
+<a id="alternatives-considered"></a>
+## 考虑过的方案
 
-- Keep vertical iron rule + e2e duplication: field run showed it caps
-  parallelism and doubles verification bookkeeping; rejected.
-- Full to-ticket replacement (drop Matrix/Contract Note/bundle): loses
-  rope's acceptance anchors and architecture continuity; rejected — align
-  the slicing philosophy, keep the rope assets.
+保纵向硬规则和重复 E2E：压并发、增记账，拒绝。全盘换上游并删矩阵 / 摘要 / 包：失验收锚及架构连续性，拒绝，只对齐切片哲学。

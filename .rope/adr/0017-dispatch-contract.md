@@ -1,138 +1,54 @@
-# 0017 Dispatch Contract — Research Floor, Brief-as-Contract, Parent Writes No Code
+<a id="0017-dispatch-contract--research-floor-brief-as-contract-parent-writes-no-code"></a>
+# 0017 派发契约：调研底线、简报即契约、父编排器不写代码
 
-**Status:** active — restores and hardens the dispatch discipline eroded by
-[0016](0016-single-execution-form-agent-dispatch.md)'s slim-down (which kept
-the single execution form, unchanged); item 8's mode wording in
-[0011](0011-edge-classification-and-acceptance-gates.md) is revised here.
+**状态：**active。恢复并加强 [0016](0016-single-execution-form-agent-dispatch.md)精简时削弱的派发纪律，不改唯一执行形态；修订 [0011](0011-edge-classification-and-acceptance-gates.md)第 8 项模式措辞。
 
-Date: 2026-09-29
+日期：2026-09-29。
 
-## Decision
+<a id="decision"></a>
+## 决策
 
-1. **Research floor.** A grill request involving a new mechanism, an
-   external platform/service integration, or a "how do mature products solve
-   this" design judgment requires **parallel research dispatch before the
-   decision rounds** — typically two briefs (repo precedent + external
-   product survey). Purely internal small changes record
-   `research: not-needed` + one-line reason on the issue/PRD. The floor's
-   backstop lives in shape: a PRD with neither research citations nor a
-   not-needed record is refused. Unverified industry-practice claims
-   ("X and Y both do it") are never a decision basis without a research
-   artifact.
-   Clarification (2026-10-22): before recommending a new mechanism/tool
-   surface, research how mature implementations solve the same user task,
-   verify this project's additional constraints rather than assuming every
-   custom mechanism is necessary, and put reuse/adapt/build conclusions and
-   minimal custom scope into the decision. Findings must affect the choice,
-   not merely produce a bibliography; independent questions determine fan-out.
-2. **Brief-as-contract.** The dispatch prompt states the task — question,
-   sources, output path, return shape — and the leaf honors exactly what it
-   declares. `rope-explore` returns map.md-style facts by default; a brief
-   that names a findings output under `.rope/research/` switches the return
-   to path + ≤300-word summary + confidence. A requirement the leaf could
-   not meet goes in the return under `unknowns` with what was attempted —
-   never silently dropped. Explore default thinking rises `low → medium`:
-   at `low`, cheap leaves returned empty on research briefs.
-3. **Must dispatch, parallel by default.** Dispatch is the mandated path
-   wherever the rules name a leaf: every E2E journey runs as a
-   `rope-e2e-runner` dispatch, parallel when resource-disjoint. The parent
-   never substitutes itself for a dispatch that failed or returned empty —
-   that is the documented failure mode, not a fallback.
-4. **Parent writes no product/test code** during go and E2E. Every code
-   change rides an implementer brief; course correction = rewrite brief +
-   re-dispatch. "Small" mid-E2E fixes by the parent are equally violations.
-   Clarification (2026-10-22): default unknown searches, call-chain tracing
-   and diagnosis to explore before the cause is known; parent retains short
-   known-location reads, decisive evidence checks, contract interpretation
-   and scope decisions. Delegate substantive baseline/integration execution
-   and log summarization to existing leaves, while parent selects scope,
-   handles failures and owns stack lifecycle. No tool-count threshold,
-   additional role, or replacement of assembled acceptance by slice self-tests.
-5. **Per-round crystallize.** A grill decision confirmed in a round is
-   written to `.rope/` in that same round; a confirmed decision still living
-   only in chat when its round ends is a violation.
-6. **Narrow-first slicing.** The fresh-context window is a re-cut ceiling,
-   not a sizing target: cut the smallest independently verifiable behavior
-   with its own demo path; more, thinner slices beat fewer packed ones.
+1. **调研底线：**新机制、外部集成或成熟产品做法判断，在决策前并行调研，通常仓库先例与外部调查两份。纯内部小改记 research: not-needed 和理由。shape 无引用 / 免调研记录则拒绝 PRD。无调研产物的行业实践不能作依据。2026-10-22 澄清：先查成熟实现如何完成同任务，再核项目额外约束，不能认为已有自建就必需；决策写复用 / 改造 / 自建及最小剩余范围，结论必须影响选择，不只列书目，独立问题决定并行数量。
+2. **简报即契约：**明确问题、来源、路径、返回，叶子逐项履行。explore 默认 map 式事实；指定 research 输出则返回路径、≤300 词摘要、置信度。无法满足要求写 unknowns 及尝试，不默删。explore 默认 low 升 medium，因廉价叶子 low 时会空返回。
+3. **必须派发，默认并行：**规则点名叶子处必须派发，每条 E2E 都用 runner，资源不相交并行。父编排器不能代替失败 / 空叶子，这本身是已知失败模式。
+4. **go/E2E 父编排器不写产品 / 测试：**所有修改走实现简报，纠偏改简报再派，“小修”也不例外。2026-10-22 澄清：原因未知时默认搜索、调用链、诊断先交 explore；父保留已知位置短读、关键证据核验、契约解释、范围决定。基线 / 集成执行与日志摘要交已有叶子，父选范围、处置失败、管服务生命周期。不设工具次数、不加角色、不用片测代替组装验收。
+5. **当轮沉淀：**已确认决定同轮写知识层，轮终仍只留聊天即违规。
+6. **默认窄切：**全新窗口是重切上限，不是填满目标；切最小独立可验证且有演示路径的行为，宁多薄、不少满。
 
-Explicitly **not** adopted (user decision 2026-09-29): no mechanical
-re-dispatch protocol for dead/empty leaves; no evidence-void rules beyond
-ADR 0015's existing ones; no tightening of fix-round counts; no model-tier
-change for `rope-e2e-runner`; no fifth agent role.
+2026-09-29 明确**不采纳**：死 / 空叶子机械重派协议、超 ADR 0015 的证据作废规则、收紧修复轮次数、runner 模型等级变化、第五角色。
 
-## Context
+<a id="context"></a>
+## 背景
 
-A three-session audit
-(`.rope/research/grill-research-coverage-regression-audit.md`) found: grill
-research dispatch regressed to "only when the user insists" after 0016's
-slim-down deleted the step-2 dispatch directive; two sessions of parent
-self-implementation (≈6 compactions each, S0 overrun past its fix-round
-budget, 5 mid-E2E parent fixes); one E2E runner leaf dead on arrival with
-the parent driving the browser itself; decisions confirmed 09-24 written
-09-28; an S0 slice spanning runner+composition+registry+tests far past a
-fresh window. Precedent research
-(`.rope/research/dispatch-precedents/`: superpowers, gsd, Trellis,
-mattpocock skills) converged on: the brief is an executable contract;
-findings persist to disk and only paths return; no nested spawning;
-parent-side bounded escalation rather than leaf self-rescue.
+[三会话审计](../research/grill-research-coverage-regression-audit.md)发现：0016 删派发指令后调研退为用户坚持才做；两场父自实现各约六次压缩，S0 超修复预算，E2E 中五次父修复；runner 启动即死由父开浏览器接手；09-24 确认决定到 09-28 才落盘；S0 横跨 runner/组装/注册/测试超单窗。dispatch-precedents 中 superpowers、GSD、Trellis、Matt 的研究收敛于可执行简报、落盘只返路径、禁止嵌套、父侧有界升级。
 
-## Why this shape
+<a id="why-this-shape"></a>
+## 理由
 
-- The failures are one failure: dispatch discipline was permissive
-  ("prefer", "when wide") where it needed to be a floor, and the parent
-  always had a legal-looking self-serve alternative. Making dispatch
-  mandatory at the named joints and closing the parent's write path
-  removes the alternative without rebuilding 0016's retired machinery.
-- Precedents from three independent harnesses agree on brief-as-contract
-  and path-only returns; disagreeing parts (cheap-model defaults, fixed
-  fan-out counts, retry ladders) are exactly the parts the user declined —
-  judgment stays with the parent.
+所有失败同源：该设底线的地方只说“优先”“范围大时”，父总能找到似合法的自办替代。指定接口必须派发、关闭父写入面，即可修复，不恢复旧内核。三家先例一致支持简报和路径返回；低价模型、固定派发数、重试阶梯等分歧恰为用户拒绝部分，判断留父。
 
-## Consequences
+<a id="consequences"></a>
+## 后果
 
-- grill/shape/go skill texts gain hard floors and a backstop; explore
-  preset body + thinking change (regenerate harness presets to apply).
-- Parent sessions stay small: orchestration, briefs, merges, gates — no
-  implementation noise. Leaf failures surface as dispatch problems to
-  re-brief, not parent takeover.
-- Risk: over-dispatch on genuinely trivial work. Mitigation: the tiered
-  floor (not-needed record) and quick-path (ADR 0006) unchanged.
-- ADR 0011 item 8 wording ("brief-selected") reads now as brief-declared;
-  no other item changes.
+- grill/shape/go 加硬底线及兜底；explore 正文 / 思考变化需再生成预设。
+- 父上下文只留编排、简报、合并、授权；失败以派发问题重简报，不接管。
+- 琐碎工作过度派发风险，由 not-needed 分层和 quick 缓解。
+- 0011 第 8 项由“简报选择”改“简报声明”，其余不变。
 
-## Alternatives considered
+<a id="alternatives-considered"></a>
+## 考虑过的方案
 
-- New `rope-research` preset: rejected — mode discipline in the explore
-  body already covers it; a fifth role fragments the scanner/e2e preset
-  lineage.
-- Mechanical recovery protocol (dead-leaf re-dispatch rounds, quality
-  gates): rejected per user decision — parent judgment plus the
-  must-dispatch emphasis instead.
-- Restore 0016's dynamic research fan machinery: rejected — the regression
-  was textual (a deleted directive), not mechanical; text floors restore
-  the behavior without the retired kernel.
+- 新 rope-research：拒绝，explore 模式已有覆盖，第五角色割裂谱系。
+- 死叶子机械恢复 / 质量门：用户拒绝，保留父判断和强制派发。
+- 恢复 dynamic 调研 machinery：拒绝，回归是删文本，不是机制问题。
 
-## Context-protection clarification (2026-10-22)
+<a id="context-protection-clarification-2026-10-22"></a>
+## 上下文保护澄清（2026-10-22）
 
-Confirmed in [the parent-token retrospective](../issues/parent-token-retro/retro.md):
+[父上下文复盘](../issues/parent-token-retro/retro.md)确认：
 
-- Shape delegates source/consumer/test-seam/ownership/dependency facts, not
-  contract decisions, slicing, or complete issue-package writing. Parent
-  remains the author of PRD/tasks/E2E; delegated package drafting was declined.
-- The TDD playbook stays independent. Parent passes its verified installed
-  absolute path in implementer briefs (including corrections/generic fallback),
-  not its body; no global preset refresh is required. The upstream comparison
-  found no reason to add TDD policy; existing Rope acceptance/evidence
-  adaptations remain. Runtime owner: [brief contract](../../skills/rope-go/references/execution-rules.md#leaf-brief-contract-hard-budget).
-- Documentation maintenance belongs to clear, initial scaffolding to init.
-  `.rope/GLOSSARY.md` is the sole new glossary convention, not a root-level
-  file. Clear proposes content-preserving CONTEXT rename/consolidation and
-  active-reference repair through its existing approved batch; rename and
-  content cleanup are separate. Legacy content remains readable before
-  migration. Runtime owners: [current docs](../../skills/rope-clear/references/current-docs.md)
-  and [clear](../../skills/rope-clear/SKILL.md).
+- shape 委派来源、消费者、边界、归属、依赖事实，不委派契约、切片、完整包写作；父仍是 PRD/tasks/E2E 作者。
+- TDD 独立手册，父在实现简报含纠偏 / 通用回退中传已核实安装绝对路径，不传正文，无需刷新全局预设。上游比较未支持新增 TDD 策略，保留 Rope 验收 / 证据适配。运行归[简报契约](../../skills/rope-go/references/execution-rules.md#leaf-brief-contract-hard-budget)。
+- clear 维护文档，init 搭骨架。唯一新术语路径 .rope/GLOSSARY.md，非根目录。clear 按批准批次保留内容迁移 / 合并 CONTEXT、修有效入链；改名和内容清理分开，旧文迁移前可读。运行归[现行文档](../../skills/rope-clear/references/current-docs.md)和[clear](../../skills/rope-clear/SKILL.md)。
 
-These clarify existing dispatch/reader boundaries without restoring a kernel,
-adding fixed fan-out or an automatic installation/migration system. The
-approved per-task owner can be overridden by an explicit user instruction;
-this repository's skill edits were deliberately performed without subagents.
+这些只澄清已有派发 / 读者边界，不恢复内核、不加固定并行数或自动安装 / 迁移。用户明确指令可覆盖本任务分工；本仓技能编辑有意不使用子代理。

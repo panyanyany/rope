@@ -1,105 +1,59 @@
-# Rope Leaf Role Schema
+<a id="rope-leaf-role-schema"></a>
+# Rope 叶子角色契约
 
-Shared across harness writers. Parent/session role is **not** a preset row.
+供各宿主预设生成流程共用。父编排器 / 主会话不是预设角色。
 
-## Roles
+<a id="roles"></a>
+## 角色
 
-| Role key | Agent name | Job | Default tools (pi) | Default thinking |
+| 角色键 | 代理名 | 工作 | 默认工具（pi） | 默认思考级别 |
 | --- | --- | --- | --- | --- |
-| `implementer` | `rope-implementer` | Write, test, commit one unit of work from a self-contained brief | full write set: read, bash, edit, write, grep, find, ls (+ host equivalents) | `medium` |
-| `reviewer` | `rope-reviewer` | End-of-issue behavior acceptance: Matrix walk over the assembled diff + high-risk boundaries; verdict owner. Code-only — the Standards axis is a separate scanner leaf (below), the product run belongs to the runner | read-only: read, bash, grep, find, ls | `high` |
-| `runner` | `rope-e2e-runner` | E2E acceptance leaf: drives one real-entrypoint journey on the parent's shared stack; evidence, not fixes | read-only code + product surface: read, bash, grep, find, ls (+ the host browser family, e.g. `agent_browser*`, when present) | `low` |
-| `explore` | `rope-explore` | Investigation and validation without product-code edits; **research mode** (brief-declared): external sources + findings persisted to `.rope/research/` | **unrestricted** host tool surface (web/search/fetch + write included) — mode discipline lives in the agent body, never in tool restriction | `medium` |
+| `implementer` | `rope-implementer` | 按自包含简报实现、测试、提交一个工作单元 | 完整写工具：read、bash、edit、write、grep、find、ls 及宿主对应工具 | `medium` |
+| `reviewer` | `rope-reviewer` | 依据组装 diff 走行为矩阵和高风险边界，拥有验收结论；只读代码，规范轴归扫描器，产品运行归 runner | 只读：read、bash、grep、find、ls | `high` |
+| `runner` | `rope-e2e-runner` | 在父编排器共享服务栈走一条真实入口 E2E 旅程，只采证、不修复 | 代码只读及产品操作：read、bash、grep、find、ls，加宿主浏览器工具如 `agent_browser*` | `low` |
+| `explore` | `rope-explore` | 调查与验证，不改产品代码；简报声明调研模式时查外部来源并落盘 `.rope/research/` | 宿主工具**不限制**，含 web/search/fetch/write；模式纪律写在正文，不靠工具限制 | `medium` |
 
-## Shared leaf rules
+<a id="shared-leaf-rules"></a>
+## 共享叶子规则
 
-1. Receive a self-contained brief + artifact paths + acceptance criteria.
-2. Return a **short** summary plus paths/status only — not full traces.
-3. **Must not spawn other agents / subagents.** No nested orchestration.
-4. Do not expand scope beyond the brief.
-5. Prefer filesystem artifacts (issue package, git) over chat history.
+1. 接收自包含简报、产物路径、验收条件。
+2. 只返回**短摘要**、路径 / 状态，不返回完整执行轨迹。
+3. **禁止派生其他代理 / 子代理，不嵌套编排。**
+4. 不扩展简报范围。
+5. 优先文件产物（issue 包、git），不依赖聊天历史。
 
-Implementer bodies require reading brief-mapped effective spec/ADR sections
-before product/test edits and recording the ≤3-line Architecture landing
-(existing responsibility / public seam / preserved ownership-direction).
-Return actual source-reading record references, the pre-edit record reference, and applicable Constraint
-IDs checked. A source conflict stops the unit for parent resolution; slice-local
-convenience never silently changes an effective specification.
+实现者正文要求编辑产品 / 测试前读简报映射的生效 spec/ADR 章节，记录 ≤3 行架构落点：已有职责、公共边界、保留归属 / 方向。返回实际阅读记录、编辑前落点引用、已检查适用约束 ID。来源冲突停片交父编排器，局部便利不能默默改变生效规范。
 
-Reviewer bodies require reading the applicable bundle/source sections upfront
-and checking responsibility ownership, lifecycle, seams, dependency direction,
-and every exception-list/guard-rule delta against confirmed dispositions.
-Scanner briefs carry declared full architecture guard commands/evidence.
-Execution details: [architecture gates](../../rope-go/references/architecture-gates.md).
-These obligations must also travel in briefs so already-generated presets do
-not need a refresh to execute the contract.
+审查者先读适用包 / 来源章节，核查职责、生命周期、边界、依赖方向及每项例外 / 检查规则差异与已确认处置。扫描器简报带完整声明架构检查命令 / 证据。详见[架构检查](../../rope-go/references/architecture-gates.md)。这些义务也必须进入简报，保证旧预设无需刷新即可执行。
 
-## Exploration and validation handoff
+<a id="exploration-and-validation-handoff"></a>
+## 探索与验证交接
 
-- Default unknown-answer searches, call-chain tracing, and diagnosis to an
-  explore leaf. The parent may read a known location briefly and verify
-  decisive evidence; no tool-call quota decides the handoff.
-- Brief from symptoms: observed/expected behavior, reproduction entrypoint,
-  relevant contracts and the question. A diagnosed root cause or file-level
-  fix plan is not a dispatch prerequisite. The parent interprets findings,
-  decides scope/contract changes, and re-briefs incomplete investigations
-  instead of duplicating the leaf's search.
-- The parent selects validation scope and evidence reuse. Delegate substantive
-  baseline/integration checks to existing leaves; include the return contract
-  below in their briefs. Reuse an already assigned check where appropriate,
-  rather than add a worker for every command. Slice self-tests do not replace
-  assembled validation. Product journeys remain the E2E runner's job.
-- Check returns: tested commit and relevant environment, command, exit status,
-  pass/fail counts and failing items, full-log path, and blockers. Save full
-  logs at the briefed evidence location; return summaries, not traces. The
-  parent decides failure disposition; unknown failures follow the diagnosis
-  handoff above. Stack lifecycle remains parent-owned; check leaves do not
-  start/restart services or edit code/tests to make a check pass.
+- 未知答案搜索、调用链追踪、诊断默认交 explore。父编排器可短读已知位置并验证决定性证据，不设工具次数配额。
+- 从症状简报：观察 / 期望、复现入口、相关契约、问题。无需先诊断根因或制订逐文件修复计划。父编排器解释结论、定范围 / 契约变化，调查不完整则重写简报，不重复叶子搜索。
+- 父编排器选验证范围和证据复用，把实质基线 / 集成检查交已有叶子，简报含下述返回契约。可复用已分配检查，不为每条命令增派叶子。切片自测不替代组装验证，产品旅程仍归 E2E runner。
+- 检查返回：被测提交和相关环境、命令、退出状态、通过 / 失败统计及失败项、完整日志路径、阻塞。完整日志保存到指定证据路径，返回摘要。父编排器决定失败处置，未知失败按上述诊断交接。服务栈生命周期归父编排器，检查叶子不启停服务，也不改代码 / 测试以使检查通过。
 
-These obligations travel in briefs; existing presets and generic fallback
-workers must not depend on a preset refresh to follow them. The solo quick
-path retains its own execution boundary.
+义务通过简报传递，已有预设及通用回退叶子无需刷新。单人 quick 路径保留自身执行边界。
 
-## Parent override
+<a id="parent-override"></a>
+## 父编排器覆盖
 
-Presets pin default `model` + `thinking` (effort). The parent orchestrator may
-override either field at spawn when risk warrants. Hosts that ignore per-agent
-effort simply drop the field. Leaves do not self-pick effort as the primary
-strategy.
+预设固定默认 `model` 和 `thinking`（推理强度），父编排器可按风险在派生时覆盖。宿主忽略逐代理强度时省略该字段。叶子自行挑强度不是主要策略。
 
-## Naming
+<a id="naming"></a>
+## 命名
 
-Harness-native agent type names are exactly:
+宿主原生代理类型名必须为 `rope-implementer`、`rope-reviewer`、`rope-e2e-runner`、`rope-explore`。
 
-- `rope-implementer`
-- `rope-reviewer`
-- `rope-e2e-runner`
-- `rope-explore`
+外部调研是**由简报声明的 rope-explore 模式**，不是第五个代理。默认及扫描器派发保持只读，调研可 web/search，并只在 `.rope/research/**` 写一个结论产物。explore 预设不限制工具，行为纪律在正文；预设限制工具可能使调研模式无法落盘，只能回退通用叶子。宿主确实无法授予工具时，用通用叶子并记录类型，即声明偏离。
 
-External research is a **mode of `rope-explore`**, declared by the brief
-— the brief is the contract. It is not a fifth agent. Default and
-scanner dispatches stay
-read-only; a research brief may use web/search and write only a findings
-artifact under `.rope/research/**`. The explore preset is generated with
-an **unrestricted tool surface** — mode discipline lives in the agent
-body. Restricting tools at preset level can make research mode unreachable
-and force generic-worker fallbacks. If a host truly cannot grant the tools, run the
-research brief on a generic worker and record the type used
-(declared deviation).
+runner 是有意新增的第四种叶子，负责操作已启动产品的真实入口并采证，与代码判断和写代码分工独立。由此审查保持廉价只读，昂贵真实环境走查在审查后针对交付 HEAD 执行。runner 同样禁止派生。
 
-The `rope-e2e-runner` is a deliberate fourth leaf: its job —
-operating real entrypoints on a booted product and gathering evidence —
-is orthogonal to code judgment (reviewer) and code writing (implementer).
-Splitting it keeps the review gate read-only and cheap while the expensive
-real-environment walk runs once, after review, on the delivery HEAD. The
-no-spawn rule applies to it like every leaf.
+结束审查的**扫描器**是带规范简报的 `rope-explore`，无独立代理文件或清单角色，模型及思考级别沿用 explore。
 
-The end-of-issue **scanner leaf** is the `rope-explore` agent
-spawned with the Standards brief — no separate agent file, no manifest
-role; its model/thinking ride the explore preset.
-
-Spawn example (pi / pi-subagents):
+pi / pi-subagents 派生示例：
 
 ```text
-Agent({ subagent_type: "rope-implementer", prompt: "<brief>" })
+Agent({ subagent_type: "rope-implementer", prompt: "<简报>" })
 ```

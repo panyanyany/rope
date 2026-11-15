@@ -1,122 +1,80 @@
-# Acceptance-driven TDD (go implementer)
+<a id="acceptance-driven-tdd-go-implementer"></a>
+# 验收驱动 TDD（go 实现者）
 
-Rope couples **acceptance behavior** (what must be true for users/callers) with
-the red → green loop. This is the playbook for implementer leaves and for
-parent/reviewer checks. Not a standalone product skill.
+Rope 将**验收行为**（用户 / 调用者必须获得的结果）与 red → green 循环绑定。本手册供实现叶子及父编排器 / 审查者核对，不是独立产品技能。
 
-## Acceptance chain (do not skip layers)
+<a id="acceptance-chain-do-not-skip-layers"></a>
+## 验收链（不可跳层）
 
 ```text
-Public behavior / Matrix row  (acceptance — human language)
+Public behavior / 矩阵行（人类语言的验收要求）
         ↓
-Failing automated spec at an agreed seam  (red)
+在已定边界写失败自动化规范（red）
         ↓
-Minimal implementation  (green)
+最小实现（green）
         ↓
-Next acceptance in this slice  (repeat)
+本片下一项验收（重复）
         ↓
-Issue-level E2E + verify  (assembled behavior — not re-TDD of every unit)
+issue 级 E2E + verify（组装行为，不逐单元重做 TDD）
 ```
 
-- **Acceptance behavior**: the slice `Public behavior` sentence and the Behavior
-  Matrix rows this slice owns. Prefer domain words from `.rope/GLOSSARY.md`
-  (legacy lookup per [current documents](../../rope-clear/references/current-docs.md#project-language)).
-- **Spec test**: name and assert like a specification (“caller can …”, “user
-  sees …”), not like an implementation step.
-- **Minimal green**: only enough code to pass the current red; do not implement
-  the next acceptance “while you’re here.”
+- **验收行为：**切片的 `Public behavior` 句子及其拥有的行为矩阵行。优先用 `.rope/GLOSSARY.md` 术语，旧文档查找遵守[现行文档契约](../../rope-clear/references/current-docs.md#project-language)。
+- **规范测试：**名称与断言写成“调用者可以……”“用户看到……”，而非实现步骤。
+- **最小通过：**只写让当前 red 通过所需代码，不顺手实现下一项。
 
-Assembled-system failures (each slice green, whole issue broken) are why
-issue-level **behavior acceptance** (E2E / verify) exists. Slice TDD does not
-replace that.
+每片通过而整体失效，正是 issue 级**行为验收**存在的原因。切片 TDD 不能替代组装验收。
 
-## Seams (locked at shape)
+<a id="seams-locked-at-shape"></a>
+## 测试边界（shape 锁定）
 
-- Test **only** at seams listed in the issue `prd.md` **Testing Decisions**
-  (and slice brief). Prefer existing public boundaries; fewer is better.
-- **No new seam** during go without plan adjustment + human/shape confirmation.
-- Tests trigger and observe behavior through the seam's public interface —
-  not private methods, internal collaborators, or a side channel that bypasses
-  the interface (e.g. inspect stored rows instead of the public query).
-- When the *shape* of the seam's interface is itself in question — how deep
-  the module is, where the boundary belongs, what it exposes — that is a
-  design question, not a test question: consult the shared vocabulary in
-  [../../rope-shape/references/seam-design.md](../../rope-shape/references/seam-design.md),
-  and take it back to the parent as a plan adjustment rather than improvising
-  a second seam.
-- **UI seams bind the accessibility contract, not the DOM.** Locate elements
-  by role / accessible name / label, `data-testid` as fallback — never by CSS
-  selector, class name, or DOM structure. A style or markup refactor with
-  unchanged behavior must break zero tests.
+- **只**在 issue `prd.md` 的 **Testing Decisions** 及简报列出的边界测试。优先已有公共边界，越少越好。
+- go 期间**不新增边界**，除非调整计划并经人工 / shape 确认。
+- 通过边界公共接口触发、观察行为，不测私有方法、内部协作者或绕接口的旁路，例如绕公共查询直接看存储行。
+- 若怀疑接口*形态*，如模块深度、边界位置、暴露内容，这是设计问题。查[边界设计](../../rope-shape/references/seam-design.md)，返回父编排器调整计划，不临时另造第二个边界。
+- **UI 边界绑定无障碍契约，不绑定 DOM。**按角色 / 可访问名称 / label 定位，`data-testid` 作回退；不按 CSS 选择器、类名、DOM 结构。行为不变的样式 / 标记重构不应破坏测试。
 
-## Rules of the loop
+<a id="rules-of-the-loop"></a>
+## 循环规则
 
-1. **Red before green.** Write or extend the failing test first. Run it; record
-   the failure. Then write only enough production code to pass.
-2. **One acceptance at a time** inside a slice. One seam focus, one logical
-   behavior, one minimal implementation per cycle. Then the next acceptance.
-   Do **not** write all tests for the slice then all implementation
-   (horizontal slicing).
-3. **Independent expected values.** Expected results come from the acceptance
-   / known literals / worked examples — not by re-running the production
-   algorithm in the test.
-4. **Refactoring is not the red→green job.** Tiny tidy after green is OK.
-   Behavior-preserving structural moves belong in review feedback or a separate
-   slice — not smuggled into “make green.”
-5. **Domain language.** Test names and assertions use glossary terms when
-   present; avoid naming tests after internal functions.
+1. **先 red 后 green：**先写或扩展失败测试，运行并记录失败，再写最少产品代码使其通过。
+2. **每次一个验收：**每轮一个边界焦点、一个逻辑行为、一个最小实现，再做下一个。不能先写全片测试再统一实现，即横向切片。
+3. **独立期望值：**来自验收要求、已知字面量、演算例子，不在测试里重跑产品算法得出期望。
+4. **重构不是 red→green 工作：**通过后可做极小整理；保行为结构调整放审查反馈或独立切片，不夹带进“让它通过”。
+5. **领域语言：**测试名和断言优先术语表，不按内部函数命名测试。
 
-## Anti-patterns (reject in review)
+<a id="anti-patterns-reject-in-review"></a>
+## 反模式（审查拒绝）
 
-| Anti-pattern | Tell |
+| 反模式 | 特征 |
 | --- | --- |
-| **Implementation-coupled** | Mocks internal modules, tests private APIs, or substitutes internal call-count/order asserts for observable results; locates UI by CSS selector / class / DOM structure; breaks on refactor with same behavior |
-| **Aesthetic-coupled** | Asserts computed styles or pixel values; breaks on a design change though every behavior holds |
-| **Tautological** | Expected value computed the same way as production (`expect(f(x)).toBe(sameAlgorithm(x))`) |
-| **Horizontal bulk tests** | All tests written before any green for this slice’s behaviors |
-| **Wrong seam** | Tests internals or a seam not on the shape-confirmed list |
-| **Green without red** | No evidence the new/changed test failed before implementation |
-| **Mocking own domain** | Mocks classes/modules you own instead of system boundaries |
+| **耦合实现** | 模拟内部模块、测私有 API，用调用次数 / 顺序代替可观察结果；按 CSS / 类 / DOM 定位；行为不变的重构仍破坏测试 |
+| **耦合审美** | 断言计算样式或像素，行为未变却因设计调整失败 |
+| **自证式测试** | 期望值与产品用同一算法计算，如 `expect(f(x)).toBe(sameAlgorithm(x))` |
+| **横向批量测试** | 全片所有测试都写完后才第一次 green |
+| **边界错误** | 测内部或 shape 未确认的边界 |
+| **无 red 的 green** | 没有实现前新 / 改测试失败的证据 |
+| **模拟自身领域** | 模拟自己拥有的类 / 模块，而非系统边界 |
 
-## Mocking
+<a id="mocking"></a>
+## 模拟
 
-Mock **system boundaries** only:
+只模拟**系统边界**：外部 HTTP/API、邮件、支付等；行为依赖的时间 / 随机性；仅在真实替身或临时数据库不切实际时模拟文件系统 / 数据库。
 
-- external HTTP/APIs, email, payment, etc.
-- time / randomness when behavior depends on them
-- filesystem or DB only when a real test double or scratch DB is impractical
+不模拟自己控制的内部协作者。优先运行真实边界；边缘使用易替换的狭窄 SDK 式端口。
 
-Do **not** mock internal collaborators you control. Prefer exercising the real
-seam; at boundaries prefer narrow SDK-style ports that are easy to fake.
+<a id="waived-slices-no-red-required"></a>
+## 豁免切片（无需 red）
 
-## Waived slices (no red required)
+red→green 需独立事实来源作为断言依据。以下两类没有合适依据，简报声明 `TDD: waived (<kind>)` 并说明验证方式：
 
-Red→green needs an independent source of truth to assert against. Two
-change families lack one and are waived instead — the brief sets
-`TDD: waived (<kind>)` plus how the slice is verified:
+- **docs-only：**技能正文、`.rope` 文档，无运行时行为；通读 / 结构清单验证。
+- **纯样式 UI：**颜色、间距、布局、视觉打磨，不改变矩阵行、交互、数据或状态承诺；用前后截图或人工查看验证。测试若强行固定审美期望，会成为自证或耦合审美。
 
-- **docs-only** (skill text, `.rope` docs, no runtime behavior): verified by
-  read-through / structural checklist.
-- **style-only UI change** (colors, spacing, layout, visual polish — no
-  Behavior Matrix row, interaction, data, or state claim changes): verified
-  by a screenshot artifact (before/after) or human look. Style has no
-  expected value a test can hold without becoming tautological or
-  aesthetic-coupled.
+触碰任一矩阵行、交互、数据、状态，改动再小也承载行为，必须 red→green。存疑时看 Public behavior：改前也成立的承诺，说明此改动只是样式。
 
-A change that touches any Matrix row, interaction, data, or state is
-behavior-bearing however small — it goes through red→green. When in doubt,
-the slice's Public behavior sentence decides: if it still held before the
-change, the change is style-only.
+<a id="parent--reviewer-evidence"></a>
+## 父编排器与审查者证据
 
-## Parent / reviewer evidence
+实现者摘要应包含验收文本、所用边界、red 命令及失败信号、green 命令及通过、测试与产品代码路径。
 
-Implementer summary should include:
-
-- acceptance text exercised
-- seam(s) used
-- red: command + failure signal
-- green: command + pass
-- paths of tests and production code
-
-Missing red evidence on a code-bearing slice → treat as implementation miss
-(re-brief), not as optional polish.
+承载代码的切片缺 red 证据，按实现遗漏重新简报，不当作可选打磨。

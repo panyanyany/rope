@@ -1,103 +1,42 @@
 ---
 name: rope-clear
-description: Organizes project documentation and migrates legacy .rope layouts to current conventions through an approved edit batch. Use for document cleanup, obsolete-rule triage, or knowledge-layer migration.
+description: 经批准的一批编辑，整理项目文档并将旧 .rope 布局迁移到现行约定。用于文档清理、过时规则辨别或知识层迁移。
 ---
 
-# Rope Clear
+<a id="rope-clear"></a>
+# Rope Clear：文档整理
 
-Organize project knowledge into current, correctly owned documents, not another
-summary of the mess. Includes legacy `.rope/CONTEXT.md` → `.rope/GLOSSARY.md`
-migration. This skill changes documents, not product behavior or architecture
-decisions; init remains responsible for initial scaffolding.
+把项目知识整理到当前有效且归属正确的文档，不再总结混乱本身。包含旧 `.rope/CONTEXT.md` → `.rope/GLOSSARY.md` 迁移。只改文档，不改产品行为或架构决策；初始骨架仍由 init 负责。
 
-## Workflow
+<a id="workflow"></a>
+## 工作流程
 
-1. **Bound the cleanup.** Read repo instructions and routes; identify the
-   glossary and requested paths using
-   [current documents](references/current-docs.md). Read relevant definitions
-   and source sections as needed, not the whole knowledge layer up front.
-   Inspect git status and identify tracked, modified,
-   untracked, and external/installed files. Default scope is this repo's
-   `.rope/` knowledge layer; list necessary inbound-reference repairs in the
-   batch, including root agent-doc links. Other expansion needs user agreement.
-   Record the scope in the existing work record. Done when every candidate's
-   ownership and preservation needs are known; user edits remain intact.
-2. **Establish current truth.** Read
-   [current documents](references/current-docs.md) before classifying hits.
-   Use explore for unknown source/usage lookups per the
-   [handoff contract](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff):
-   request scoped facts, owners, inbound references, evidence and unknowns;
-   the parent decides the batch and semantic conflicts. Check each candidate
-   against its status, scope, explicit replacements, relevant source/tests,
-   and Git history. Detect legacy glossary migration below. Classify: keep,
-   revise, relocate, deduplicate, retire reference, or unresolved. Age,
-   repetition, and filenames are clues, not proof. Done when each proposed
-   change cites evidence or an open question.
-3. **Approve a batch.** Present a compact table: path/section, problem,
-   evidence, proposed edit, preservation method, and reference checks.
-   Ask for one approval of the listed edits; resolve semantic conflicts with
-   concrete choices. A general cleanup request is not approval of unseen
-   deletions. Untracked content and dirty sections need an explicit retention
-   choice because Git may not preserve their current bytes. Done when the
-   approved rows and held rows are unambiguous.
-4. **Apply only approved rows.** Recheck the candidate content against the
-   approved version; intervening edits return that row for confirmation.
-   Revise current text in place, consolidate duplicate rules at their owner,
-   and repair affected inbound references. Keep formal ADR history with
-   accurate replacement/scope markers. Preserve unrelated edits and installed
-   copies; updating installations is a separate authorized operation.
-   An unresolved row holds only dependent edits. Done when every approved
-   row is applied or explicitly blocked, with no unapproved changes.
-5. **Verify the reading path.** Check modified links, statuses and surviving
-   references. Repeat the searches that exposed each obsolete rule; inspect
-   hits rather than demand zero historical matches. From current navigation,
-   read the replacement and verify its scope; for ADR history hits, confirm
-   the status/replacement identifies why the old rule is not current.
-   Read the diff for lost still-valid constraints. Done when every approved
-   row has evidence of the intended result or a reported blocker.
-6. **Close once.** Update the existing work record with changed paths,
-   verification, and unresolved rows. If no record exists, use one
-   `.rope/issues/<slug>/quick.md`; keep the inventory there, not a separate
-   report per finding. Report a concise diff summary. Commit only when
-   authorized by the user's task/workflow, including only approved changes.
+1. **限定范围：**读仓库指令和 routes，按[现行文档契约](references/current-docs.md)识别术语表及目标路径。按需读定义和来源章节，不预先通读知识层。检查 git 状态，区分已跟踪、已修改、未跟踪、外部 / 已安装文件。默认只处理本仓 `.rope/`；必要入链修复，包括根代理指令链接，列入批次，其他扩展需用户同意。范围写现有工作记录。完成标准：每候选归属、保留要求明确，用户编辑完整保留。
+2. **确认当前事实：**先读现行文档契约。未知来源 / 用法按[交接契约](../rope-harness-presets/references/role-schema.md#exploration-and-validation-handoff)交 explore，要求范围内事实、归属、入链、证据及未知项；父编排器决定批次和语义冲突。逐候选检查状态、范围、明确替代、相关源码 / 测试和 Git 历史，检测下述旧术语表迁移。分类为保留、修订、迁移、去重、退役引用、未解决。年代、重复、文件名只是线索。完成标准：每项提议有证据或待答问题。
+3. **批准一批：**用紧凑表格列路径 / 章节、问题、证据、建议编辑、保留方式、引用检查。对列明编辑请求一次批准；语义冲突给具体选择。笼统清理请求不代表批准未展示删除。未跟踪内容和未提交章节需明确保留选择，Git 未必有当前内容。完成标准：批准和暂缓行无歧义。
+4. **只应用已批准行：**核对内容仍与批准版本一致，中途变化重新确认该行。原位修订当前正文，在所属文档合并重复规则，修复入链。保留正式 ADR 历史，准确标记替代 / 范围。保留无关改动及已安装副本；安装更新另需授权。未解行只暂停依赖编辑。完成标准：批准行均应用或明确阻塞，无未批准变化。
+5. **验证阅读路径：**检查变更链接、状态、残留引用。重做发现过时规则的搜索，检查命中，不要求历史零命中。从当前导航读替代规则并核范围；历史 ADR 命中应有状态 / 替代，明确旧规则为何不生效。读 diff 检查仍有效约束是否丢失。完成标准：批准行均有预期结果证据或阻塞报告。
+6. **一次收尾：**现有工作记录补路径、验证、未解行。无记录时只建一个 `.rope/issues/<slug>/quick.md`，清单放其中，不为每个发现另建报告。报告简明 diff。仅在任务 / 流程已授权时提交，只含批准变化。
 
-## Legacy glossary migration
+<a id="legacy-glossary-migration"></a>
+## 旧术语表迁移
 
-Check for `.rope/CONTEXT.md` on every run, even when it is not the named
-cleanup target. Use the currently loaded Rope conventions, not an invented
-schema-version ladder:
+每次都检查 `.rope/CONTEXT.md`，即使用户没点名。按当前加载的 Rope 约定，不发明版本迁移阶梯：
 
-- **Only CONTEXT exists:** propose renaming it to `.rope/GLOSSARY.md`, preserving
-  all content, with current inbound-reference repairs in the same batch.
-- **Both exist:** compare content and ownership; propose consolidation at
-  `.rope/GLOSSARY.md`. Never overwrite either file or silently choose between
-  conflicting definitions. Hold dependent edits until the conflict is resolved.
-- **Only GLOSSARY exists:** no filename migration is needed. Do not create a
-  root-level glossary, a duplicate vocabulary, or a permanent CONTEXT alias.
+- **只有 CONTEXT：**提议保留全部内容、重命名为 GLOSSARY，同批修复当前入链。
+- **两者都有：**比较内容和归属，提议合并进 GLOSSARY。不能覆盖任一文件或默默选择冲突定义；冲突未决时暂停依赖编辑。
+- **只有 GLOSSARY：**无需改名，不建根目录术语表、重复词汇表或永久 CONTEXT 别名。
 
-The rename and content cleanup are separate edits. Long contracts, workflows
-and task evidence are not made glossary entries merely by renaming the file;
-propose their existing owners per current-docs. Preserve valid constraints,
-and approve any content removal/relocation through the normal batch. Update
-active instructions and links, including the repo's Rope agent-doc block;
-leave historical mentions intact when they describe history. Uneditable or
-out-of-scope active consumers are reported before removing the old entrypoint.
+改名与内容清理是不同编辑。长契约、流程、任务证据不会因改名自动成为术语，按 current-docs 提议其正确归属。保留有效约束；删除 / 移动内容仍经正常批次批准。更新活动指令及链接，包括根 Rope 区块；历史提及若描述历史则保留。旧入口删除前，报告无法编辑或范围外的活动消费者。
 
-## Examples
+<a id="examples"></a>
+## 示例
 
-- A spec contains both “old sessions retain snapshots” and “each turn reads
-  current settings.” Trace the accepted change; propose replacing the obsolete
-  paragraph and fixing its references. Without a decision, ask which behavior
-  must hold — current code alone cannot authorize a contract change.
-- Two guides repeat a live rule. Keep the rule at its owner and replace the
-  duplicate with a pointer. Git retains the committed previous text.
-- A superseded ADR matches grep. Retain its decision history, label its
-  superseded scope and replacement, and make current navigation lead to the
-  replacement. A raw grep hit is not an active instruction.
+- spec 同时说“旧会话保留快照”和“每轮读当前设置”：追踪已接受变更，提议替换旧段及引用。无决定时询问必须保证哪个行为，当前代码不能自动授权契约变化。
+- 两指南重复有效规则：规则留所属文档，另一处改链接；Git 保存已提交旧文。
+- 已替代 ADR 被 grep 命中：保留历史，标记已替代范围和来源，当前导航指向替代。裸 grep 命中不是活动指令。
 
-## Safety boundary
+<a id="safety-boundary"></a>
+## 安全边界
 
-No product-code changes, new architecture choices, blanket formatting,
-Git reset/clean, or automatic installation updates. Without Git history,
-preserve content until the user approves a retention method or deletion.
-If an approved change reveals a new conflict, return that row for a decision.
+不改产品代码、不做新架构选择、不全仓格式化、不 Git reset/clean、不自动更新安装。无 Git 历史时保留内容，直到用户批准保留方式或删除。批准编辑暴露新冲突时，只把对应行交回决策。

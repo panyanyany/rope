@@ -1,25 +1,28 @@
-# Integration Boundary Guide
+<a id="integration-boundary-guide"></a>
+# 集成边界指南
 
-Use this guide when work crosses package, process, network, filesystem, or
-human-operator boundaries.
+跨包、进程、网络、文件系统或人工运维边界时使用。
 
-## Purpose
+<a id="purpose"></a>
+## 目的
 
-- Keep unit seams and real integration paths distinct.
-- Decide what can be simulated versus what must be exercised live.
-- Make gate risk explicit before agents run write or remote actions.
+- 区分单元测试边界与真实集成路径。
+- 决定可模拟内容及必须真实执行的部分。
+- agent 写入或远程操作前明确授权风险。
 
-## Boundary Checklist
+<a id="boundary-checklist"></a>
+## 边界清单
 
-- Who owns the behavior under test, and who is only a collaborator?
-- Is the check hitting a real entrypoint or a convenient internal seam?
-- What side effects cross the boundary (files, network, credentials, UI state)?
-- What is safe to run as `agent`, what needs `agent-with-gate`, and what is `user` only?
-- What failure signal proves the boundary broke (exit code, log, artifact, UI)?
+- 谁拥有被测行为，谁只是协作者？
+- 检查走真实入口还是方便的内部边界？
+- 哪些副作用跨界：文件、网络、凭据、UI 状态？
+- 什么可 agent 运行、需 agent-with-gate、仅 user？
+- 何种信号证明边界破坏：退出码、日志、产物、UI？
 
-## Rules
+<a id="rules"></a>
+## 规则
 
-- Prefer the shallowest real boundary that still validates the contract.
-- Do not treat mocked collaborator success as proof of the real integration path.
-- For gated actions, record approved action, scope, pass criteria, and forbidden out-of-scope actions.
-- If a boundary cannot be exercised now, mark it `not-run` or blocked with an explicit reason — do not silently skip.
+- 选足以验证契约的最浅真实边界。
+- 模拟协作者成功不证明真实集成路径。
+- 授权动作记录已批动作、范围、通过标准、禁止越界行为。
+- 暂不能运行的边界明确 not-run 或阻塞并写理由，不默默跳过。
