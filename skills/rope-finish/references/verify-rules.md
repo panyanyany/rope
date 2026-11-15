@@ -59,4 +59,4 @@ PASS | CHANGES_REQUESTED | BLOCKED
 <a id="fix-loop"></a>
 ## 修复循环
 
-`CHANGES_REQUESTED` → 修复简报 → 父编排器派实现叶子 → 仅针对 must-fix 追加 Round N+1。must-fix 集合不变，或发现设计 / 需求缺陷，触发人工升级停止。
+结论为 `CHANGES_REQUESTED` 时，父编排器编写修复简报并派发实现叶子。修复后，只针对 must-fix 项追加 Round N+1。如果 must-fix 集合不变，或发现设计、需求缺陷，停止自动修复并交给用户决定。

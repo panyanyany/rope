@@ -1,6 +1,8 @@
 <a id="rope-grill-document-formats"></a>
 # Rope Grill 文档格式
 
+写入模板内容时，遵守[中文文档写作规则](content-design.md)。保留协议字段名和枚举值，使用中文说明具体要求。
+
 写入长期文档前，先读[现行文档契约](../../rope-clear/references/current-docs.md)。遵守原位替换与来源状态检查。下列格式用于选择归属，不能成为另建副本的理由。模板字段名保留英文，说明及填写内容使用中文。
 
 ## `.rope/GLOSSARY.md`
@@ -34,7 +36,7 @@ _Avoid_: <歧义同义词>, <错误用词>
 ```md
 # <决策标题>
 
-<用 1–3 句话交代背景、决定和原因。>
+<用 1–3 句话先说明决定和原因，再补充必要背景。>
 ```
 
 仅在有用时添加可选章节：`Status`（状态）、`Considered Options`（考虑过的方案）、`Consequences`（后果）。

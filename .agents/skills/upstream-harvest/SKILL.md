@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 比较已固定的 Matt Pocock 技能上游与上次已审版本，写人工审查简报、记录标记，**仅在人工明确关闭后**推进固定版本。这是本 Rope 仓库的 Upstream Harvest 维护流程，不是产品技能，不做文件合并或一次性迁移。
 
+编写审查简报时，遵守[中文文档写作规则](../../../skills/rope-grill/references/content-design.md)。先说明需要审查的变化，再列证据、建议和待人工决定的事项。
+
 <a id="state-read-first"></a>
 ## 状态（先读）
 

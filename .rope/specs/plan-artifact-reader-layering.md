@@ -6,7 +6,7 @@
 <a id="readers"></a>
 ## 读者
 
-- **人读：**rope-grill 的 3–6 点回顾和 shape 的 3–5 点 Contract Note。通俗易扫读，必要时省略完整语法。
+- **人读：**rope-grill 的 3–6 点回顾和 shape 的 3–5 点 Contract Note。使用通俗、完整的中文，明确行为主体和结果。不得为缩短摘要而省略必要条件。写作要求见[内容设计规范](guides/content-design.md)。
 - **机器读：**PRD 行为契约、矩阵、约束包、任务、E2E 计划。结构化、按引用加载，不批量复制进聊天或叶子简报。
 
 <a id="contract-note"></a>

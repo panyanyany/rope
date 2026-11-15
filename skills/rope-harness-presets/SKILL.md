@@ -22,6 +22,8 @@ disable-model-invocation: true
 | [调研模式](references/explore-research-mode.md) | explore 外部调研 |
 | [退回率回放](references/bounce-rate-replay.md) | 规划模型选择测量协议 |
 
+写入说明、简报或记录时，遵守[中文文档写作规则](../rope-grill/references/content-design.md)。
+
 <a id="host-support"></a>
 ## 宿主支持
 

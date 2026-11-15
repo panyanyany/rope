@@ -7,11 +7,13 @@ disable-model-invocation: true
 <a id="rope-finish"></a>
 # Rope Finish：验证与收尾
 
-验证并关闭 Rope issue 包，不实现新功能。产品真实性及组装 diff 判断已在 go 的**issue 结束审查**完成，finish 不重新判断代码。
+核验交付记录，并关闭满足条件的 Rope issue 包。代码判断由 go 的 issue 结束审查负责，真实产品行为由随后的 E2E 验收证明。finish 依据这些记录核查完成条件。
 
 结论规则及 verify.md 格式：[验证规则](references/verify-rules.md)。
 最终状态检查与经验归档：[收尾清单](references/finish-checklist.md)。
 架构连续性字段：[架构连续性](../rope-shape/references/architecture-continuity.md)。
+
+写入说明、简报或记录时，遵守[中文文档写作规则](../rope-grill/references/content-design.md)。
 
 <a id="preconditions"></a>
 ## 前提
@@ -21,17 +23,23 @@ disable-model-invocation: true
 <a id="stage-1--verify-paperwork-gate-read-only"></a>
 ## 第一阶段：Verify（文书检查，只读）
 
-只做以下五项。只有 verify.md 已有 `Verdict: PASS` 轮次且此后无变化，才可跳过：
+依次检查以下五项。如果 verify.md 已有 `Verdict: PASS` 轮次，且此后状态没有变化，可以跳过本阶段：
 
-1. 结束审查确实执行：已记录结论行、运行 / 代理身份及修复轮次；`review_degraded` 带原因。
-2. 每个 E2E 项有终态：`agent_passed`、`user_confirmed`、`waived`、`blocked_on_gate`、`blocked_on_user`、`not_run_with_reason`。查找漂移：`agent_failed` / `pending` 是否未经复验就被算完成；应重跑或阻塞，不能默默接受。标为 user 而机制已被宿主工具覆盖的项目是分类漂移，退回 agent 执行。
-3. 各切片提交齐全，无无关未提交文件。
-4. 架构文书齐全：包就绪，每片有约束 ID、必读章节、实际来源阅读 / 编辑前架构落点证据，或有理由的不适用。漏做编辑前步骤需如实遗漏 / 补救记录及审查者接受，不能事后声称早已执行。核查接受代码状态上的完整声明架构检查证据、逐项例外差异理由及审查结果、已确认变更处置；集成合并另有候选 / 目标 / 协调记录。按[架构检查](../rope-go/references/architecture-gates.md)查记录，不查代码。
-5. 矩阵行指向已记录证据；抽查引用，不重跑。
+1. 确认结束审查已执行。记录必须包含结论行、运行或代理身份及修复轮次。如果存在 `review_degraded`，还必须有原因。
+2. 确认每个 E2E 项都有终态记录：`agent_passed`、`user_confirmed`、`waived`、`blocked_on_gate`、`blocked_on_user` 或 `not_run_with_reason`。如果 `agent_failed` 或 `pending` 未经复验就被算作完成，退回 go 重跑或保持阻塞。如果条目标为 user，但宿主工具已支持其验证机制，退回 agent 执行。终态不等于通过；关闭条件仍按验证规则检查。
+3. 核对每个切片的提交，并确认没有无关未提交文件。
+4. 按[架构检查](../rope-go/references/architecture-gates.md)核对架构记录，不重新审查代码。确认包已就绪，每片都有约束 ID、必读章节、实际来源阅读记录和编辑前架构落点证据；不适用时必须说明理由。如果遗漏了编辑前步骤，必须如实记录遗漏、补救及审查者接受结果，不得补写成已经提前完成。继续核对接受代码状态上的完整声明架构检查证据、逐项例外差异理由、审查结果和已确认的变更处置。集成合并还需有候选提交、目标提交和协调记录。
+5. 抽查行为矩阵行引用的证据。只核对已有记录，不重新运行验证。
 
 可把已有已核验证据直接补链到缺失文书字段，记入 Document Fixes Applied。禁止编造来源阅读、检查通过、例外批准或审查记录。
 
-按[验证规则](references/verify-rules.md)追加一轮：PASS 进入第二阶段；CHANGES_REQUESTED 回 go 修复循环，must-fix 集合不变则人工升级停止，缺约束回 shape；BLOCKED 停止并报告。旧包已有 PASS 且此后状态不变，无需新增轮次。
+按[验证规则](references/verify-rules.md)记录本轮结论：
+
+- `PASS`：进入第二阶段。
+- `CHANGES_REQUESTED`：返回 go 修复。如果 must-fix 集合不变，停止自动修复并交给用户决定；如果缺少约束，返回 shape。
+- `BLOCKED`：停止并报告阻塞。
+
+已有 `PASS` 且此后状态不变的旧包无需新增轮次。
 
 <a id="stage-2--closeout"></a>
 ## 第二阶段：收尾
@@ -47,7 +55,8 @@ disable-model-invocation: true
 9. 报告最终状态、文档终态及剩余阻塞 / 仅人工验证项。
 
 <a id="guardrails"></a>
-## 护栏
+<a id="护栏"></a>
+## 执行限制
 
 - 不通过读 diff 再判断代码质量，这是审查者工作。
 - 不编造 PASS；缺结论行是真问题，不是形式。

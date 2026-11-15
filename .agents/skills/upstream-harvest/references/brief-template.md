@@ -1,7 +1,7 @@
 <a id="审查-brief-模板"></a>
 # 审查简报模板
 
-brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
+将审查简报写入 `.rope/upstream/mattpocock-skills/reviews/`。写作遵守[中文文档写作规则](../../../../skills/rope-grill/references/content-design.md)。
 
 **语言：中文**（标题、摘要、逐 skill 对照、建议标记说明均用中文；路径、SHA、skill 名可保留原文标识）。
 
@@ -41,22 +41,22 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 ```markdown
 ## 基线说明
 
-首次钉住该上游（B1）。本 brief **必须**对 C1 high 做「上游 skill ↔ 本地 Rope 落点」对照，
-便于你判断以后要不要吸收；**不是**要求你立刻全部 adopt 的推销清单。
-真正按上游 commit 区间扫变更，从**下一次** Delta 开始。
+首次记录该上游版本（B1）。本简报必须逐项比较 C1 high 上游技能与对应的本地 Rope 技能，
+说明流程差异及是否值得采用。建议标记供人工审查，不代表已经采用。
+从下一次 Delta 开始，按上游 commit 区间检查变更。
 
 ## 摘要
 
 - 已审 tip / shortsha
 - C1 high 数量；重命名/缺失（如有）
-- 相对本地：整体像「已大量分叉 / 部分可借 / 仅同名」一句话
+- 相对本地：用一句话说明整体关系：已大量分叉、部分可借用或仅名称相同
 
 ## 逐 skill 对照（C1 high，必填）
 
 ### `<matt-skill>` → `<本地 Rope 路径>`
 
 - 上游路径：`skills/<bucket>/<name>/…`
-- 上游在做什么：（3～8 句中文，抓流程/门禁/产物，勿贴全文）
+- 上游在做什么：（用 3～8 句中文说明流程、执行条件和产物，不复制全文）
 - 本地现状：（对应 Rope skill 当前职责，3～8 句中文）
 - **差异要点：**（条目列表：本地已覆盖 / 上游多出来的 / 语义冲突 / 命名变更）
 - 可选建议标记：adopt | adapt | ignore | watch | _（仅建议，可留空）_
@@ -150,7 +150,7 @@ brief 写入 `.rope/upstream/mattpocock-skills/reviews/`。
 <a id="clean-no-optip--last"></a>
 ### 无变化即结束（tip == last）
 
-可用中文短报，不必硬写空 delta 文件：
+用中文简要报告结果，无需创建空的 delta 文件：
 
 ```text
 Delta 无变更：origin/<branch> tip 与 last-reviewed-sha 相同（<full sha>）。

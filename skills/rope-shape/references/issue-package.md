@@ -1,6 +1,8 @@
 <a id="rope-issue-package-template"></a>
 # Rope issue 包模板
 
+填写 issue 包时，遵守[中文文档写作规则](../../rope-grill/references/content-design.md)。保留协议字段名和枚举值，使用中文说明具体要求。
+
 <a id="directory"></a>
 ## 目录
 
@@ -168,9 +170,9 @@ Execution mode: worktree | shared   # shape 探测；go 使用，可降级但须
 - Conflicts / changed dispositions: <解决结果及所需用户确认引用；或 none>
 ```
 
-大小上限通用于所有切片，必须装进一个全新上下文窗口；超出就在 shape 重切，不能超量交付。
+所有切片都必须能在一个全新上下文窗口内完成。超出大小上限时，在 shape 阶段重新拆分，不得带着超量切片进入交付。
 
-Architecture landing（架构落点）最多三行：复用的已有职责、使用的公共边界、保留的所有权 / 依赖方向。实现者读来源后、写代码前记录，并作为证据返回。`none` 必须有核验后的不适用理由。这不是第二轮批准。见[整包就绪检查](architecture-continuity.md#package-readiness-gate)。
+Architecture landing（架构落点）最多三行，说明复用的已有职责、使用的公共边界，以及保留的职责归属和依赖方向。实现者必须在读完来源后、写代码前记录，并将记录作为证据返回。填写 `none` 时，必须附已核验的不适用理由。该记录不增加批准轮次。见[整包就绪检查](architecture-continuity.md#package-readiness-gate)。
 
 `Verification` 默认**聚焦**于本片可能影响的边界测试和检查，耗时应为秒而非分钟。全量套件属于 **issue 级**检查（go 基线回退、结束组装检查）；写进切片会让每个叶子承担全包成本。保行为重构若需完整安全网，在 Testing Decisions 说明理由，并在 issue 级执行，不逐片运行。
 

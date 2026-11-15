@@ -1,6 +1,8 @@
 <a id="rope-init-templates"></a>
 # Rope Init 初始化模板
 
+填写初始化模板时，遵守[中文文档写作规则](../../rope-grill/references/content-design.md)。保留协议字段名和枚举值，使用中文说明具体要求。
+
 ## `.rope/GLOSSARY.md`
 
 ```md

@@ -9,7 +9,8 @@
 - 所有切片已完成或明确豁免。
 - 审查发现已解决或明确豁免。
 - E2E 均有终态：`agent_passed`、`user_confirmed`、`waived`、`blocked_on_gate`、`blocked_on_user`、`not_run_with_reason`。
-- 终态指带证据的**已记录结果**；finish 不重跑 go/verify 已记录通过的验证。
+- 终态表示执行结果已经记录，不一定表示通过。每个必需 E2E 项仍须有通过证据，或有用户逐项明确豁免；阻塞和未执行记录本身不满足关闭条件，见[E2E 交付门槛](../../rope-go/references/execution-rules.md#e2e-acceptance-stage-after-review-approve)。
+- finish 核查已有证据，不重跑 go/verify 已记录通过的验证。
 
 <a id="architecture-documentation-closure"></a>
 ## 架构文档闭环
@@ -17,7 +18,7 @@
 读取 prd.md 的 Architecture Impact 与 Constraint Bundle。
 
 - 已确认 `pending-finish` 是收尾工作，不是 verify 失败。
-- 按已有归属安排更新：难逆转、意外且有取舍的决策进 ADR；稳定实现契约 / 易踩坑进 spec；领域术语进术语表；外部事实进 research。
+- 按已有归属安排更新：将难以逆转、脱离上下文会令人意外且存在真实取舍的决定写入 ADR；将稳定实现契约和常见错误写入 spec，将领域术语写入术语表，将外部事实写入 research。
 - 已确认处置直接写入，保留来源状态、范围、不变量、例外边界、证据及失效条件。
 - 每个 `pending-finish` 替换为 `updated-existing`、`added-new`、`no-new-decision`、`exception-recorded` 之一。
 - 发现未确认架构变化则暂停请求处置，不编造例外，不带待办关闭。

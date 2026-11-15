@@ -5,6 +5,7 @@
 本仓库使用 `.rope/` 作为本地代理知识层。
 
 开展 shape 或实现前：
+
 - 读取 `.rope/CONTEXT.md` 了解项目语言。
 - 读取 `.rope/routes.md` 了解导航。
 - 改代码前读取相关 `.rope/specs/`。
@@ -27,3 +28,7 @@
 
 - 不可以直接改我全局的 skill（`~/.agents/skills/`）。要改全局 skill 时，
   先在本地改，我确认后再安装回全局。
+
+## 中文文档写作
+
+修改文档前，读取 [.rope/specs/guides/content-design.md](.rope/specs/guides/content-design.md)。按照 GOV.UK 内容设计方法组织信息，并采用 ASD-STE100 中可用于中文的清晰表达原则。先写读者的任务或结论，使用主动、完整的中文，明确执行者、条件和结果。保留协议字段、命令、路径及已有锚点；不得借文字整理改变流程要求。
