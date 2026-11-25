@@ -11,8 +11,8 @@ description: 审查本次改动集的可维护性，输出分级发现，并只�
 
 1. 确定审查范围。读取工作区改动；用户指定 base 或提交范围时，以用户指定为准。范围不明确时先问用户，不要自行假设。
 2. 委派子agent执行发现流程。按 [review-checks.md](references/review-checks.md) 检查改动及其上下游调用链，把发现写入 `.rope/reviews/<YYYY-MM-DD>-<head-sha>/findings.md`。然后输出总结报告。
-3. 委派子agent执行处置流程。重新读取 `findings.md`，按 [disposition-rules.md](references/disposition-rules.md) 给每项定级，把结果写入同目录的 `decisions.md`。
-4. 委派子agent重新读取 `decisions.md` 并实施修复。只修改必修和应修项。完成后报告已实施项、未实施项及原因。
+3. 重新读取 `findings.md`，按 [disposition-rules.md](references/disposition-rules.md) 给每项定级，把结果写入同目录的 `decisions.md`。
+4. 重新读取 `decisions.md` 并实施修复。只修改必修和应修项。完成后报告已实施项、未实施项及原因。
 
 ## 产物
 
