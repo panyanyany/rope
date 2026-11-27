@@ -1,6 +1,8 @@
 <a id="0007-graph-driven-go-and-single-end-of-issue-review"></a>
 # 0007 依赖图驱动 Go 与单次结束审查
 
+> 当前适用说明：人工确认、内部规划及 quick 路径选择以 [0018](0018-risk-based-approval-and-planning-autonomy.md) 为准。下文保留原始决定及背景；测试、审查和验收要求继续有效。
+
 **状态：**active。执行循环由 [0008](0008-slice-ready-worktree-execution.md)细化：波次仅共享模式回退，worktree 按切片就绪。审查机制由 [0010](0010-parallel-two-leaf-end-of-issue-review.md)细化为双并行只读叶子、一个审查点。替代 0003 可选模式和 0004 审查模式，扩展 0005 最小简报的 map 路径。
 
 日期：2026-08-22。

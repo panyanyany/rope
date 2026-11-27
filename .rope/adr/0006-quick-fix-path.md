@@ -1,6 +1,8 @@
 <a id="0006-quick-fix-path-rope-quick"></a>
 # 0006 小任务快速路径（rope-quick）
 
+> 当前适用说明：人工确认、内部规划及 quick 路径选择以 [0018](0018-risk-based-approval-and-planning-autonomy.md) 为准。下文保留原始决定及背景；测试、审查和验收要求继续有效。
+
 新增轻量入口：一个全新上下文窗口内的已诊断修复及小功能，由单模型完整执行 grill-lite → 红绿 / 测试先行 → 本地提交 → 同步知识层。不建完整包、不派叶子、不做 issue verify。
 
 > 2026-09-08 修订：范围从已诊断修复扩至任意单窗口小任务，原方向确认正式命名 grill-lite，停止线不变。

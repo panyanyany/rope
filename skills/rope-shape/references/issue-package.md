@@ -46,7 +46,7 @@
 ## Testing Decisions
 
 - Good test: 在已定边界观察外部行为，不检查实现细节
-- Seams under test: <shape 时与用户确认的公共接口；逐项说明可证明的行为及无法证明的部分，把真实环境限制映射到 e2e.md；接口足以证明行为即可，不必是系统顶层入口；选址有争议时参考 [seam-design.md](seam-design.md)>
+- Seams under test: <shape 根据契约及来源确定的公共接口；仅当选址影响行为或授权时请用户决定；逐项说明可证明的行为及无法证明的部分，把真实环境限制映射到 e2e.md；接口足以证明行为即可，不必是系统顶层入口；选址有争议时参考 [seam-design.md](seam-design.md)>
 - Prior art (optional): <仓库中相似测试的路径或模式>
 - Test scope: <受影响模块 / 消费者、所选命令、排除的套件及理由>
 - Contract sweep (only when the issue retires or re-keys a contract): <全测试树搜索的契约词汇、命中文件、在本 issue 迁移的命中项，以及具名排除项和理由>

@@ -1,6 +1,6 @@
 ---
 name: rope-quick
-description: 适合一个全新上下文窗口内完成的小任务，包括已诊断修复和小功能。单人会话先做 grill-lite（事实自检及一轮决策），在最近边界 red→green / 测试先行，本地提交并同步 .rope 文档。用户按名称调用，或交入准备好的简报时使用，常在 worktree 中执行。
+description: 适合一个全新上下文窗口内完成的小任务，包括已诊断修复和小功能。单人会话先做 grill-lite（事实自检及一轮决策），在最近边界 red→green / 测试先行，本地提交并同步 .rope 文档。用户按名称调用、交入准备好的简报，或父编排器核验风险和容量后选择此路径时使用，常在 worktree 中执行。
 disable-model-invocation: true
 ---
 
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 单人会话完成能装进**一个全新上下文窗口**的小任务：已诊断修复或小功能。由同一个代理依次完成 grill-lite 澄清、测试与实现、本地提交，以及 `.rope/` 文档同步。不建完整 issue 包、不派叶子、不做 issue 级 verify；用户负责验收。
 
-边界在于上下文容量，而非工作种类。需要并行切片、新架构决策或超出一窗口的上下文，就触发下方停止线，返回完整流程。
+选择 quick 时同时评估风险、不确定性和上下文容量，不能只按文件数或改动行数判断。需要并行切片、新架构决策或超出一窗口的上下文，就触发下方停止线，返回完整流程。
 
 写入说明、简报或记录时，遵守[中文文档写作规则](../rope-grill/references/content-design.md)。
 
@@ -19,7 +19,7 @@ disable-model-invocation: true
 1. 输入为简报文件，如仓库 / worktree 根目录的 `*-BRIEFING.md`，或直接问题描述。简报是待核验线索，不是结论。
 2. 加载 `.rope/GLOSSARY.md`（旧文档查找见[现行文档契约](../rope-clear/references/current-docs.md#project-language)）、`.rope/routes.md`、routes / 简报指向的 specs、adr、research，遵守 `AGENTS.md` / `CLAUDE.md`。
 3. worktree 中链接的共享资源，如 `.env.local`、`node_modules`、虚拟环境，只读，不能修改。
-4. 不另设入口门槛：用户声明 quick 即为入口决定。
+4. 用户可以指定 quick，父编排器也可以依据上述条件选择 quick 并告知原因；两种入口都必须检查停止线和既有授权。
 
 <a id="grill-lite-direction"></a>
 ## Grill-lite（明确方向）
@@ -27,7 +27,7 @@ disable-model-invocation: true
 改代码前，依次执行以下步骤：
 
 1. **事实自检：**打开指定文件，对照仓库核验简报关键事实及所述行为。简报只是线索；核验不符先告诉用户，之后才可改代码。
-2. **一轮决策：**只询问会改变实施方向的决定。每题提供推荐答案、具体例子和代价，优先使用结构化提问。需要第二轮决策时，应检查是否已经超出 quick 范围。
+2. **一轮决策：**只询问尚未确定、会改变行为、范围、重要取舍或授权的决定。已有指令足以确定方向时，记录依据并继续，不为满足轮次而提问。每题提供推荐答案、具体例子和代价，优先使用结构化提问。需要第二轮决策时，应检查是否已经超出 quick 范围。
 3. **记录：**把已确认事实和问答（问题 → 所选答案）写入 `quick.md`，作为本会话需求对齐及下次会话首读输入。同时确认方向可触及的文件和层级范围。
 
 <a id="stop-lines"></a>
